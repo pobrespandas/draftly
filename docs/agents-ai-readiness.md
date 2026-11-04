@@ -536,8 +536,8 @@ See [selection validation](agent-theme-selection-acceptance.md).
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-110 names in implemented or conditional handler sets. The other 27 names have
-no direct handler in those sets. These counts do not prove that 110 operations
+111 names in implemented or conditional handler sets. The other 26 names have
+no direct handler in those sets. These counts do not prove that 111 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -548,7 +548,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Themes | `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
+| Themes | `themes.replace`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
@@ -790,3 +790,10 @@ Full CI for prior source `cee030e` passed in
 [41877332833](https://github.com/pobrespandas/draftly/actions/runs/41877332833).
 Native build/tests, tooling, matrix, plan and the aggregate check all succeeded.
 The later direct theme selection source still needs its own CI acceptance.
+
+## Direct file-theme reload
+
+The preference effect host now connects `themes.reload`. It validates the current
+file definition token and advances the native presentation revision without
+changing selection or library definitions. See
+[reload evidence](agent-theme-reload-acceptance.md). Installed acceptance is open.

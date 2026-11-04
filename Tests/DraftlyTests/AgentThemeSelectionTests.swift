@@ -145,6 +145,89 @@ struct AgentThemeSelectionTests {
         }
     }
 
+    @Test(arguments: [false, true])
+    func reloadPreservesReferencesAndRejectsStaleFile(stale: Bool) async throws {
+        let fixture = try Fixture(); defer { fixture.close() }
+        let f = fixture.f, defaults = fixture.defaults
+        let url = fixture.root.appendingPathComponent("Reload.json")
+        var source = EditorThemeDefinition(name: "Reload café 🐼")
+        try JSONEncoder().encode(source).write(to: url)
+        let prepared = try ThemeFileAccess.prepare(url)
+        try ThemeFileAccess.install(prepared, in: f.library, defaults: defaults)
+        let target = AgentResourceReference(kind: .theme, id: prepared.definition.id)
+        defaults.set(Data("opaque preserved reference".utf8), forKey: EditorThemePreferences.key)
+        defaults.set(12, forKey: ThemeCatalog.revisionKey)
+        let references = defaults.data(forKey: EditorThemePreferences.key), themes = f.library.themes
+        let (connection, session) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead, .appearanceManage, .filesRead])
+        let version = try fixture.themeToken(target.id, session: session)
+        if stale { source.foreground = "ABCDEF"; try JSONEncoder().encode(source).write(to: url) }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.reload", targets: [target], expectedVersion: version)
+        let response = try f.send(request, session: session)
+        if stale {
+            #expect(response.outcome == .error(.versionConflict))
+            #expect(defaults.integer(forKey: ThemeCatalog.revisionKey) == 12)
+        } else {
+            guard case .accepted(let id, _) = response.outcome else { Issue.record("Missing reload"); return }
+            let result = try await fixture.wait(id, connection: connection.id)
+            #expect(result.state == .succeeded)
+            #expect(defaults.integer(forKey: ThemeCatalog.revisionKey) == 13)
+            source.foreground = "FEDCBA"; try JSONEncoder().encode(source).write(to: url)
+            guard case .object(let values) = result.result else { Issue.record("Missing result"); return }
+            #expect(try f.send(request, session: session).outcome == .result(.object(values)))
+            #expect(defaults.integer(forKey: ThemeCatalog.revisionKey) == 13)
+        }
+        #expect(defaults.data(forKey: EditorThemePreferences.key) == references)
+        #expect(f.library.themes == themes)
+    }
+
+    @Test func reloadInvalidatesTheWindowPresentationCache() async throws {
+        let fixture = try Fixture(); defer { fixture.close() }
+        let f = fixture.f, defaults = fixture.defaults
+        let url = fixture.root.appendingPathComponent("Visible.json")
+        var source = EditorThemeDefinition(name: "Visible café 🐼", background: "112233")
+        try JSONEncoder().encode(source).write(to: url)
+        let prepared = try ThemeFileAccess.prepare(url)
+        try ThemeFileAccess.install(prepared, in: f.library, defaults: defaults)
+        try EditorThemePreferences(defaults: defaults).set(reference: ["type": "file", "uuid": prepared.definition.id.uuidString], dark: false, themes: f.library.themes)
+        let model = WindowModel(library: f.library, dependencies: WindowDependencies(preferences: WindowPreferences(defaults: defaults)))
+        #expect(model.editorThemePresentation(systemIsDark: false).theme?.background == "112233")
+        source.background = "445566"; try JSONEncoder().encode(source).write(to: url)
+        #expect(model.editorThemePresentation(systemIsDark: false).theme?.background == "112233")
+        let target = AgentResourceReference(kind: .theme, id: prepared.definition.id)
+        let (connection, session) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead, .appearanceManage, .filesRead])
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.reload", targets: [target], expectedVersion: try fixture.themeToken(target.id, session: session))
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing reload"); return }
+        #expect(try await fixture.wait(id, connection: connection.id).state == .succeeded)
+        #expect(model.editorThemePresentation(systemIsDark: false).theme?.background == "445566")
+    }
+
+    @Test(arguments: ["scope", "files", "custom", "invalid", "renamed"])
+    func deniedReloadDoesNotChangePreferences(reason: String) throws {
+        let fixture = try Fixture(); defer { fixture.close() }
+        let f = fixture.f, defaults = fixture.defaults
+        let url = fixture.root.appendingPathComponent("Denied.json")
+        var source = EditorThemeDefinition(name: "Denied")
+        try JSONEncoder().encode(source).write(to: url)
+        let definition: EditorThemeDefinition
+        if reason == "custom" { try f.library.saveTheme(source); definition = source }
+        else {
+            let prepared = try ThemeFileAccess.prepare(url)
+            try ThemeFileAccess.install(prepared, in: f.library, defaults: defaults)
+            definition = prepared.definition
+        }
+        let target = AgentResourceReference(kind: .theme, id: definition.id)
+        let (_, readSession) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead, .filesRead])
+        let version = try fixture.themeToken(target.id, session: readSession)
+        if reason == "invalid" { try Data("invalid".utf8).write(to: url) }
+        if reason == "renamed" { source.name = "Changed name"; try JSONEncoder().encode(source).write(to: url) }
+        let caps: Set<AgentCapability> = reason == "files" ? [.appearanceRead, .appearanceManage] : [.appearanceRead, .appearanceManage, .filesRead]
+        let (_, session) = try f.connect(scope: .resources(reason == "scope" ? [] : [target]), capabilities: caps)
+        let before = defaults.persistentDomain(forName: f.editorDefaultsName) ?? [:]
+        let response = try f.send(AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.reload", targets: [target], expectedVersion: version), session: session)
+        guard case .error = response.outcome else { Issue.record("Reload must fail"); return }
+        #expect(NSDictionary(dictionary: defaults.persistentDomain(forName: f.editorDefaultsName) ?? [:]).isEqual(to: before))
+    }
+
     @Test(arguments: ["writeError", "stopWork"])
     func uncertainPreferenceWritesCannotBeRepeated(mode: String) async throws {
         let fixture = try Fixture(); defer { fixture.close() }

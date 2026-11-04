@@ -21,7 +21,7 @@ import AgentContracts
         if editorWrites != nil { handlers.insert(.editorWrite) }
         if workspaceApplication != nil { handlers.insert(.workspaceApply) }
         if preferenceWrites != nil { handlers.insert(.preferenceWrite) }
-        if preferenceStorage != nil { handlers.insert(.themeSelection) }
+        if preferenceStorage != nil { handlers.insert(.themePresentation) }
         if readActivity != nil { handlers.insert(.activityRead) }
         if operationRegistry != nil { handlers.insert(.operationControl) }
         if submitAction != nil { handlers.insert(.actionExecution) }
@@ -277,8 +277,8 @@ import AgentContracts
             let outcome: AgentResponse.Outcome
             if AgentNativeSchemas.operationNames.contains(request.operation) {
                 outcome = try submitNative(request, grant: grant, sessionID: session.id)
-            } else if AgentThemeSelection.operationNames.contains(request.operation) {
-                outcome = try submitThemeSelection(request, grant: grant, sessionID: session.id)
+            } else if AgentThemePresentation.operationNames.contains(request.operation) {
+                outcome = try submitThemePresentation(request, grant: grant, sessionID: session.id)
             } else if request.operation == "editor.open" {
                 outcome = try submitEditorOpen(request, grant: grant, sessionID: session.id)
             } else if ["editor.preview", "editor.navigate"].contains(request.operation) {
@@ -343,7 +343,7 @@ import AgentContracts
             let themeRead = AgentThemeReading.effectOperations.contains(request.operation)
             let syntaxExport = request.operation == "syntaxes.export"
             let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
-                || (AgentThemeSelection.operationNames.contains(request.operation) && preferenceStorage != nil && operationRegistry != nil)
+                || (AgentThemePresentation.operationNames.contains(request.operation) && preferenceStorage != nil && operationRegistry != nil)
             let reviewedNative = AgentNativeSchemas.operationNames.contains(request.operation) && nativeExecution != nil && operationRegistry != nil
             let editorPresentation = ["editor.preview", "editor.navigate", "editor.open"].contains(request.operation) && editorRegistry != nil && operationRegistry != nil
             guard reviewedAction || reviewedNative || (!humanApproval && (editorPresentation || preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
@@ -357,7 +357,7 @@ import AgentContracts
         return parameters
     }
 
-    private func submitThemeSelection(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+    private func submitThemePresentation(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
         guard let preferenceStorage, let operationRegistry else { throw AgentErrorCode.unavailable }
         try validateSession(sessionID, grant: grant)
         func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
@@ -372,7 +372,7 @@ import AgentContracts
         if let id = try operationRegistry.existingRequest(request, grant: grant) {
             return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
         }
-        _ = try AgentThemeSelection.prepare(request, grant: grant, defaults: preferenceDefaults,
+        _ = try AgentThemePresentation.prepare(request, grant: grant, defaults: preferenceDefaults,
             library: actionLibrary, reader: themes, authorize: { try self.validateSession(sessionID, grant: grant) })
         let validateOperation = operationAuthority(for: grant)
         let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] id in
@@ -381,18 +381,18 @@ import AgentContracts
             var submitted = false
             do {
                 try Task.checkCancellation(); try validateOperation()
-                let plan = try AgentThemeSelection.prepare(request, grant: grant, defaults: self.preferenceDefaults,
+                let plan = try AgentThemePresentation.prepare(request, grant: grant, defaults: self.preferenceDefaults,
                     library: self.actionLibrary, reader: self.themes, authorize: validateOperation)
                 let before = try preferenceStorage.snapshot()
                 let committed = try preferenceStorage.commit(plan.storage, against: before, validateCommit: {
                     try Task.checkCancellation(); try validateOperation()
-                    let current = try AgentThemeSelection.prepare(request, grant: grant, defaults: self.preferenceDefaults,
+                    let current = try AgentThemePresentation.prepare(request, grant: grant, defaults: self.preferenceDefaults,
                         library: self.actionLibrary, reader: self.themes, authorize: validateOperation)
                     guard current == plan else { throw AgentErrorCode.versionConflict }
                     try operationRegistry.recordEffect(id, effectID: effect, kind: request.operation, outcome: "submitted")
                     submitted = true
                 }, authorize: validateOperation)
-                let selection = try self.themes.selection(appearance: plan.appearance, grant: grant)
+                let selection = try plan.appearance.map { try self.themes.selection(appearance: $0, grant: grant) } ?? [:]
                 let result = try plan.result(selection)
                 try validateOperation(); try Task.checkCancellation()
                 guard try preferenceStorage.snapshot().version == committed.version else { throw AgentErrorCode.outcomeUnknown }

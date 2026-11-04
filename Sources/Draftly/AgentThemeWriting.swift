@@ -120,16 +120,21 @@ import DraftlyCore
     }
 }
 
-// Selection uses the app's reference rules and an atomic preference-domain write.
-@MainActor enum AgentThemeSelection {
-    static let operationNames: Set<String> = ["themes.select", "themes.selectBuiltIn"]
+// Presentation changes use an atomic preference-domain write.
+@MainActor enum AgentThemePresentation {
+    static let operationNames: Set<String> = ["themes.select", "themes.selectBuiltIn", "themes.reload"]
     struct Plan: Equatable {
-        let appearance: String
+        let appearance: String?
+        let reloadedVersion: String?
         let themeID: UUID?
         let name: String?
         let storage: [String: AgentPreferenceBatch.StoredValue]
 
         func result(_ selection: [String: AgentJSONValue]) throws -> [String: AgentJSONValue] {
+            if let reloadedVersion, let themeID {
+                return ["resource": .object(["id": .string(themeID.uuidString), "versionToken": .string(reloadedVersion)])]
+            }
+            guard let appearance else { throw AgentErrorCode.outcomeUnknown }
             guard case .object(let reference) = selection["reference"], let version = selection["versionToken"] else {
                 throw AgentErrorCode.outcomeUnknown
             }
@@ -149,6 +154,20 @@ import DraftlyCore
                         library: LibraryStore, reader: AgentThemeReading, authorize: () throws -> Void) throws -> Plan {
         guard operationNames.contains(request.operation), grant.capabilities.contains(.appearanceManage) else { throw AgentErrorCode.permissionDenied }
         let parameters = try AgentAppearanceSchemas.validatedParameters(for: request)
+        if request.operation == "themes.reload" {
+            guard grant.capabilities.contains(.filesRead) else { throw AgentErrorCode.permissionDenied }
+            guard request.targets.count == 1, let target = request.targets.first, target.kind == .theme else {
+                throw AgentErrorCode.invalidInput
+            }
+            try authorize()
+            let theme = try reader.definition(target.id, grant: grant, authorize: authorize)
+            guard theme.type == "file" else { throw AgentErrorCode.invalidInput }
+            let version = try reader.version(theme)
+            guard request.expectedVersion == version else { throw AgentErrorCode.versionConflict }
+            try authorize()
+            return Plan(appearance: nil, reloadedVersion: version, themeID: target.id, name: nil, storage: [
+                ThemeCatalog.revisionKey: .scalar(.integer(Int64(defaults.integer(forKey: ThemeCatalog.revisionKey) &+ 1)))])
+        }
         guard case .string(let appearance) = parameters["appearance"] else { throw AgentErrorCode.invalidInput }
         try authorize()
         guard try reader.selection(appearance: appearance, grant: grant)["versionToken"] == request.expectedVersion.map(AgentJSONValue.string) else {
@@ -180,7 +199,7 @@ import DraftlyCore
         } catch let error as AgentErrorCode { throw error }
         catch { throw AgentErrorCode.storageError }
         try authorize()
-        return Plan(appearance: appearance, themeID: themeID, name: name, storage: [
+        return Plan(appearance: appearance, reloadedVersion: nil, themeID: themeID, name: name, storage: [
             EditorThemePreferences.key: .data(data),
             ThemeCatalog.revisionKey: .scalar(.integer(Int64(defaults.integer(forKey: ThemeCatalog.revisionKey) &+ 1)))])
     }

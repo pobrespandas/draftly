@@ -3,6 +3,16 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Direct file-theme reload — 4 November
+
+Connected `themes.reload` to the native presentation revision. It checks the
+current authorized file token and preserves selection references and library
+definitions. Recovery does not reload again. Tests verify window cache refresh,
+stale file rejection, denied access and invalid or renamed files. Strict 2,688
+tests and native Debug passed. Source coverage is 111/137 connected or conditional
+names; 26 lack direct handlers. Installed acceptance and CI remain open. See
+[reload validation](agent-theme-reload-acceptance.md).
+
 ## Direct theme selection — 4 November
 
 Connected installed and built-in theme selection with separate selection/theme
