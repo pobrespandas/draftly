@@ -3,6 +3,14 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Theme deletion transaction foundation — 4 November
+
+Added an atomic theme-record deletion with its mutation receipt. All 24 focused
+receipt tests passed, including rollback and recovery after reopening. The direct
+handler remains unavailable. Human review and saved-bookmark cleanup still need
+integration. Coverage remains 111/137. See
+[deletion review](agent-theme-deletion-review.md).
+
 ## Direct file-theme reload — 4 November
 
 Connected `themes.reload` to the native presentation revision. It checks the

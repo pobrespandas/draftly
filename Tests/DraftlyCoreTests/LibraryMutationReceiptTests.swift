@@ -132,6 +132,28 @@ struct LibraryMutationReceiptTests {
         #expect(reopened.actions == [retained] && reopened.notes == [note])
     }
 
+    @Test func themeDeletionAndReceiptCommitTogetherAndRecoverAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let theme = EditorThemeDefinition(name: "Delete café 🐼"), retained = EditorThemeDefinition(name: "Keep")
+        let note = try library.createNote(content: "Preserve café 🐼")
+        try library.saveTheme(theme); try library.saveTheme(retained)
+        let mutation = identity(), resource = LibraryMutationReceipt.Resource(id: theme.id, versionToken: "deleted-version")
+        #expect(throws: (any Error).self) {
+            try library.commitThemeDeletion(theme.id, mutation: mutation, at: now, resource: resource,
+                validateCommit: { throw DraftlyError.message("Authority changed") })
+        }
+        #expect(Set(library.themes.map(\.id)) == [theme.id, retained.id])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitThemeDeletion(theme.id, mutation: mutation, at: now, resource: resource, validateCommit: {})
+        #expect(library.themes == [retained] && library.notes == [note])
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(try reopened.commitThemeDeletion(theme.id, mutation: mutation, at: now, resource: resource,
+            validateCommit: { Issue.record("Completed deletion must not execute again") }) == receipt)
+        #expect(reopened.themes == [retained] && reopened.notes == [note])
+    }
+
     @Test(arguments: ["General", "Projects"])
     func groupDeletionMovesMembersAndReceiptCommitsAtomically(name: String) throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
