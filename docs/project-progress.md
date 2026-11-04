@@ -2438,3 +2438,6 @@ PR #9 retains the separate first-staging recovery proposal. Its workflow
 conditions need review against the new preflight before integration. PR #11
 is now closed. Its source-link purpose is retained by the website follow-up.
 Old cancelled checks do not establish acceptance. Preserve both branches.
+
+The [operation retention review](agent-operation-retention-review.md) records
+the global-capacity reproduction and the requirements for a safe replacement.

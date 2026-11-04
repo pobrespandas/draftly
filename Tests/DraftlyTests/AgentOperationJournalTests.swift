@@ -300,6 +300,38 @@ struct AgentOperationJournalTests {
         #expect(try Data(contentsOf: path) == before)
     }
 
+    @Test func journalCapacityIsGlobalAndSurvivesConnectionReplacement() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        var first: (request: AgentRequest, operation: UUID)?
+        for _ in 0..<128 {
+            let request = AgentRequest(requestID: UUID(), libraryID: f.grant.libraryID,
+                operation: "actions.run", targets: f.request.targets,
+                expectedVersion: f.request.expectedVersion)
+            let operation = UUID()
+            _ = try journal.reserve(request, grant: f.grant, operationID: operation)
+            if first == nil { first = (request, operation) }
+        }
+        let replacement = AgentGrant(connectionID: UUID(), libraryID: f.grant.libraryID,
+            expiresAt: f.grant.expiresAt, capabilities: f.grant.capabilities, scope: f.grant.scope)
+        let request = AgentRequest(requestID: UUID(), libraryID: replacement.libraryID,
+            operation: "actions.run", targets: f.request.targets,
+            expectedVersion: f.request.expectedVersion)
+        let reopened = try AgentOperationJournal(parentDirectory: f.root)
+        let registry = AgentOperationRegistry(currentGrant: { id in
+            id == replacement.connectionID ? replacement : nil
+        }, validateHost: {}, isLocked: { false }, journal: reopened)
+        #expect(throws: AgentErrorCode.busy) {
+            try registry.startRequest(request, grant: replacement) { _ in
+                Issue.record("Full journal must not submit an effect")
+                throw AgentErrorCode.unavailable
+            }
+        }
+        let original = try #require(first)
+        let recovered = try reopened.reserve(original.request, grant: f.grant, operationID: UUID())
+        #expect(!recovered.isNew && recovered.record.operationID == original.operation)
+    }
+
     @Test(arguments: [false, true])
     func storageFailureAroundNativeHandoffCannotReplayAfterReopen(afterHandoff: Bool) async throws {
         let f = try Fixture(); defer { f.cleanup() }

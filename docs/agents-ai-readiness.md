@@ -695,3 +695,6 @@ passed for `882b945`, including the review correction.
 
 Implementation, integration, installed QA, and publication are separate gates.
 None of the checks above establishes a published agents feature.
+
+The [operation retention review](agent-operation-retention-review.md) records
+the global-capacity reproduction and the requirements for a safe replacement.
