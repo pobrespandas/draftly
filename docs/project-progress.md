@@ -3,6 +3,16 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Direct reviewed theme deletion — 4 November
+
+Connected `themes.delete` with app-owned destructive review and the stored token
+from `themes.list`. Source files and drafts remain. The durable record receipt
+prevents deletion of a replacement on recovery. Saved-bookmark cleanup follows
+the library commit; these stores are not one transaction. Strict 2,692 tests and
+native Debug passed. Coverage is 112/137 connected or conditional names; 25 lack
+direct handlers. Installed review and current-source CI remain open. See
+[deletion evidence](agent-theme-deletion-review.md).
+
 ## Theme deletion transaction foundation — 4 November
 
 Added an atomic theme-record deletion with its mutation receipt. All 24 focused

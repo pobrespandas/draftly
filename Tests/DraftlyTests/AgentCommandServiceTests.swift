@@ -649,6 +649,118 @@ struct AgentCommandServiceTests {
         #expect(try operations.existingRequest(request, grant: currentGrant) == id)
     }
 
+    @Test(arguments: ["approve", "deny", "cancel", "session", "change", "storage", "transport"])
+    func themeDeletionUsesAcceptedReviewAndTerminalResults(decision: String) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let action = EditorThemeDefinition(name: "Delete café 🐼")
+        try f.library.saveTheme(action)
+        let note = try f.note("Keep")
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals
+        f.service = try f.makeService(withoutEditors: true)
+        let (record, session) = try f.connect(scope: .resources([.init(kind: .theme, id: action.id)]),
+            capabilities: [.appearanceRead, .appearanceManage, .destructiveRequest])
+        let target = AgentResourceReference(kind: .theme, id: action.id)
+        let snapshot = try f.values("themes.get", session: session, targets: [target])
+        guard case .string(let version) = snapshot["versionToken"] else { Issue.record("Missing version"); return }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.delete",
+            targets: [target], expectedVersion: version)
+        let request = try f.preparedMutation(intent, session: session)
+        let accepted = try f.send(request, session: session)
+        guard case .accepted(let id, _) = accepted.outcome else { Issue.record("Missing accepted operation: \(accepted)"); return }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(f.library.themes == [action])
+        if decision == "cancel" {
+            let response = try f.response("operations.cancel", session: session, targets: [.init(kind: .operation, id: id)])
+            guard case .result = response.outcome else { Issue.record("Cancellation failed"); return }
+        } else if decision == "deny" { try approvals.denyFromUserInterface(review.id) }
+        else {
+            if decision == "session" { f.service.invalidateAll() }
+            if decision == "transport" { f.service.close(session) }
+            if decision == "change" {
+                var changed = action; changed.name = "Changed after review"
+                try f.library.saveTheme(changed)
+            }
+            if decision == "storage" { f.library.beforeBatchCommit = { throw DraftlyError.message("Storage failed") } }
+            try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        }
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let nextSession = ["session", "transport"].contains(decision)
+            ? try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id])) : session
+        let repeated = try f.send(request, session: nextSession)
+        if ["approve", "transport"].contains(decision) {
+            #expect(repeated.outcome == .result(.object(["deletedIDs": .array([.string(action.id.uuidString)])])))
+            #expect(f.library.themes.isEmpty)
+            try f.library.saveTheme(action)
+            let restarted = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+                validateHost: {}, isLocked: { false }, now: { f.wall })
+            defer { restarted.cancelAll() }
+            f.operations = restarted; f.service = try f.makeService(withoutEditors: true)
+            let newSession = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+            let recovery = try f.preparedMutation(intent, session: newSession)
+            let recoveryReply = try f.send(recovery, session: newSession)
+            guard case .accepted(let recoveryID, _) = recoveryReply.outcome else { Issue.record("Missing recovery operation"); return }
+            for _ in 0..<1000 where try !restarted.snapshot(recoveryID, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(1))
+            }
+            #expect(try f.send(recovery, session: newSession).outcome == repeated.outcome)
+            #expect(f.library.themes == [action] && approvals.pendingFromUserInterface().isEmpty)
+
+        } else {
+            let expected: AgentErrorCode = decision == "cancel" ? .cancelled :
+                decision == "change" ? .versionConflict : decision == "storage" ? .storageError : .permissionDenied
+            #expect(repeated.outcome == .error(expected))
+            #expect(f.library.themes.count == 1 && f.library.themes.first?.id == action.id)
+            #expect(f.library.themes.first?.name == (decision == "change" ? "Changed after review" : action.name))
+        }
+        #expect(f.library.notes == [note] && approvals.pendingFromUserInterface().isEmpty)
+        let currentGrant = try #require(try f.connections.grantForAuthenticatedConnection(record.id))
+        #expect(try operations.existingRequest(request, grant: currentGrant) == id)
+    }
+
+    @Test func fileThemeDeletionKeepsSourceAndRemovesOnlyItsBookmark() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("Theme.json")
+        let bytes = try JSONEncoder().encode(EditorThemeDefinition(name: "File café 🐼"))
+        try bytes.write(to: url)
+        let prepared = try ThemeFileAccess.prepare(url)
+        try ThemeFileAccess.install(prepared, in: f.library, defaults: defaults)
+        let key = ThemeFileAccess.bookmarkKey(for: prepared.definition.id)
+        #expect(defaults.data(forKey: key) != nil)
+        let otherKey = ThemeFileAccess.bookmarkKey(for: UUID())
+        defaults.set(Data("keep".utf8), forKey: otherKey)
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) }, validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals; f.service = try f.makeService(withoutEditors: true)
+        let target = AgentResourceReference(kind: .theme, id: prepared.definition.id)
+        let (record, session) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead, .appearanceManage, .destructiveRequest])
+        let listed = try f.values("themes.list", session: session)
+        guard case .array(let rows) = listed["items"], case .object(let row) = rows.first,
+              case .string(let version) = row["versionToken"] else { Issue.record("Missing stored token"); return }
+        let request = try f.preparedMutation(AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.delete", targets: [target], expectedVersion: version), session: session)
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing deletion"); return }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(review.effects.snapshot["deletesSourceFile"] == .bool(false))
+        try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal { await Task.yield() }
+        #expect(try operations.snapshot(id, connectionID: record.id).state == .succeeded)
+        #expect(f.library.themes.isEmpty && defaults.object(forKey: key) == nil)
+        #expect(defaults.data(forKey: otherKey) == Data("keep".utf8))
+        #expect(try Data(contentsOf: url) == bytes)
+    }
+
     @Test(arguments: ["General", "Projects"], ["approve", "deny", "cancel", "change", "storage"])
     func groupRemovalReviewsMemberMovesAndPreservesContent(name: String, decision: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }

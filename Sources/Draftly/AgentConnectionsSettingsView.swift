@@ -145,6 +145,7 @@ private struct AgentOperationReviewSheet: View {
     @State private var showTechnicalDetails = false
 
     private var nativeTitle: String? {
+        if review.operation == "themes.delete" { return "Delete Theme" }
         if review.operation == "workspaces.delete" { return "Delete Workspace" }
         if review.operation == "actions.delete" { return "Delete Action" }
         if review.operation == "actionGroups.delete" { return "Remove Action Group" }
@@ -170,6 +171,9 @@ private struct AgentOperationReviewSheet: View {
     }
 
     private var nativeFields: [(String, String)] {
+        if review.operation == "themes.delete", case .string(let name) = review.effects.snapshot["themeName"] {
+            return [("Theme", name), ("Effect", "Delete the installed theme and its saved file permission. Keep drafts and the source file.")]
+        }
         if review.operation == "workspaces.delete",
            case .string(let name) = review.effects.snapshot["workspaceName"] {
             return [("Workspace", name), ("Effect", "Delete the saved Workspace. Keep all drafts.")]
@@ -273,8 +277,8 @@ private struct AgentOperationReviewSheet: View {
                     if (try? model.decideOperation(review, approved: false)) != nil { dismiss() }
                 }
                 Group {
-                    if ["workspaces.delete", "actions.delete", "actionGroups.delete"].contains(review.operation) {
-                        Button(review.operation == "actions.delete" ? "Delete Action" : review.operation == "actionGroups.delete" ? "Remove Group" : "Delete Workspace", role: .destructive) {
+                    if ["workspaces.delete", "actions.delete", "actionGroups.delete", "themes.delete"].contains(review.operation) {
+                        Button(review.operation == "themes.delete" ? "Delete Theme" : review.operation == "actions.delete" ? "Delete Action" : review.operation == "actionGroups.delete" ? "Remove Group" : "Delete Workspace", role: .destructive) {
                             if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
                         }
                     } else {

@@ -536,8 +536,8 @@ See [selection validation](agent-theme-selection-acceptance.md).
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-111 names in implemented or conditional handler sets. The other 26 names have
-no direct handler in those sets. These counts do not prove that 111 operations
+112 names in implemented or conditional handler sets. The other 25 names have
+no direct handler in those sets. These counts do not prove that 112 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -548,7 +548,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Themes | `themes.replace`, `themes.install`, `themes.delete` |
+| Themes | `themes.replace`, `themes.install` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
@@ -797,3 +797,11 @@ The preference effect host now connects `themes.reload`. It validates the curren
 file definition token and advances the native presentation revision without
 changing selection or library definitions. See
 [reload evidence](agent-theme-reload-acceptance.md). Installed acceptance is open.
+
+## Direct theme deletion
+
+The host now connects `themes.delete` only with the app-owned review store and
+operation registry. Use the stored token from `themes.list`. The operation keeps
+drafts and source files, commits its deletion receipt with the record, and then
+removes the saved bookmark. See [deletion review](agent-theme-deletion-review.md)
+for cross-store limits and installed acceptance still required.
