@@ -179,6 +179,7 @@ import AgentLocalSecurity
     }
 
     func makeChatToolsFromUserInterface(capabilities: Set<AgentCapability>, targets: Set<AgentResourceReference>,
+                                       providerName: String = "ChatGPT",
                                        onRevocationError: @escaping @MainActor (Error) -> Void,
                                        validateContext: @escaping @MainActor () throws -> Void = {}) throws -> AgentChatToolSession {
         try requireReady()
@@ -186,7 +187,7 @@ import AgentLocalSecurity
               try resolveTargets(targets) == targets else { throw AgentErrorCode.permissionDenied }
         let permitted: Set<AgentCapability> = [.draftsRead, .draftsWrite, .editorRead, .editorWrite]
         guard capabilities.isSubset(of: permitted) else { throw AgentErrorCode.invalidInput }
-        let record = try connections.connectFromUserInterface(name: "Draftly Chat · ChatGPT", libraryID: libraryID,
+        let record = try connections.connectFromUserInterface(name: "Draftly Chat · " + String(providerName.prefix(80)), libraryID: libraryID,
             capabilities: capabilities, scope: .resources(targets), expiresAt: Date().addingTimeInterval(900))
         do {
             guard let credential = try readCredential(record.id) else { throw AgentErrorCode.permissionDenied }

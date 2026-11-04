@@ -205,19 +205,20 @@ final class AppController: ObservableObject {
         guard let host = agentHost, let library, model.library === library,
               let editors = cachedAgentEditors, host.isBound(to: library, editors: editors),
               let draftID = model.editor.noteID else { throw AgentErrorCode.unavailable }
-        guard model.chatConsole.chatGPTAccount?.isSignedIn == true,
-              model.chatConsole.selectedModel.hasPrefix("chatgpt:") else { throw AgentErrorCode.permissionDenied }
-        let accountEpoch = model.chatConsole.chatGPTAccount?.sessionEpoch
+        guard model.chatConsole.canConnectTools else { throw AgentErrorCode.permissionDenied }
+        let selectedModel = model.chatConsole.selectedModel
+        let accountEpoch = selectedModel.hasPrefix("chatgpt:") ? model.chatConsole.chatGPTAccount?.sessionEpoch : nil
+        let providerName = model.chatConsole.toolProviderName
         guard let window = try editors.windowSnapshots().first(where: { snapshot in
             snapshot.draftID == draftID && (try? editors.executionModels(draftID: draftID, windowID: snapshot.id)
                 .contains(where: { $0 === model })) == true
         }) else { throw AgentErrorCode.notFound }
         let alert = NSAlert()
         let title = String((model.currentNote?.title ?? "this draft").prefix(80))
-        alert.messageText = "Allow ChatGPT to use “\(title)”?"
-        alert.informativeText = "The selected draft and its editor content can be sent to your selected ChatGPT account. "
+        alert.messageText = "Allow \(providerName) to use “\(title)”?"
+        alert.informativeText = "The selected draft and its editor content can be " + model.chatConsole.toolDataDestination + ". "
             + "Access applies only to this draft and editor and expires in 15 minutes. "
-            + "Editing permits changes to this draft's text, tags, flags and versions. "
+            + "Editing permits changes to this draft's text, tags, flags, syntax, folder and versions. "
             + "You can disconnect from this chat or revoke access in Settings."
         alert.addButton(withTitle: "Allow Reading")
         alert.addButton(withTitle: "Allow Editing")
@@ -225,18 +226,21 @@ final class AppController: ObservableObject {
         let decision = alert.runModal()
         guard decision != .alertThirdButtonReturn else { throw AgentErrorCode.cancelled }
         guard decision == .alertFirstButtonReturn || decision == .alertSecondButtonReturn else { throw AgentErrorCode.cancelled }
-        guard model.editor.noteID == draftID, model.chatConsole.chatGPTAccount?.sessionEpoch == accountEpoch,
+        guard model.editor.noteID == draftID,
+              selectedModel.hasPrefix("chatgpt:") ? model.chatConsole.selectedModel.hasPrefix("chatgpt:") : model.chatConsole.selectedModel == selectedModel,
+              !selectedModel.hasPrefix("chatgpt:") || model.chatConsole.chatGPTAccount?.sessionEpoch == accountEpoch,
               try editors.executionModels(draftID: draftID, windowID: window.id).contains(where: { $0 === model }) else {
             throw AgentErrorCode.versionConflict
         }
         var capabilities: Set<AgentCapability> = [.draftsRead, .editorRead]
         if decision == .alertSecondButtonReturn { capabilities.formUnion([.draftsWrite, .editorWrite]) }
         return try host.makeChatToolsFromUserInterface(capabilities: capabilities,
-            targets: [.init(kind: .draft, id: draftID), .init(kind: .window, id: window.id)],
+            targets: [.init(kind: .draft, id: draftID), .init(kind: .window, id: window.id)], providerName: providerName,
             onRevocationError: { [weak model] error in model?.chatConsole.reportToolError(error) },
             validateContext: { [weak model] in
                 guard let model, model.editor.noteID == draftID,
-                      model.chatConsole.chatGPTAccount?.sessionEpoch == accountEpoch else {
+                      selectedModel.hasPrefix("chatgpt:") ? model.chatConsole.selectedModel.hasPrefix("chatgpt:") : model.chatConsole.selectedModel == selectedModel,
+                      !selectedModel.hasPrefix("chatgpt:") || model.chatConsole.chatGPTAccount?.sessionEpoch == accountEpoch else {
                     throw AgentErrorCode.permissionDenied
                 }
             })

@@ -73,8 +73,7 @@ struct ChatConsolePanel: View {
                 }
             } label: { Image(systemName: model.hasTools ? "wrench.and.screwdriver.fill" : "wrench.and.screwdriver") }
                 .help(model.hasTools ? "Disconnect Draftly tools" : (connectTools == nil ? toolsUnavailableReason : "Connect Draftly tools"))
-                .disabled(!model.hasTools && (connectTools == nil || !model.selectedModel.hasPrefix("chatgpt:")
-                    || model.chatGPTAccount?.isSignedIn != true))
+                .disabled(!model.hasTools && (connectTools == nil || !model.canConnectTools))
 
             Button { showChatGPTAccount = true } label: { Image(systemName: "person.crop.circle") }
                 .help("ChatGPT Account")

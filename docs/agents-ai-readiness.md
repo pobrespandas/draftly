@@ -45,7 +45,7 @@ agent pairing and grants.
 | Restart | Account and conversation persistence are connected. A new host does not start a listener automatically. | The signed QA retained account and conversation after process exit. Access remained off. | A follow-up signed QA from `2ea267b` retained the selected ChatGPT model after verified process exit. Tools stayed disconnected and access stayed off. Other model/provider restart paths remain pending. Test permission and result recovery for the remaining operations. |
 | Normal startup and lock | Builds with a bundled helper now construct an idle host outside QA. The default admission check requires a known console session, completed login, and protected data. Suspension notifications invalidate access before their main-thread callback returns. | Prior installed QA started with access off. Signed isolated QA exercised shared startup, lock suspension, explicit resume, one-second sleep, and unavailable-session restart. | Real screen lock, sleep/wake, initial locked startup, and explicit resume. Protected-data availability is not a guarantee of graphical unlock. |
 | Distribution | App and helper profiles and signatures are checked. | Both ran installed with matching Developer ID identities. | Combined notarization, final release packaging, architecture checks, signed updates, and post-update CLI/MCP sessions. |
-| Apple Intelligence | Available on-device and Cloud choices are connected through the native model adapter. | Both choices appeared in this QA. An earlier isolated QA checked an on-device reply. | Availability is separate from inference. Cloud inference and tool integration need their own acceptance. |
+| Apple Intelligence | On-device and eligible Cloud modes use the same scoped local tool session as ChatGPT. Cloud requires the signed PCC entitlement and runtime availability. | A real on-device model read the expected neutral Unicode draft through the gateway in an isolated fixture. Native tool argument tests also prepared and applied one scoped edit. | Installed read/write, real-model edit decisions, live inference cancellation, Cloud eligibility and distribution, and Cloud inference. |
 
 The signed session used neutral data in a temporary library with iCloud off.
 The normal library was not opened. The QA exited and its original shared
@@ -226,6 +226,30 @@ a later user edit. New draft receipt tokens now match the first reader version.
 The final run passed 270 tests across 13 suites. The normal native build passed.
 Full CI, installed merge acceptance, and process-restart acceptance remain open.
 
+## Apple model tool bridge
+
+The console can attach tools to Apple models without a ChatGPT account. Model
+names and data destinations appear in native consent. Changing the provider or Apple mode
+revokes the prior connection. The response-scoped adapter uses the current
+shared tool catalog and checks authorization again at execution. It has bounded
+calls, a monotonic deadline, and cancellation checks across asynchronous reads.
+The routine run reported 222 tests in nine app suites and three in one contract
+suite, with the opt-in live probe disabled. A separate explicit on-device probe
+passed using a neutral in-memory fixture. It verified an actual read and the
+expected content. This is not installed-app or Cloud acceptance. The normal
+native build and two project-generator checks passed.
+
+Cloud access is conditional. Apple's [PCC access requirements](https://developer.apple.com/private-cloud-compute/)
+require Small Business Program membership, fewer than two million first-time
+App Store downloads, and an assigned managed entitlement. The documented routes
+are App Store distribution and TestFlight or ad hoc tests. Developer ID website
+distribution is not accepted as a compatible Cloud route by this project.
+Account eligibility and approval have not been verified. The production mode
+list now checks the actual signed entitlement as well as model availability.
+No managed entitlement was added. Read [Apple's server-model guide](https://developer.apple.com/documentation/foundationmodels/adding-server-side-intelligence-with-private-cloud-compute)
+for the platform and quota rules. Keep Cloud inference and tools in the goal;
+the on-device result does not close that requirement.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
@@ -305,6 +329,7 @@ pending.
 | Local host and connection registry | Local lifetime, grants, pairing, credentials, suspension, and revocation. |
 | MCP and CLI adapters | Protocol framing and dispatch through the authenticated app service. |
 | ChatGPT provider | Model authentication, streamed inference, and function-call continuation. |
+| Apple model adapter | Native model inference and response-scoped tool callbacks through the same authorized service. |
 | Chat tool session | The approved local session, exact library binding, current context checks, and duplicate-call rejection. |
 | Native consent and effect review | The person's grant decision and any separate one-use effect approval. |
 

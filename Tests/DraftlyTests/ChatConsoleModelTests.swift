@@ -131,6 +131,45 @@ struct ChatConsoleModelTests {
         #expect(!model.isResponding)
     }
 
+    @Test func appleToolsDoNotRequireAChatGPTAccountAndSwitchingModelsRevokesThem() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let apple = AppleChatResponder(generate: { _, _, bridge in
+            try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id))
+        })
+        let model = ChatConsoleModel(loadModes: { ["onDevice", "pcc"] }, respond: { _, _ in
+            Issue.record("Attached tools were bypassed")
+            return "Wrong route"
+        }, defaults: isolatedDefaults(), respondWithTools: { prompt, mode, session in
+            try await apple.respond(prompt: prompt, mode: mode, session: session)
+        })
+        defer { model.close() }
+        await model.loadModels()
+        #expect(model.chatGPTAccount == nil && model.canConnectTools)
+        #expect(model.toolDataDestination.contains("this Mac"))
+        var revoked = 0
+        let session = AgentChatToolSession(backend: runtime.backend, onDisconnect: { revoked += 1 })
+        try model.connectTools(session)
+        model.prompt = "Read the neutral draft"; model.send()
+        for _ in 0..<1000 where model.isResponding { await Task.yield() }
+        #expect(!model.isResponding && model.errorMessage == nil)
+        #expect(model.selectedConversation?.messages.last?.text.contains(runtime.allowed.content) == true)
+        #expect(model.hasTools)
+        model.selectedModel = "pcc"
+        #expect(!model.hasTools && revoked == 1)
+        #expect(model.toolDataDestination.contains("Private Cloud Compute"))
+        await #expect(throws: AgentErrorCode.cancelled) { try await session.tools() }
+    }
+
+    @Test func anAppleChoiceWithoutTheAuthorizedAdapterCannotAttachTools() async throws {
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "Text only" }, defaults: isolatedDefaults())
+        defer { model.close() }
+        await model.loadModels()
+        let tools = AgentChatToolSession(backend: { _ in Issue.record("Unexpected tool request"); throw CancellationError() })
+        #expect(!model.canConnectTools)
+        #expect(throws: AgentErrorCode.permissionDenied) { try model.connectTools(tools) }
+        #expect(!model.hasTools)
+    }
+
     @Test func rejectedToolAttachmentClosesTheIncomingSession() throws {
         let model = ChatConsoleModel(loadModes: { [] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults())
         var closes = 0
@@ -155,7 +194,7 @@ struct ChatConsoleModelTests {
         defaults.set([record.id.uuidString], forKey: "chatGPT.registrationIDs")
         defaults.set(record.id.uuidString, forKey: "chatGPT.selectedID")
         let provider = ChatGPTProvider(exchange: { _ in
-            .init(status: 200, data: Data(#"{"models":[{"slug":"model-a","display_name":"Test model","visibility":"list"}]}"#.utf8))
+            .init(status: 200, data: Data(#"{"models":[{"slug":"model-a","display_name":"Test model","visibility":"list"},{"slug":"model-b","display_name":"Second model","visibility":"list"}]}"#.utf8))
         }, stream: { _, event in
             _ = try event(Data(#"{"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"Reply café"}]}]}}"#.utf8))
         })
@@ -166,7 +205,7 @@ struct ChatConsoleModelTests {
                                      defaults: defaults, chatGPTAccount: account)
         defer { model.close() }
         await model.loadModels()
-        #expect(model.availableModels == ["chatgpt:model-a"])
+        #expect(model.availableModels == ["chatgpt:model-a", "chatgpt:model-b"])
         #expect(model.modelName(model.selectedModel) == "ChatGPT · Test model")
         let runtime = try AgentChatToolSessionTests.Runtime()
         var toolDisconnects = 0
@@ -179,10 +218,12 @@ struct ChatConsoleModelTests {
         while model.isResponding, ContinuousClock.now < deadline { await Task.yield() }
         #expect(model.errorMessage == nil)
         #expect(model.selectedConversation?.messages.map(\.text) == ["Neutral café", "Reply café"])
+        model.selectedModel = "chatgpt:model-b"
+        #expect(model.hasTools && toolDisconnects == 0)
         await account.signOut()
         #expect(!model.hasTools && toolDisconnects == 1)
         model.prompt = "Keep this prompt"; model.send()
         #expect(!model.canSend && model.prompt == "Keep this prompt")
-        #expect(model.selectedModel == "chatgpt:model-a" && appleCalls == 0)
+        #expect(model.selectedModel == "chatgpt:model-b" && appleCalls == 0)
     }
 }

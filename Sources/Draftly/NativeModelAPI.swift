@@ -27,11 +27,7 @@ import DraftlyCore
         sessions.removeAll(); backend?.clear()
     }
     func perform(_ operation: String, _ values: [String: Any]) throws -> Any {
-        var modes: [String] = []
-        if FoundationModels.SystemLanguageModel.default.isAvailable { modes.append("onDevice") }
-        #if compiler(>=6.4)
-        if #available(macOS 27, *), PrivateCloudComputeLanguageModel().isAvailable { modes.append("pcc") }
-        #endif
+        let modes = AppleModelAccess.modes()
         if operation == "modelModes" { return modes }
         let mode = values["mode"] as? String ?? "onDevice"
         guard modes.contains(mode) else { throw DraftlyError.message("The selected Apple Intelligence model is unavailable on this Mac.") }
@@ -82,18 +78,36 @@ import DraftlyCore
                     return try self.performTool(operation, json: json, sessionID: id)
                 })
             }
-            if mode == "pcc" {
-                #if compiler(>=6.4)
-                if #available(macOS 27, *) { session = LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions) }
-                else { throw DraftlyError.message("Private Cloud Compute requires macOS 27.") }
-                #else
-                throw DraftlyError.message("Private Cloud Compute is unavailable in this build.")
-                #endif
-            } else { session = LanguageModelSession(model: FoundationModels.SystemLanguageModel.default, tools: tools, instructions: instructions) }
+            session = try languageSession(mode: mode, tools: tools, instructions: instructions)
             toolLifetimes[id] = lifetime
             sessions[id] = session
         }
         return session
+    }
+
+    private func languageSession(mode: String, tools: [any Tool], instructions: String) throws -> LanguageModelSession {
+        if mode == "pcc" {
+            #if compiler(>=6.4)
+            if #available(macOS 27, *) { return LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions) }
+            #endif
+            throw DraftlyError.message("Private Cloud Compute is unavailable in this build.")
+        }
+        return LanguageModelSession(model: SystemLanguageModel.default, tools: tools, instructions: instructions)
+    }
+
+    func respondAuthorized(prompt: String, mode: String, tools: [any Tool]) async throws -> String {
+        guard availableModes().contains(mode) else { throw DraftlyError.message("The selected Apple Intelligence model is unavailable on this Mac.") }
+        let id = UUID().uuidString
+        defer { discardSession(id) }
+        sessions[id] = try languageSession(mode: mode, tools: tools,
+            instructions: "Use draftly_tools to inspect authorized operation schemas. To execute, call draftly_call: put the target operation in name, resource references in targets, and only operation-specific parameters in parametersJSON. Omit parametersJSON for a simple draft read. Never claim a change without a successful result. Never replay unknown outcomes.")
+        let bytes = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id])
+        let raw = try await performAsync("modelRespond", payload: String(decoding: bytes, as: UTF8.self))
+        guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
+              let result = frame["value"] as? [String: Any], let response = result["response"] as? String else {
+            throw ChatConsoleError.invalidModelResponse
+        }
+        return response
     }
 
     func discardSession(_ id: String) {
@@ -112,12 +126,7 @@ import DraftlyCore
 
     private func availableModes() -> [String] {
         if let backend { return backend.modes() }
-        var modes: [String] = []
-        if FoundationModels.SystemLanguageModel.default.isAvailable { modes.append("onDevice") }
-        #if compiler(>=6.4)
-        if #available(macOS 27, *), PrivateCloudComputeLanguageModel().isAvailable { modes.append("pcc") }
-        #endif
-        return modes
+        return AppleModelAccess.modes()
     }
 
     func performAsync(_ operation: String, payload: String) async throws -> String {

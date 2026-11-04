@@ -35,6 +35,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     static let selectedModelKey = "chatConsole.selectedModel"
     typealias LoadModes = @MainActor () async throws -> [String]
     typealias Respond = @MainActor (_ prompt: String, _ mode: String) async throws -> String
+    typealias RespondWithTools = @MainActor (String, String, AgentChatToolSession) async throws -> String
 
     @Published private(set) var conversations: [ChatConsoleConversation] = []
     @Published private(set) var selectedConversationID: UUID?
@@ -44,7 +45,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
             guard oldValue != selectedModel else { return }
             defaults.set(selectedModel, forKey: Self.selectedModelKey)
             stopCurrentResponse()
-            if !selectedModel.hasPrefix("chatgpt:") { disconnectTools() }
+            if !oldValue.hasPrefix("chatgpt:") || !selectedModel.hasPrefix("chatgpt:") { disconnectTools() }
         }
     }
     @Published private(set) var hasTools = false
@@ -56,6 +57,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 
     private let loadModes: LoadModes
     private let respond: Respond
+    private let respondWithTools: RespondWithTools?
     private let defaults: UserDefaults
     private var responseTask: Task<Void, Never>?
     private var responseID: UUID?
@@ -70,13 +72,35 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
             && (!selectedModel.hasPrefix("chatgpt:") || (chatGPTAccount?.isSignedIn == true && chatGPTAccount?.isBusy == false))
     }
 
+    var canConnectTools: Bool {
+        guard availableModels.contains(selectedModel), !isResponding else { return false }
+        if ["onDevice", "pcc"].contains(selectedModel) { return respondWithTools != nil }
+        return selectedModel.hasPrefix("chatgpt:") && chatGPTAccount?.isSignedIn == true && chatGPTAccount?.isBusy == false
+    }
+
+    var toolProviderName: String {
+        switch selectedModel {
+        case "onDevice": "Apple Intelligence On-Device"
+        case "pcc": "Apple Intelligence Cloud"
+        default: "ChatGPT"
+        }
+    }
+
+    var toolDataDestination: String {
+        switch selectedModel {
+        case "onDevice": "processed by Apple Intelligence on this Mac"
+        case "pcc": "sent to Apple's Private Cloud Compute"
+        default: "sent to your selected ChatGPT account"
+        }
+    }
+
     var selectedConversation: ChatConsoleConversation? {
         conversations.first { $0.id == selectedConversationID }
     }
 
     init(loadModes: @escaping LoadModes, respond: @escaping Respond, defaults: UserDefaults = .standard,
-         chatGPTAccount: ChatGPTAccountModel? = nil) {
-        self.loadModes = loadModes; self.respond = respond; self.defaults = defaults
+         chatGPTAccount: ChatGPTAccountModel? = nil, respondWithTools: RespondWithTools? = nil) {
+        self.loadModes = loadModes; self.respond = respond; self.respondWithTools = respondWithTools; self.defaults = defaults
         self.chatGPTAccount = chatGPTAccount
         if let savedModel = defaults.string(forKey: Self.selectedModelKey), !savedModel.isEmpty {
             selectedModel = savedModel
@@ -105,6 +129,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     }
 
     convenience init(models: NativeModelAPI) {
+        let apple = AppleChatResponder()
         self.init(loadModes: {
             let raw = try await models.performAsync("modelModes", payload: "{}")
             guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
@@ -119,7 +144,8 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
                   let value = frame["value"] as? [String: Any],
                   let response = value["response"] as? String else { throw ChatConsoleError.invalidModelResponse }
             return response
-        }, defaults: AgentQAConfiguration.chatDefaults ?? .standard, chatGPTAccount: .shared)
+        }, defaults: AgentQAConfiguration.chatDefaults ?? .standard, chatGPTAccount: .shared,
+            respondWithTools: { prompt, mode, tools in try await apple.respond(prompt: prompt, mode: mode, session: tools) })
     }
 
     func loadModels() async {
@@ -198,6 +224,9 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
                         guard let self, self.responseID == id else { return }
                         self.streamingText = text
                     }
+                } else if let tools {
+                    guard let respondWithTools else { throw AgentErrorCode.unavailable }
+                    answer = try await respondWithTools(context, mode, tools)
                 } else { answer = try await respond(context, mode) }
                 try Task.checkCancellation()
                 guard responseID == id else { return }
@@ -215,7 +244,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     }
 
     func connectTools(_ session: AgentChatToolSession) throws {
-        guard selectedModel.hasPrefix("chatgpt:"), chatGPTAccount?.isSignedIn == true else {
+        guard canConnectTools else {
             session.invalidate()
             throw AgentErrorCode.permissionDenied
         }

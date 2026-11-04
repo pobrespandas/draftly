@@ -1003,3 +1003,36 @@ merge again or overwrite later edits. An ended session, changed source version,
 conflicting editor, or storage error before commit prevents partial storage.
 Service recreation is covered by tests. Installed process-restart acceptance
 remains separate. Read a fresh version before a new write after a host restart.
+
+
+### Authorized Apple chat tools
+
+Apple chat uses `AgentChatToolSession`. It does not attach the legacy
+`ScriptModelTool` callbacks. Its two native tools provide discovery and request
+execution. Tool names are constrained to the authorized catalog. Common fields
+such as targets, versions, request IDs, and retry keys use native generation
+schemas. Only operation-specific parameters use `parametersJSON`. The local
+service validates the reconstructed request with the shared CLI/MCP contract.
+
+The adapter rechecks its response lifetime across asynchronous catalog reads.
+Response completion, cancellation, or its monotonic deadline closes later calls.
+Each response has at most 32 adapter calls, including initial discovery. Closing
+a response does not undo an effect that already committed. The adapter does not
+automatically replay an uncertain write. A new response can use a still-valid
+connection; a provider, Apple mode, or conversation change disconnects it.
+
+The native permission dialog names the provider and destination. Apple models
+need no ChatGPT login. Cloud is listed only when both its signed managed
+entitlement and runtime availability are present. Account eligibility and a
+compatible distribution channel remain required; see
+[Apple's PCC access requirements](https://developer.apple.com/private-cloud-compute/).
+
+The real on-device probe is opt-in and uses only neutral in-memory fixture data:
+
+```sh
+DRAFTLY_APPLE_LIVE_QA=1 swift test --no-parallel --jobs 1 --filter onDeviceInferenceReadsOnlyTheNeutralFixtureThroughTheGateway
+```
+
+The probe checks a real `drafts.get` and the expected Unicode response. It does
+not establish installed application acceptance, real-model editing, inference
+cancellation, or Cloud access. Routine test runs leave it disabled.

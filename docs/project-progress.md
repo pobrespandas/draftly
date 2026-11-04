@@ -3,6 +3,42 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Apple chat through authorized tools — 4 November
+
+Apple chat modes now attach the same authenticated local tool session as ChatGPT.
+The native adapter discovers only the current grant's tool names. It generates
+common request fields natively and carries operation parameters as exact JSON
+text. The app service still validates each complete request. Legacy script-model
+callbacks are not connected to this chat path. Each response has a bounded tool
+budget and a monotonic deadline. Cancellation or response completion closes its
+callbacks. Checks also run across asynchronous catalog reads.
+
+The permission dialog and activity connection name identify the selected
+provider and data destination. A provider or Apple mode change disconnects the old tools. Apple
+chat needs no ChatGPT account. Cloud choices require the real signed PCC
+entitlement and runtime availability; no entitlement was added to this project.
+
+Real on-device inference read the neutral allowed draft through the gateway.
+The opt-in test passed in 7.384 seconds on macOS 27.2. It required an actual
+`drafts.get` call and the expected Unicode content. It used only an isolated
+in-memory library. No installed QA grant or user-library access was created.
+Early probes exposed a wrong catalog name and an 8,192-token context limit.
+Constrained tool names and native request fields resolved the successful probe.
+
+The routine run reported 222 tests across nine app suites and three tests in
+one contract suite. Its opt-in live test was disabled; the live result above
+came from a separate explicit run. Tests cover scoped reads, typed native-tool
+write preparation, receipt recovery, later editor text, cancellation during
+catalog lookup, late callbacks, budgets, and model changes. Two generator checks
+and the normal native build passed. The prior full CI for `1378c36` passed in
+[41793052970](https://github.com/pobrespandas/draftly/actions/runs/41793052970).
+Full CI for this increment is pending.
+
+Installed Apple read/write, real-model edit decisions, and live inference
+cancellation remain open. Cloud eligibility, compatible distribution, and Cloud
+inference are not accepted. The 69 connected or conditional operation names and
+68 missing direct handlers are unchanged. All broader readiness gates remain.
+
 ## Atomic draft merge — 4 November
 
 Connected `drafts.merge`. It requires library scope, all source draft versions,

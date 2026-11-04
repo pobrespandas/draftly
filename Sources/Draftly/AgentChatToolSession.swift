@@ -44,24 +44,25 @@ import AgentContracts
         notify?()
     }
 
-    func tools() async throws -> [AgentAvailableTools.Definition] {
-        try await catalog().definitions
+    func tools(validateExecution: () throws -> Void = {}) async throws -> [AgentAvailableTools.Definition] {
+        try await catalog(validateExecution: validateExecution).definitions
     }
 
-    func execute(callID: String, tool: String, argumentsJSON: String) async throws -> String {
-        try check()
+    func execute(callID: String, tool: String, argumentsJSON: String,
+                 validateExecution: () throws -> Void = {}) async throws -> String {
+        try check(validateExecution)
         guard !inFlight else { throw AgentErrorCode.busy }
         guard !callID.isEmpty, callID.utf8.count <= 256,
               !usedCalls.contains(callID), usedCalls.count < 256 else { throw AgentErrorCode.invalidInput }
         inFlight = true
         defer { inFlight = false }
-        let current = try await catalog()
+        let current = try await catalog(validateExecution: validateExecution)
         let request = try current.request(tool: tool, argumentsJSON: argumentsJSON)
-        try check()
+        try check(validateExecution)
         // Reserve identity before dispatch. An uncertain result cannot trigger replay.
         usedCalls.insert(callID)
         let response = try await backend(request)
-        try check()
+        try check(validateExecution)
         guard response.requestID == request.requestID else { throw AgentErrorCode.unavailable }
         if case .error(let code) = response.outcome,
            [.permissionDenied, .cancelled].contains(code) { throw code }
@@ -70,26 +71,27 @@ import AgentContracts
         return String(decoding: data, as: UTF8.self)
     }
 
-    private func catalog() async throws -> AgentAvailableTools {
-        let capabilities = try await read("server.capabilities")
-        let schemas = try await read("server.schemas")
-        try check()
+    private func catalog(validateExecution: () throws -> Void) async throws -> AgentAvailableTools {
+        let capabilities = try await read("server.capabilities", validateExecution: validateExecution)
+        let schemas = try await read("server.schemas", validateExecution: validateExecution)
+        try check(validateExecution)
         return try AgentAvailableTools(capabilities: capabilities, schemas: schemas)
     }
 
-    private func read(_ operation: String) async throws -> [String: AgentJSONValue] {
-        try check()
+    private func read(_ operation: String, validateExecution: () throws -> Void) async throws -> [String: AgentJSONValue] {
+        try check(validateExecution)
         let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: operation)
         let response = try await backend(request)
-        try check()
+        try check(validateExecution)
         guard response.requestID == request.requestID else { throw AgentErrorCode.unavailable }
         if case .error(let error) = response.outcome { throw error }
         guard case .result(.object(let values)) = response.outcome else { throw AgentErrorCode.unavailable }
         return values
     }
 
-    private func check() throws {
+    private func check(_ validateExecution: () throws -> Void) throws {
         try Task.checkCancellation()
+        try validateExecution()
         guard !closed else { throw AgentErrorCode.cancelled }
         do { try validateContext() }
         catch { invalidate(); throw error }
