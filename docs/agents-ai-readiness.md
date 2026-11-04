@@ -81,6 +81,21 @@ suspension, explicit resume, a one-second hardware sleep, and unavailable-sessio
 restart. Read [session lifecycle acceptance](agent-session-lifecycle-acceptance.md)
 for the evidence and remaining checks.
 
+## Named-client handshake follow-up
+
+Codex CLI 0.166.0 failed during initialization before it could request tools.
+Its actual request contains `experimental: {"codex/auth-change": {}}`.
+Swift MCP SDK 0.12.1 decodes experimental values as strings and rejects this
+object. Draftly does not negotiate experimental client extensions. Its bounded
+stdio transport now omits that unsupported capability object from SDK dispatch.
+It keeps the protocol version, client identity, standard capabilities, request
+ID, and original byte budget. Tool calls and authorization are unchanged.
+
+The actual Codex request now completes initialization and ping through the SDK
+in a regression test. All 20 MCP boundary and host tests passed. Installed
+Codex and Claude Code sessions remain unaccepted. The first Claude probe also
+exposed no tools while the local host was paused.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
