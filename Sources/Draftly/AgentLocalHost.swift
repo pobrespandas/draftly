@@ -53,6 +53,7 @@ import AgentLocalSecurity
     init(library: LibraryStore, appVersion: String,
          editors: AgentEditorRegistry? = nil,
          enableReviewedActions: Bool = false,
+         nativeHost: (@MainActor () -> any ActionHost)? = nil,
          enableReviewedMutations: Bool = false,
          nativePreferenceRead: ((String) throws -> AgentPreferenceReading)? = nil,
          preferenceDefaults: UserDefaults = .standard,
@@ -106,6 +107,10 @@ import AgentLocalSecurity
         operations = AgentOperationRegistry(currentGrant: { id in
             try registry.grantForAuthenticatedConnection(id)
         }, validateHost: validateOwner, isLocked: isLocked, journal: journal)
+        let nativeEnvironment: AgentNativeExecution.Environment?
+        if enableReviewedActions, let nativeHost {
+            nativeEnvironment = .init(makeHost: nativeHost, approvals: approvals)
+        } else { nativeEnvironment = nil }
         do {
             service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
                 appVersion: appVersion, preferenceDefaults: preferenceDefaults, preferenceStorage: preferenceStorage,
@@ -124,7 +129,8 @@ import AgentLocalSecurity
                 }, operations: operations, submitAction: enableReviewedActions ? { request, grant in
                     guard let owner else { throw AgentErrorCode.cancelled }
                     return try owner.submitReviewedAction(request, grant: grant)
-                } : nil, deletionApprovals: enableReviewedMutations ? approvals : nil)
+                } : nil, deletionApprovals: enableReviewedMutations ? approvals : nil,
+                nativeExecution: nativeEnvironment)
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
             validateHost: validateOwner, isLocked: isLocked, resolveTargets: resolveTargets)

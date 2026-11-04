@@ -3,6 +3,23 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Direct native requests — 4 November
+
+Connected seven typed native requests: clipboard read/write, HTML-to-Markdown,
+share, print, URL opening and speech. They use existing adapters, one-use native
+review and the shared operation journal. The execution environment is independent
+of destructive library mutations. Typed inputs cannot select another host method.
+Application URL schemes require unrestricted capability and library scope.
+
+Private text results remain in memory. Journal recovery returns explicit missing
+text and never repeats a read to reconstruct its old output. Boolean results
+remain recoverable. See [direct native validation](agent-direct-native-acceptance.md).
+Source coverage is 99 connected/conditional names of 137; 38 names have no direct
+handler. Strict validation verified 1 consumer, 189 contract, 824 Core and
+1,627 app tests (2,641 total). Native Debug build and two project checks passed.
+The real-socket test covers review and recovery across transports with fake
+native effects. CI and signed installed native-effect acceptance remain open.
+
 ## Reviewed action-group removal — 4 November
 
 Connected `actionGroups.delete` with the native rule: move members to General,
@@ -20,8 +37,9 @@ and 1,621 app tests (2,630 total). The native package-name Debug build and two
 project checks passed. The first full attempt failed in an existing Shell
 startup fixture. That fixture now controls its timeout after process startup;
 the serial Intent suite and complete final run passed. See
-[fixture validation](intent-shell-interruption-validation.md). CI and installed
-acceptance remain pending.
+[fixture validation](intent-shell-interruption-validation.md). Full CI
+[41845487513](https://github.com/pobrespandas/draftly/actions/runs/41845487513)
+passed for `b5985f1`. Installed group-removal acceptance remains open.
 
 ## Reviewed action deletion — 4 November
 

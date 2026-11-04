@@ -358,3 +358,11 @@ Each page reads current values; the snapshot does not freeze resource content.
 A temporary exchange of file content between an agent connection and Draftly.
 It does not install imported content, save an export to disk, or grant access
 to other resources.
+
+**Agent native operation**:
+An agent request to use a system service or platform tool directly. It has its
+own input and approval, independent of a saved Action.
+
+**Agent transient result**:
+A result whose content is not saved. Its completion can remain known after
+its content is no longer available.

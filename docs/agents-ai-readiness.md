@@ -459,14 +459,34 @@ validation verified 1 consumer, 184 contract, 824 Core and 1,621 app tests
 (2,630 total). The native package-name Debug build and two project checks
 passed. The first full attempt failed in the existing Intent Shell-start
 fixture; its controlled-clock correction and final full run passed. See
-[fixture validation](intent-shell-interruption-validation.md). CI and installed
-acceptance remain pending.
+[fixture validation](intent-shell-interruption-validation.md). Full CI
+[41845487513](https://github.com/pobrespandas/draftly/actions/runs/41845487513)
+passed for `b5985f1`. Installed group-removal acceptance remains open.
+
+## Direct native requests
+
+Seven typed native operations now connect to the existing adapters through an
+app-owned execution environment. They cover clipboard read/write, HTML-to-Markdown,
+sharing, printing, URL opening and speech. Each concrete request needs native
+consent. The shared operation journal prevents replay after reconnection or an
+uncertain effect. Native execution does not depend on enabling destructive
+library mutations. App startup still leaves access off.
+
+Text inputs are bounded. Unknown host fields cannot select another adapter.
+Application URL schemes need unrestricted capability and library scope. Text
+results remain in memory; journal recovery reports missing text explicitly
+without repeating the read. Read [direct native validation](agent-direct-native-acceptance.md)
+and [the result-retention decision](adr/0005-agent-transient-native-results.md).
+Strict validation verified 1 consumer, 189 contract, 824 Core and 1,627 app
+tests (2,641 total). The final focal run passed 29 app tests in six suites and
+five contract tests. The native package-name Debug build and two project checks
+passed. CI and installed acceptance remain open for this increment.
 
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-92 names in implemented or conditional handler sets. The other 45 names have
-no direct handler in those sets. These counts do not prove that 92 operations
+99 names in implemented or conditional handler sets. The other 38 names have
+no direct handler in those sets. These counts do not prove that 99 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -483,7 +503,7 @@ a direct handler for every `native.*` contract.
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
 | Backups | `backups.requestRestore` |
-| Native operations | All 24 direct `native.*` contracts. Existing reviewed Action effects are a separate path. |
+| Native operations | `native.http`, `native.xmlrpc`, `native.fileRead`, `native.fileWrite`, `native.htmlPreview`, `native.mail`, `native.messages`, `native.calendar`, `native.reminders`, `native.dictate`, `native.transcribe`, `native.scanDocument`, `native.location`, `native.models`, `native.shell`, `native.appleScript`, `native.shortcut` |
 | Operation control and activity | `operations.answerPrompt`, `activity.changes` |
 
 Keep the full [operation inventory](research/agent-operation-inventory.md) and

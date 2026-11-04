@@ -23,6 +23,7 @@ import AgentContracts
         if readActivity != nil { handlers.insert(.activityRead) }
         if operationRegistry != nil { handlers.insert(.operationControl) }
         if submitAction != nil { handlers.insert(.actionExecution) }
+        if nativeExecution != nil && operationRegistry != nil { handlers.insert(.nativeExecution) }
         if deletionApprovals != nil && operationRegistry != nil {
             handlers.insert(.workspaceDelete)
             handlers.insert(.actionDelete)
@@ -52,6 +53,7 @@ import AgentContracts
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
     private let deletionApprovals: AgentApprovalStore?
+    private let nativeExecution: AgentNativeExecution.Environment?
     private let submitAction: ((AgentRequest, AgentGrant) throws -> UUID)?
     private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?
@@ -92,8 +94,9 @@ import AgentContracts
          readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])? = nil,
          operations: AgentOperationRegistry? = nil,
          submitAction: ((AgentRequest, AgentGrant) throws -> UUID)? = nil,
-         deletionApprovals: AgentApprovalStore? = nil) throws {
+         deletionApprovals: AgentApprovalStore? = nil, nativeExecution: AgentNativeExecution.Environment? = nil) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
+        self.nativeExecution = nativeExecution
         self.nativePreferenceRead = nativePreferenceRead
         self.preferenceDefaults = preferenceDefaults
         self.actionLibrary = library
@@ -245,7 +248,9 @@ import AgentContracts
             authority = (grant.connectionID, grant.grantID)
             let parameters = try authorizedParameters(for: request, grant: grant)
             let outcome: AgentResponse.Outcome
-            if ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"].contains(request.operation) {
+            if AgentNativeSchemas.operationNames.contains(request.operation) {
+                outcome = try submitNative(request, grant: grant, sessionID: session.id)
+            } else if ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"].contains(request.operation) {
                 outcome = try submitDeletion(request, grant: grant, sessionID: session.id)
             } else {
                 let values = try dispatch(request, parameters: parameters, grant: grant, sessionID: session.id)
@@ -305,7 +310,8 @@ import AgentContracts
             let themeRead = AgentThemeReading.effectOperations.contains(request.operation)
             let syntaxExport = request.operation == "syntaxes.export"
             let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
-            guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
+            let reviewedNative = AgentNativeSchemas.operationNames.contains(request.operation) && nativeExecution != nil && operationRegistry != nil
+            guard reviewedAction || reviewedNative || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
                 throw AgentErrorCode.unavailable
             }
         }
@@ -314,6 +320,31 @@ import AgentContracts
         do { parameters = try AgentOperationSchemas.validatedParameters(for: request, preferences: preferences) }
         catch { throw AgentErrorCode.invalidInput }
         return parameters
+    }
+
+    private func submitNative(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+        guard let nativeExecution, let operationRegistry else { throw AgentErrorCode.unavailable }
+        try validateSession(sessionID, grant: grant)
+        _ = try AgentNativeExecution.plan(request, grant: grant)
+        func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
+            if snapshot.state == .succeeded {
+                guard case .object(let result) = snapshot.result else { throw AgentErrorCode.storageError }
+                try AgentNativeSchemas.validateResult(result, for: request.operation)
+                return .result(.object(result))
+            }
+            if snapshot.state.isTerminal { return .error(snapshot.error ?? .outcomeUnknown) }
+            return .accepted(operationID: snapshot.id, state: snapshot.state)
+        }
+        if let id = try operationRegistry.existingRequest(request, grant: grant) {
+            return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+        }
+        let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] id in
+            guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
+            return try await AgentNativeExecution.run(request, grant: grant, operationID: id, host: nativeExecution.makeHost(),
+                approvals: nativeExecution.approvals, operations: operationRegistry,
+                validateSession: { try self.validateSession(sessionID, grant: grant) })
+        }
+        return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }
 
     private func submitDeletion(_ request: AgentRequest, grant: AgentGrant,

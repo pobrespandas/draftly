@@ -451,8 +451,12 @@ import DraftlyCore
 
     private func persist(_ id: UUID) throws {
         guard let journal, let entry = entries[id], entry.durable else { return }
+        let persistedResult: AgentJSONValue?
+        if entry.state == .succeeded, AgentNativeSchemas.transientTextOperations.contains(entry.name) {
+            persistedResult = .object(["text": .null, "resultAvailable": .bool(false)])
+        } else { persistedResult = entry.result }
         let value = try Snapshot(id: id, state: entry.state, updatedAt: entry.updatedAt,
-            output: entry.output, error: entry.error, effects: entry.effects, name: entry.name, result: entry.result).wireValue()
+            output: entry.output, error: entry.error, effects: entry.effects, name: entry.name, result: persistedResult).wireValue()
         try journal.save(value, operationID: id, grant: entry.grant)
     }
 

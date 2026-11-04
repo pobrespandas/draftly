@@ -152,6 +152,8 @@ private struct AgentOperationReviewSheet: View {
         switch operation {
         case "clipboard": return "Copy text to the clipboard"
         case "getClipboard": return "Read the current clipboard"
+        case "htmlToMarkdown": return "Convert HTML to Markdown"
+        case "speak": return "Read text aloud"
         case "htmlToClipboard": return "Copy formatted text to the clipboard"
         case "share": return "Share text"
         case "shareFile": return "Share a text file"

@@ -103,7 +103,7 @@ struct AgentCommandServiceTests {
         #expect(recovered["operationID"] == result["operationID"] && recovered["state"] == .string("cancelled"))
         #expect(submissions == 1)
     }
-    @MainActor private final class Fixture {
+    @MainActor final class Fixture {
         let library: LibraryStore
         let libraryID = UUID()
         var bytes: Data?
@@ -126,6 +126,7 @@ struct AgentCommandServiceTests {
                 create: { [unowned self] in self.secrets[$0] = $1 },
                 remove: { [unowned self] in self.secrets.removeValue(forKey: $0) }),
             now: { [unowned self] in self.wall }, authorityChanged: { _ in })
+        var nativeExecution: AgentNativeExecution.Environment?
         var operations: AgentOperationRegistry?
         var deletionApprovals: AgentApprovalStore?
         var preferenceStorage: AgentPreferenceStorage?
@@ -146,7 +147,7 @@ struct AgentCommandServiceTests {
                 }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
                 uptime: { [unowned self] in self.uptime }, editors: withoutEditors ? nil : editorRegistry, pendingEditorGeneration: { [unowned self] _ in
                     self.onGeneration?(); return self.generation
-                }, operations: operations, deletionApprovals: deletionApprovals)
+                }, operations: operations, deletionApprovals: deletionApprovals, nativeExecution: nativeExecution)
         }
         func enablePreferenceWrites() throws {
             let defaults = try #require(UserDefaults(suiteName: editorDefaultsName))

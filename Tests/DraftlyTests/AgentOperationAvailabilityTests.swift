@@ -106,7 +106,7 @@ struct AgentOperationAvailabilityTests {
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
-            "activity.list", "operations.get", "operations.cancel", "operations.wait", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"]))
+            "activity.list", "operations.get", "operations.cancel", "operations.wait", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"]).union(AgentNativeSchemas.operationNames))
         #expect(available.operations.allSatisfy { AgentOperationCatalog.operation(named: $0) != nil })
         #expect(!available.operations.contains("drafts.delete"))
         #expect(!available.operations.contains("backups.restore"))

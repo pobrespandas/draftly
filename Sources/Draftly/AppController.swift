@@ -196,6 +196,7 @@ final class AppController: ObservableObject {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
             enableReviewedActions: enableReviewedActions,
+            nativeHost: { [weak self] in self?.makeActionHost() ?? NativeActionHost() },
             enableReviewedMutations: enableReviewedMutations,
             nativePreferenceRead: { [weak self] id in
                 guard let self else { throw AgentErrorCode.cancelled }

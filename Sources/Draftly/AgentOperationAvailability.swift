@@ -4,7 +4,7 @@ import AgentContracts
 @MainActor struct AgentOperationAvailability {
     enum Handler: CaseIterable {
         case editorRead, draftWrite, editorWrite, preferenceWrite
-        case activityRead, operationControl, actionExecution, workspaceApply, workspaceDelete, draftPurge, themeWrite, actionDelete
+        case activityRead, operationControl, actionExecution, workspaceApply, workspaceDelete, draftPurge, themeWrite, actionDelete, nativeExecution
     }
 
     private struct Rule {
@@ -45,6 +45,7 @@ import AgentContracts
             handlers: [.operationControl, .workspaceDelete], optionalHostFeature: true),
         .init(operations: ["activity.list"], handlers: [.activityRead], optionalHostFeature: true),
         .init(operations: ["operations.get", "operations.cancel", "operations.wait"], handlers: [.operationControl], optionalHostFeature: true),
+        .init(operations: AgentNativeSchemas.operationNames, handlers: [.nativeExecution, .operationControl], optionalHostFeature: true),
         .init(operations: ["actions.run"], handlers: [.operationControl, .actionExecution], optionalHostFeature: true)
     ]
 
@@ -68,6 +69,7 @@ import AgentContracts
             case "preferences.get": result.insert(.appearanceRead)
             case "preferences.update": result.insert(.appearanceManage)
             case "themes.get", "themes.export": result.insert(.filesRead)
+            case "native.openURL": result.insert(.scriptsUnrestricted)
             case "actions.run": result.formUnion([.draftsWrite, .editorWrite, .nativeUse])
             default: break
             }
