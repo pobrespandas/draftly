@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 package enum AgentDraftSchemas {
     package static var operationNames: Set<String> { Set(schemas.keys) }
@@ -59,6 +60,19 @@ package enum AgentDraftSchemas {
                 throw AgentSchemaError.invalidValue
             }
         }
+    }
+
+    // A client can combine the version tokens from authorized draft reads.
+    package static func expectedVersion(for versions: [UUID: String]) throws -> String {
+        guard !versions.isEmpty, versions.count <= AgentRequest.maximumTargets,
+              versions.values.allSatisfy({ !$0.isEmpty && $0.utf8.count <= 4096 }) else { throw AgentSchemaError.invalidValue }
+        if versions.count == 1 { return versions.values.first! }
+        var data = Data("draftly-draft-batch-v1\n".utf8)
+        for id in versions.keys.sorted(by: { $0.uuidString < $1.uuidString }) {
+            let token = versions[id]!
+            data.append(Data((id.uuidString.lowercased() + ":" + String(token.utf8.count) + ":" + token + "\n").utf8))
+        }
+        return "batch-v1:" + Data(SHA256.hash(data: data)).base64EncodedString()
     }
 
     private static func r(_ shape: AgentValueShape) -> AgentFieldShape { .init(shape: shape, required: true) }

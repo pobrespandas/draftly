@@ -14,6 +14,11 @@ package enum AgentToolInput {
             exact["description"] = .string("Use JSON object text instead of parameters when exact decimal values are needed. Do not supply both.")
             properties["parametersJSON"] = .object(exact)
         }
+        if ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags"].contains(operation.name),
+           case .object(var field) = properties["expectedVersion"] {
+            field["description"] = .string("For one draft use its versionToken. For all drafts in one list or search page use that page's batchVersion. Read again after any change. Never reuse a page token for a subset or another target set.")
+            properties["expectedVersion"] = .object(field)
+        }
         root["properties"] = .object(properties)
         root["not"] = .object(["required": .array([.string("parameters"), .string("parametersJSON")])])
         return .object(root)

@@ -179,11 +179,21 @@ immutable. Tests reject foreign and duplicate result IDs. The final run passed
 258 tests across 12 suites. The normal native build passed. Full CI for this
 increment and installed acceptance remain pending.
 
+## Draft metadata batches
+
+Archive, trash, restore, flags, and tags now have direct handlers. They commit
+all authorized targets with one receipt and synchronize pending editor state
+through the shared mutation boundary. List and search pages provide a version
+for their exact returned target set; the token grants no access. Tests cover
+rollback, revocation, concurrent edits, scope, and repeats without another write.
+The final run passed 266 tests across 16 suites. The normal native build passed.
+Full CI and installed acceptance for these handlers remain pending.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-62 names in implemented or conditional handler sets. The other 75 names have
-no direct handler in those sets. These counts do not prove that 62 operations
+67 names in implemented or conditional handler sets. The other 70 names have
+no direct handler in those sets. These counts do not prove that 67 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -194,7 +204,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Drafts | `drafts.archive`, `drafts.flag`, `drafts.merge`, `drafts.purge`, `drafts.restore`, `drafts.syntax`, `drafts.tags`, `drafts.trash` |
+| Drafts | `drafts.merge`, `drafts.purge`, `drafts.syntax` |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
 | Themes | All 14 declared `themes.*` contracts. |

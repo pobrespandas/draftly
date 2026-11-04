@@ -573,6 +573,11 @@ import AgentContracts
             let receipt = try actions.updateAction(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
+        case "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags":
+            guard let writes else { throw AgentErrorCode.unavailable }
+            let receipt = try writes.update(request, connectionID: grant.connectionID)
+            return ["resources": .array(receipt.resources.map { .object(["id": .string($0.id.uuidString),
+                "versionToken": .string($0.versionToken)]) })]
         case "drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion":
             guard let writes else { throw AgentErrorCode.unavailable }
             let receipt = try writes.update(request, connectionID: grant.connectionID)

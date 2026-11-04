@@ -2,10 +2,11 @@ import Foundation
 import AgentContracts
 import DraftlyCore
 
-// Existing-draft writes only. No transport or normal-startup activation.
+// App-owned draft mutations share version checks and durable receipts.
 @MainActor final class AgentDraftWriting {
     private let libraryID: UUID
-    static let operationNames: Set<String> = ["drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion"]
+    static let operationNames: Set<String> = ["drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags"]
+    static let metadataOperations: Set<String> = ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags"]
     private let library: LibraryStore
     private let reader: AgentDraftReading
     private let editors: AgentEditorRegistry
@@ -34,7 +35,15 @@ import DraftlyCore
             let ticket = try keys.issue(request, connectionID: connectionID)
             let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
             let parameters = try AgentDraftSchemas.validatedParameters(for: request)
-            if request.operation == "drafts.create" {
+            if Self.metadataOperations.contains(request.operation) {
+                guard let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+                if try recoveredBatchReceipt(for: mutation, targets: request.targets) == nil {
+                    guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+                    let initial = try reader.checkedSnapshots(for: request.targets.map(\.id), expectedVersion: expected)
+                    let date = now()
+                    for state in initial.values { _ = try applyingMetadata(request, parameters: parameters, to: state.note, at: date) }
+                }
+            } else if request.operation == "drafts.create" {
                 _ = try creationNote(parameters)
             } else if request.operation == "drafts.duplicate" {
                 guard let target = request.targets.first(where: { $0.kind == .draft }), let expected = request.expectedVersion else {
@@ -69,6 +78,9 @@ import DraftlyCore
             try validateAdmission()
             let ticket = try keys.verify(key, request: request, connectionID: connectionID)
             let parameters = try AgentDraftSchemas.validatedParameters(for: request)
+            if Self.metadataOperations.contains(request.operation) {
+                return try updateMetadata(request, parameters: parameters, ticket: ticket, connectionID: connectionID)
+            }
             if request.operation == "drafts.create" {
                 let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
                 if let previous = try library.mutationReceipt(for: mutation, at: now()) {
@@ -154,6 +166,81 @@ import DraftlyCore
             throw receiptError(error)
         } catch is AgentSchemaError { throw AgentErrorCode.invalidInput }
         catch { throw AgentErrorCode.storageError }
+    }
+
+    private func recoveredBatchReceipt(for mutation: LibraryMutationIdentity,
+                                       targets: [AgentResourceReference]) throws -> LibraryMutationReceipt? {
+        guard let receipt = try library.mutationReceipt(for: mutation, at: now()) else { return nil }
+        guard receipt.resources.count == targets.count,
+              Set(receipt.resources.map(\.id)) == Set(targets.map(\.id)) else { throw AgentErrorCode.storageError }
+        return receipt
+    }
+
+    private func updateMetadata(_ request: AgentRequest, parameters: [String: AgentJSONValue],
+                                ticket: AgentRetryKeys.Ticket, connectionID: UUID) throws -> LibraryMutationReceipt {
+        guard let expected = request.expectedVersion, let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        if let receipt = try recoveredBatchReceipt(for: mutation, targets: request.targets) {
+            try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+            return receipt
+        }
+        guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+        let initial = try reader.checkedSnapshots(for: request.targets.map(\.id), expectedVersion: expected)
+        let mutationDate = now()
+        let notes = try request.targets.map { target in
+            guard let state = initial[target.id] else { throw AgentErrorCode.storageError }
+            return try applyingMetadata(request, parameters: parameters, to: state.note, at: mutationDate)
+        }
+        var receipt: LibraryMutationReceipt?
+        _ = try editors.synchronizeMutations(notes) { values, generations in
+            try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+            var builders: [UUID: @Sendable ([Note]) throws -> [LibraryMutationReceipt.Resource]] = [:]
+            for value in values {
+                guard let generation = generations[value.id] else { throw AgentErrorCode.storageError }
+                builders[value.id] = reader.mutationResources(for: value.id, generation: generation)
+            }
+            let resourceBuilders = builders
+            receipt = try library.commitNotes(values, mutation: mutation, at: now(), validateCommit: {
+                try self.validateAdmission(); _ = try self.keys.verify(key, request: request, connectionID: connectionID)
+                guard !ActionRunner.isExecuting(in: self.library) else { throw AgentErrorCode.busy }
+                try self.reader.validateMutationSnapshots(initial, expectedVersion: expected, reservedGenerations: generations)
+            }, makeResources: { saved in
+                try saved.flatMap { note in
+                    guard let builder = resourceBuilders[note.id] else { throw AgentErrorCode.storageError }
+                    return try builder([note])
+                }
+            })
+            return try values.map { value in
+                guard let saved = library.notes.first(where: { $0.id == value.id }) else { throw AgentErrorCode.storageError }
+                return saved
+            }
+        }
+        try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+        guard let receipt else { throw AgentErrorCode.storageError }
+        return receipt
+    }
+
+    private func applyingMetadata(_ request: AgentRequest, parameters: [String: AgentJSONValue], to original: Note, at date: Date) throws -> Note {
+        var note = original
+        switch request.operation {
+        case "drafts.archive": note.isArchived = true; note.trashedAt = nil
+        case "drafts.trash": note.trashedAt = date
+        case "drafts.restore": note.trashedAt = nil
+        case "drafts.flag":
+            guard case .integer(let flag) = parameters["flag"] else { throw AgentErrorCode.invalidInput }
+            note.flag = Int(flag)
+        case "drafts.tags":
+            guard case .string(let mode) = parameters["mode"], case .array(let values) = parameters["tags"] else { throw AgentErrorCode.invalidInput }
+            let tags = TagRules.normalize(values.compactMap { if case .string(let value) = $0 { value } else { nil } })
+            switch mode {
+            case "replace": note.tags = tags
+            case "add": note.tags = TagRules.normalize(note.tags + tags)
+            case "remove": note.tags.removeAll { tags.contains(TagRules.normalize($0)) }
+            default: throw AgentErrorCode.invalidInput
+            }
+        default: throw AgentErrorCode.unavailable
+        }
+        return note
     }
 
     private func recoveredReceipt(for mutation: LibraryMutationIdentity, target: UUID) throws -> LibraryMutationReceipt? {

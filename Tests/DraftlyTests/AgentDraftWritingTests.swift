@@ -52,8 +52,8 @@ struct AgentDraftWritingTests {
             models.append(model); editors.refreshMembership()
             return model
         }
-        func token() throws -> String {
-            let request = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "drafts.get", targets: [.init(kind: .draft, id: note.id)])
+        func token(_ id: UUID? = nil) throws -> String {
+            let request = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "drafts.get", targets: [.init(kind: .draft, id: id ?? note.id)])
             let values = try reader.read(request, parameters: AgentOperationSchemas.validatedParameters(for: request),
                 grant: #require(grant), sessionID: UUID())
             guard case .object(let draft) = values["draft"], case .string(let token) = draft["versionToken"] else { throw AgentErrorCode.storageError }
@@ -66,6 +66,85 @@ struct AgentDraftWritingTests {
             return AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
                 targets: input.targets, expectedVersion: input.expectedVersion, retryKey: key.value, parameters: input.parameters)
         }
+    }
+
+    @Test(arguments: ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags"])
+    func metadataBatchCommitsAllDraftsAndRecoversWithoutRepeating(operation: String) throws {
+        let f = try Fixture(); defer { f.close() }
+        var first = f.note; first.isArchived = true; first.trashedAt = f.wall; first.tags = ["keep"]
+        let second = Note(content: "Second 語法", tags: ["keep"], isArchived: true, trashedAt: f.wall)
+        try f.library.saveNotes([first, second])
+        let originalNotes = f.library.notes, originalRevisions = f.library.revisions
+        let model = f.model(); model.editor.content = "Pending café 🐼"; model.hasUnsavedChanges = true
+        let versions = try [first.id: f.token(first.id), second.id: f.token(second.id)]
+        let parameters: [String: AgentJSONValue] = operation == "drafts.flag" ? ["flag": .integer(3)]
+            : operation == "drafts.tags" ? ["mode": .string("add"), "tags": .array([.string(" Café "), .string("keep")])] : [:]
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation,
+            targets: [second.id, first.id].map { .init(kind: .draft, id: $0) },
+            expectedVersion: try AgentDraftSchemas.expectedVersion(for: versions), parameters: parameters)
+        let writer = try f.writer(), ticket = try writer.prepare(intent, connectionID: f.connectionID)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: operation,
+            targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value, parameters: parameters)
+        f.library.beforeBatchCommit = { throw AgentErrorCode.storageError }
+        #expect(throws: AgentErrorCode.storageError) { try writer.update(request, connectionID: f.connectionID) }
+        #expect(f.library.notes.sorted { $0.id.uuidString < $1.id.uuidString } == originalNotes.sorted { $0.id.uuidString < $1.id.uuidString })
+        #expect(f.library.revisions.sorted { $0.id.uuidString < $1.id.uuidString } == originalRevisions.sorted { $0.id.uuidString < $1.id.uuidString })
+        #expect(model.editor.content == "Pending café 🐼" && model.hasUnsavedChanges)
+        f.library.beforeBatchCommit = nil
+        let receipt = try writer.update(request, connectionID: f.connectionID)
+        #expect(Set(receipt.resources.map(\.id)) == [first.id, second.id])
+        #expect(f.library.notes.first { $0.id == first.id }?.content == "Pending café 🐼")
+        #expect(!model.hasUnsavedChanges)
+        for note in f.library.notes {
+            switch operation {
+            case "drafts.archive": #expect(note.isArchived && note.trashedAt == nil)
+            case "drafts.trash": #expect(note.isArchived && note.trashedAt == f.wall)
+            case "drafts.restore": #expect(note.isArchived && note.trashedAt == nil)
+            case "drafts.flag": #expect(note.flag == 3 && note.isArchived)
+            case "drafts.tags": #expect(note.tags == TagRules.normalize(["keep", "Café"]))
+            default: Issue.record("Unexpected operation")
+            }
+        }
+        var changed = try #require(f.library.notes.first { $0.id == second.id }); changed.flag = 7
+        try f.library.saveNote(changed)
+        let after = f.library.notes, revisions = f.library.revisions
+        #expect(try writer.update(request, connectionID: f.connectionID) == receipt)
+        #expect(f.library.notes == after && f.library.revisions == revisions)
+    }
+
+    @Test(arguments: ["version", "editor", "revoke", "storage", "pending"])
+    func metadataBatchFailuresPreserveAllDraftsAndPendingEdits(boundary: String) throws {
+        let f = try Fixture(); defer { f.close() }
+        let second = try f.library.createNote(content: "Other")
+        let model = f.model(); model.editor.content = "Pending café 🐼"; model.hasUnsavedChanges = true
+        let versions = try [f.note.id: f.token(), second.id: f.token(second.id)]
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.flag",
+            targets: [f.note.id, second.id].map { .init(kind: .draft, id: $0) },
+            expectedVersion: try AgentDraftSchemas.expectedVersion(for: versions), parameters: ["flag": .integer(4)])
+        let writer = try f.writer(), ticket = try writer.prepare(intent, connectionID: f.connectionID)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value, parameters: intent.parameters)
+        var expectedNotes = f.library.notes
+        if boundary == "version" {
+            var changed = second; changed.flag = 1; try f.library.saveNote(changed)
+            expectedNotes = f.library.notes
+        } else if boundary == "editor" {
+            let other = f.model(); other.editor.content = "Conflicting"; other.hasUnsavedChanges = true
+        } else {
+            f.library.beforeBatchCommit = {
+                if boundary == "revoke" { f.grant = nil }
+                if boundary == "storage" { throw AgentErrorCode.storageError }
+                if boundary == "pending" { model.editor.content = "New edit during commit" }
+            }
+        }
+        let error: AgentErrorCode = boundary == "version" ? .versionConflict
+            : boundary == "revoke" ? .permissionDenied : boundary == "storage" ? .storageError : .editorConflict
+        #expect(throws: error) { try writer.update(request, connectionID: f.connectionID) }
+        #expect(f.library.notes.sorted { $0.id.uuidString < $1.id.uuidString } == expectedNotes.sorted { $0.id.uuidString < $1.id.uuidString })
+        #expect(model.editor.content == (boundary == "pending" ? "New edit during commit" : "Pending café 🐼"))
+        #expect(model.hasUnsavedChanges)
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        #expect(try f.library.mutationReceipt(for: identity, at: f.wall) == nil)
     }
 
     @Test func createPersistsOneDraftWithoutARevisionAndRecoversItsReceipt() throws {

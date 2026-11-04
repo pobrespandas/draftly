@@ -3,6 +3,30 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Atomic draft metadata batches — 4 November
+
+Connected `drafts.archive`, `drafts.trash`, `drafts.restore`, `drafts.flag`, and
+`drafts.tags`. Requests support all authorized targets in one atomic transaction.
+They use current per-draft state, including pending editor text, and durable
+receipts. Shared editor synchronization now reserves every affected draft before
+the storage commit. Failed grants, stale drafts, conflicting editors, and storage
+errors leave no partial metadata batch. A recovered receipt does not repeat an
+edit over later changes.
+
+Nonempty draft list, search, and Workspace query pages provide `batchVersion`
+for exactly their returned IDs. A subset or changed target set cannot use that
+token. Single drafts keep their existing version tokens. The public combination
+rule and an independent SHA-256 test vector are in the local development guide.
+Trash and restore preserve archive state. Archive clears trash state. Tags use
+the native normalization rules.
+
+The final run passed 266 tests across 16 suites. It includes service, scope,
+editor, storage-failure, receipt, MCP, and contract checks. The normal native
+build passed. Source-set coverage is 67 connected or conditional operation names
+out of 137, with 70 missing direct handlers. Full CI for this increment and
+installed batch acceptance remain pending. Keep PR #105 in draft and preserve
+all broader readiness gates.
+
 ## Workspace deletion service and recovery — 4 November
 
 Connected `workspaces.delete` through explicit reviewed-mutation host wiring.

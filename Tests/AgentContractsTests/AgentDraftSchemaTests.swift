@@ -11,6 +11,19 @@ struct AgentDraftSchemaTests {
         AgentRequest(requestID: UUID(), libraryID: UUID(), operation: name,
             targets: targets ?? [target], expectedVersion: "snapshot", parameters: parameters)
     }
+    @Test func batchVersionsBindEveryIdentityAndTokenInStableOrder() throws {
+        let first = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        let second = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        #expect(try AgentDraftSchemas.expectedVersion(for: [first: "one"]) == "one")
+        let token = try AgentDraftSchemas.expectedVersion(for: [first: "one", second: "two"])
+        #expect(token == "batch-v1:a1oJhvkjwIoZkg0o9HjvWrK0TfmqbJgy6JefQvTjSH8=")
+        #expect(try token == AgentDraftSchemas.expectedVersion(for: [second: "two", first: "one"]))
+        #expect(try token != AgentDraftSchemas.expectedVersion(for: [first: "two", second: "one"]))
+        #expect(try token != AgentDraftSchemas.expectedVersion(for: [first: "one", UUID(): "two"]))
+        #expect(throws: AgentSchemaError.self) { try AgentDraftSchemas.expectedVersion(for: [:]) }
+        #expect(throws: AgentSchemaError.self) { try AgentDraftSchemas.expectedVersion(for: [first: ""]) }
+    }
+
     private func edit(_ offset: Int64, _ length: Int64, _ text: String = "🐼") -> AgentJSONValue {
         .object(["offset": .integer(offset), "length": .integer(length), "text": .string(text)])
     }

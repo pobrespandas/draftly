@@ -224,51 +224,69 @@ import AgentContracts
 
     // The caller owns authority, expected-version checks and the durable transaction.
     func synchronizeMutation(_ note: Note, committing: (Note, String) throws -> Note) throws -> Snapshot {
+        let values = try synchronizeMutations([note]) { notes, generations in
+            guard let value = notes.first, let generation = generations[value.id] else { throw AgentErrorCode.storageError }
+            return [try committing(value, generation)]
+        }
+        guard let value = values.first else { throw AgentErrorCode.storageError }
+        return value
+    }
+
+    func synchronizeMutations(_ notes: [Note],
+                              committing: ([Note], [UUID: String]) throws -> [Note]) throws -> [Snapshot] {
         guard valid else { throw AgentErrorCode.cancelled }
         guard !self.committing else { throw AgentErrorCode.busy }
-        guard let stored = library.notes.first(where: { $0.id == note.id }) else { throw AgentErrorCode.notFound }
-        _ = try snapshot(stored)
-        let affected = trackedModels().filter { $0.editor.noteID == note.id }
-        let originals = affected.map { (model: $0, content: $0.editor.content, dirty: $0.hasUnsavedChanges) }
+        let ids = Set(notes.map(\.id))
+        guard !notes.isEmpty, ids.count == notes.count else { throw AgentErrorCode.invalidInput }
+        var stored: [UUID: Note] = [:]
+        for note in notes {
+            guard let value = library.notes.first(where: { $0.id == note.id }) else { throw AgentErrorCode.notFound }
+            _ = try snapshot(value); stored[note.id] = value
+        }
+        let affected = trackedModels().filter { $0.editor.noteID.map(ids.contains) ?? false }
+        let originals = affected.map { (model: $0, id: $0.editor.noteID!, content: $0.editor.content, dirty: $0.hasUnsavedChanges) }
         self.committing = true
         defer { self.committing = false }
         for model in affected { controlled(model) { model.hasUnsavedChanges = true } }
-        let previousGeneration = generations[note.id]
-        let generation = UUID()
-        generations[note.id] = generation
+        let previousGenerations = generations.filter { ids.contains($0.key) }
+        let reserved = Dictionary(uniqueKeysWithValues: ids.map { ($0, UUID()) })
+        for (id, generation) in reserved { generations[id] = generation }
         do {
-            let saved = try committing(note, generation.uuidString)
-            guard saved.id == note.id, DraftOperations.sameText(saved.content, note.content) else { throw AgentErrorCode.storageError }
+            let saved = try committing(notes, reserved.mapValues(\.uuidString))
+            let byID = Dictionary(grouping: saved, by: \.id)
+            guard byID.count == ids.count, saved.count == notes.count,
+                  notes.allSatisfy({ note in
+                      guard let value = byID[note.id]?.first else { return false }
+                      return DraftOperations.sameText(value.content, note.content)
+                  }) else { throw AgentErrorCode.storageError }
             guard valid else { throw AgentErrorCode.cancelled }
-            guard originals.allSatisfy({ $0.model.editor.noteID == note.id && DraftOperations.sameText($0.model.editor.content, $0.content) }) else {
+            guard originals.allSatisfy({ $0.model.editor.noteID == $0.id && DraftOperations.sameText($0.model.editor.content, $0.content) }) else {
                 throw AgentErrorCode.editorConflict
             }
             for original in originals {
                 let model = original.model
-                guard model.editor.noteID == note.id, DraftOperations.sameText(model.editor.content, original.content) else {
-                    throw AgentErrorCode.editorConflict
-                }
+                guard model.editor.noteID == original.id, DraftOperations.sameText(model.editor.content, original.content),
+                      let value = byID[original.id]?.first, let previous = stored[original.id] else { throw AgentErrorCode.editorConflict }
                 controlled(model) {
-                    model.editor.content = saved.content
+                    model.editor.content = value.content
                     model.editor.selection = model.editor.safeSelection
-                    model.editor.acknowledgeSaved(saved)
-                    if DraftOperations.sameText(model.tagsText, stored.tags.joined(separator: ", ")) {
-                        model.tagsText = saved.tags.joined(separator: ", ")
+                    model.editor.acknowledgeSaved(value)
+                    if DraftOperations.sameText(model.tagsText, previous.tags.joined(separator: ", ")) {
+                        model.tagsText = value.tags.joined(separator: ", ")
                     }
                     model.hasUnsavedChanges = false
                 }
-                // Keep callbacks outside the controlled assignments. New edits must invalidate the version.
                 model.editor.synchronizeScriptEdit?()
             }
-            return try snapshot(saved)
+            return try saved.map { try snapshot($0) }
         } catch {
-            for original in originals where original.model.editor.noteID == note.id
+            for original in originals where original.model.editor.noteID == original.id
                 && DraftOperations.sameText(original.model.editor.content, original.content) {
                 controlled(original.model) {
                     original.model.hasUnsavedChanges = original.dirty || original.model.editor.hasUnpersistedText
                 }
             }
-            if generations[note.id] == generation { generations[note.id] = previousGeneration }
+            for (id, generation) in reserved where generations[id] == generation { generations[id] = previousGenerations[id] }
             throw error
         }
     }

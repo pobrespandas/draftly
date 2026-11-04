@@ -911,3 +911,40 @@ app can load a sibling `Draftly.debug.dylib`. Sign each sibling dynamic library
 with the same team before signing the outer app. Static bundle verification can
 pass even when a dynamic library has a different team and fails at launch.
 Keep library validation enabled. Check installed launch separately.
+
+
+### Draft metadata batches
+
+`drafts.archive`, `drafts.trash`, `drafts.restore`, `drafts.flag`, and
+`drafts.tags` accept one or more authorized draft targets. Each request uses
+`mutations.prepare` and a retry key. All targets commit in one transaction with
+one durable receipt. A stale draft, conflicting editor, lost grant, or storage
+failure prevents a partial batch. Pending editor text uses the same mutation
+boundary as a direct draft update. These handlers do not grant editor reads.
+
+For one draft, use its `versionToken` as `expectedVersion`. A nonempty draft
+list, search, or Workspace query page also returns `batchVersion`. That token
+covers exactly the IDs in the page, independent of target order. It cannot
+cover a subset, an extra draft, or a changed draft. Empty pages omit it.
+Pages still contain only authorized drafts.
+
+A client that selects an arbitrary set can combine its current read tokens.
+`AgentDraftSchemas.expectedVersion(for:)` implements this contract:
+
+1. For one ID, use its token unchanged.
+2. For multiple IDs, start the UTF-8 input with `draftly-draft-batch-v1` and a
+   newline. Sort canonical UUID strings in ascending order.
+3. Append each lowercase UUID, a colon, the decimal UTF-8 byte count of its
+   token, a colon, the token, and a newline.
+4. Hash the input with SHA-256. Encode the digest as standard padded Base64.
+   Prefix the result with `batch-v1:`.
+
+For UUIDs ending in `0001` and `0002`, with all other digits zero, and tokens
+`one` and `two`, the result is
+`batch-v1:a1oJhvkjwIoZkg0o9HjvWrK0TfmqbJgy6JefQvTjSH8=`.
+This token detects stale state. It does not grant access.
+
+Archive clears trash state. Trash and restore keep the archived state; restore
+only clears the trash date. Tag changes use the app's tag normalization rules.
+A recovered receipt does not repeat metadata edits or overwrite later changes.
+Installed batch acceptance remains a separate readiness gate.
