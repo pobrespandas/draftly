@@ -26,6 +26,12 @@ Native Debug and the strict full suite passed: 2,713 tests (1 consumer,
 `/tmp/draftly-https-input-full.log`. The bounded transport has separate loopback
 tests.
 
-Real TLS downloads, approval in the signed installed app, lock and sleep behavior,
+A temporary test called `AgentHTTPSImport.download` with the public fixture
+`theme-development-folder/day.json` at commit `64f3038` on GitHub raw over real
+TLS. Download and JSON decoding passed. A 16-byte limit and a missing URL both
+failed as expected. Evidence is in `/tmp/draftly-https-live-acceptance.log`. The
+temporary network test was removed after the run; CI has no network dependency.
+
+Approval in the signed installed app, lock and sleep behavior,
 client acceptance and signed distribution remain open. Agents stay disabled for
 publication. These tests do not establish production acceptance.
