@@ -39,6 +39,8 @@ struct AgentLibraryResourceChoices {
             return .init(reference: .init(kind: .actionGroup, id: id), title: name)
         } + library.workspaces.map { workspace in
             .init(reference: .init(kind: .workspace, id: workspace.id), title: workspace.name)
+        } + library.themes.map { theme in
+            .init(reference: .init(kind: .theme, id: theme.id), title: theme.name)
         } + library.syntaxes.filter { $0.type != "builtIn" }.map { syntax in
             .init(reference: .init(kind: .syntax, id: syntax.id), title: syntax.name)
         } + ((try? editors?.windowSnapshots()) ?? []).map { window in

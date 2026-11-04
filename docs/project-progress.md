@@ -3,6 +3,13 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Theme grant choices — 4 November
+
+Stored themes now appear in the native grant resource choices. The resolver
+keeps the theme identity through renaming and rejects it after deletion. This
+closes a selector gap for the already connected scoped theme handlers. Five
+resource-choice tests passed. Installed grant-picker acceptance remains open.
+
 ## Transfer discovery and CLI lifetimes — 4 November
 
 Full CI [41815621541](https://github.com/pobrespandas/draftly/actions/runs/41815621541)

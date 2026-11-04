@@ -51,6 +51,20 @@ struct AgentDraftResourceChoicesTests {
         #expect(choices.resolve([target]).isEmpty)
     }
 
+    @Test func themeChoicesFollowLiveIdentityAndNeverResolveOtherKinds() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var theme = EditorThemeDefinition(name: "Selected café 🐼")
+        try library.saveTheme(theme)
+        let choices = AgentLibraryResourceChoices(library: library)
+        let target = AgentResourceReference(kind: .theme, id: theme.id)
+        #expect(choices.choices().contains { $0.reference == target && $0.title == theme.name })
+        #expect(choices.resolve([target, .init(kind: .draft, id: theme.id)]) == [target])
+        theme.name = "Renamed theme"; try library.saveTheme(theme)
+        #expect(choices.choices().contains { $0.reference == target && $0.title == theme.name })
+        try library.deleteTheme(theme.id)
+        #expect(choices.resolve([target]).isEmpty)
+    }
+
     @Test func revisionChoicesFollowTheExistingDraftAndRevision() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Draft with version")
