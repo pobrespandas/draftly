@@ -4,6 +4,11 @@ import DraftlyCore
 
 // The optional private journal preserves request identity across restarts.
 @MainActor final class AgentOperationRegistry {
+    // Only app-owned handlers can report failure before they submit an effect.
+    struct FailureBeforeEffects: Error {
+        let code: AgentErrorCode
+    }
+
     struct Effect {
         let id: UUID
         let kind: String
@@ -206,6 +211,8 @@ import DraftlyCore
                 case .action(let output): self.finish(id, output: output)
                 case .value(let result): self.finishValue(id, result: result)
                 }
+            } catch let failure as FailureBeforeEffects {
+                self.finish(id, error: self.entries[id]?.effects.isEmpty == true ? failure.code : .outcomeUnknown)
             } catch is CancellationError {
                 self.finishInterrupted(id, queuedError: .cancelled)
             } catch let error as AgentErrorCode {

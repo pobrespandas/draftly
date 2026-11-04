@@ -3,6 +3,16 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Review cancellation groundwork — 4 November
+
+Added an internal failure path for app-owned handlers that have not submitted
+an effect. The operation registry records a known failure only when its effect
+list is empty. If an effect was submitted, the same report remains
+`outcome_unknown`. Ordinary cancellation after work starts keeps its existing
+conservative result. All nine operation-lifetime tests passed, including both
+new cases and request identity checks. The reviewed Workspace deletion handler
+is not connected yet.
+
 ## Workspace deletion storage — 4 November
 
 Added an app-owned storage transaction that deletes one saved Workspace and

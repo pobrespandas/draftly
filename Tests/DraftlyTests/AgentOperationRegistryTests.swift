@@ -47,6 +47,27 @@ struct AgentOperationRegistryTests {
         #expect(starts == (started ? 1 : 0))
     }
 
+    @Test(arguments: [false, true])
+    func explicitFailureBeforeEffectsCannotHideASubmittedEffect(submitted: Bool) async throws {
+        let connection = UUID(), library = UUID(), window = UUID()
+        let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
+            capabilities: [.presentUI, .draftsRead], scope: .library)
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "editor.preview",
+            targets: [.init(kind: .window, id: window)], parameters: ["visible": .bool(true)])
+        let id = try registry.startValueRequest(request, grant: grant) { id in
+            if submitted { try registry.recordEffect(id, effectID: UUID(), kind: "preview", outcome: "submitted") }
+            throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled)
+        }
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: connection).state.isTerminal { await Task.yield() }
+        let snapshot = try registry.snapshot(id, connectionID: connection)
+        #expect(snapshot.state == (submitted ? .outcomeUnknown : .cancelled))
+        #expect(snapshot.error == (submitted ? .outcomeUnknown : .cancelled))
+        #expect(snapshot.result == nil)
+        _ = try snapshot.wireValue()
+        #expect(try registry.existingRequest(request, grant: grant) == id)
+    }
+
     @Test func completedEffectsRemainVisibleAfterALaterUncertainEffect() async throws {
         let connection = UUID(), library = UUID(), draft = UUID()
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
