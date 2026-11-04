@@ -221,17 +221,46 @@ public final class LibraryStore: ObservableObject {
         try saveNotes(copies, preserveRevision: false, preserveDates: true)
         return copies
     }
-    public func emptyTrash() throws {
-        let ids = Set(notes.filter { $0.trashedAt != nil }.map(\.id))
+    private func stageTrashedNoteDeletion(_ ids: Set<UUID>) throws {
+        guard !ids.isEmpty, ids.isSubset(of: Set(notes.filter { $0.trashedAt != nil }.map(\.id))) else {
+            throw LibraryMutationReceiptError.invalidReceipt
+        }
         let keys = ids.flatMap { ["note:" + $0.uuidString, "noteAccess:" + $0.uuidString] }
             + revisions.filter { ids.contains($0.noteID) }.map { "revision:" + $0.id.uuidString }
-        guard !keys.isEmpty else { return }
+        let request = NSFetchRequest<NSManagedObject>(entityName: "Record")
+        request.predicate = NSPredicate(format: "key IN %@", keys)
+        for record in try container.viewContext.fetch(request) { container.viewContext.delete(record) }
+    }
+
+    public func emptyTrash() throws {
+        let ids = Set(notes.filter { $0.trashedAt != nil }.map(\.id))
+        guard !ids.isEmpty else { return }
         do {
-            let request = NSFetchRequest<NSManagedObject>(entityName: "Record")
-            request.predicate = NSPredicate(format: "key IN %@", keys)
-            for record in try container.viewContext.fetch(request) { container.viewContext.delete(record) }
+            try stageTrashedNoteDeletion(ids)
             try beforeBatchCommit?()
             try commit()
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
+    // The caller checks the reviewed target set, editor state and authority.
+    package func commitTrashedNoteDeletion(_ resources: [LibraryMutationReceipt.Resource],
+                                           mutation: LibraryMutationIdentity, at now: Date,
+                                           validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        let ids = Set(resources.map(\.id))
+        guard !resources.isEmpty, ids.count == resources.count else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard previous.resources == resources else { throw LibraryMutationReceiptError.requestConflict }
+            return previous
+        }
+        do {
+            try stageTrashedNoteDeletion(ids)
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: resources)
+            try receipt.validate()
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
 

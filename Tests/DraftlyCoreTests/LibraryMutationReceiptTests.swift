@@ -14,6 +14,54 @@ struct LibraryMutationReceiptTests {
         notes.map { .init(id: $0.id, versionToken: "opaque-neutral-version") }
     }
 
+    @Test func targetedTrashDeletionIsAtomicAndRecoversAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        var first = try library.createNote(content: "Delete café 🐼")
+        var second = try library.createNote(content: "Other trash")
+        let retained = try library.createNote(content: "Keep")
+        first.trashedAt = now; second.trashedAt = now
+        try library.saveNotes([first, second], preserveDates: true)
+        try library.recordAccess(first.id, at: now)
+        let revisions = library.revisions
+        let resources = Self.resources([first]), mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitTrashedNoteDeletion(resources, mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority ended") })
+        }
+        #expect(Set(library.notes.map(\.id)) == [first.id, second.id, retained.id])
+        #expect(library.revisions == revisions)
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitTrashedNoteDeletion(resources, mutation: mutation, at: now, validateCommit: {})
+        #expect(Set(library.notes.map(\.id)) == [second.id, retained.id])
+        #expect(!library.revisions.contains { $0.noteID == first.id })
+        #expect(library.revisions.filter { $0.noteID != first.id } == revisions.filter { $0.noteID != first.id })
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(try reopened.commitTrashedNoteDeletion(resources, mutation: mutation, at: now,
+            validateCommit: { Issue.record("Completed purge must not execute again") }) == receipt)
+        #expect(Set(reopened.notes.map(\.id)) == [second.id, retained.id])
+        let fetch = NSFetchRequest<NSManagedObject>(entityName: "Record")
+        fetch.predicate = NSPredicate(format: "key == %@", "noteAccess:" + first.id.uuidString)
+        #expect(try reopened.container.viewContext.fetch(fetch).isEmpty)
+    }
+
+    @Test func targetedTrashDeletionRejectsLiveMissingAndDuplicateTargets() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var trash = try library.createNote(content: "Trash")
+        let live = try library.createNote(content: "Live")
+        trash.trashedAt = now; try library.saveNote(trash)
+        for resources in [Self.resources([trash, live]), Self.resources([Note(content: "Missing")]),
+                          Self.resources([trash, trash])] {
+            let mutation = identity()
+            #expect(throws: LibraryMutationReceiptError.invalidReceipt) {
+                try library.commitTrashedNoteDeletion(resources, mutation: mutation, at: now, validateCommit: {})
+            }
+            #expect(Set(library.notes.map(\.id)) == [trash.id, live.id])
+            #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        }
+    }
+
     @Test func workspaceDeletionAndReceiptCommitTogetherAndRecoverAfterReopen() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

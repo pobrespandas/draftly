@@ -3,6 +3,29 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Targeted Trash transaction — 4 November
+
+A package-only storage operation can delete an exact nonempty set of trashed
+drafts and save its mutation receipt in the same transaction. It removes the
+selected drafts, their revisions and access records. It preserves unrelated
+Trash, active drafts and action history. Empty Trash uses the same staging rule.
+A completed request returns its receipt without another delete, including after
+reopening the store. Live, missing and duplicate targets fail before commit.
+This is storage groundwork for `drafts.purge`, not a connected agent handler.
+Native review, editor coordination and installed acceptance remain open. The
+operation coverage count stays at 69 connected or conditional and 68 missing.
+
+The focused run passed 20 receipt tests and three native Trash-command tests.
+A follow-up passed seven Draft operations tests and one resource-choice test.
+The normal native build passed. Full CI for this increment remains pending.
+
+Before connecting the handler, bind review to the exact draft versions and
+pending editor generations. Recheck scope, expiry and the active session at
+commit. Detach deleted drafts from all tracked editors so later autosave cannot
+recreate them. Record the submitted effect before commit. Reconcile an uncertain
+journal only with its matching storage receipt. Verify denial, cancellation,
+concurrent changes and service restart through the shared CLI/MCP route.
+
 ## Apple chat through authorized tools — 4 November
 
 Apple chat modes now attach the same authenticated local tool session as ChatGPT.
