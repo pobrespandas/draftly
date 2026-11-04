@@ -203,6 +203,28 @@ struct AgentCommandServiceTests {
         #expect(f.library.notes == stored && f.library.revisions == revisions)
     }
 
+    @Test(arguments: ["drafts.create", "drafts.duplicate"])
+    func scopedDraftEditingCannotCreateAnotherDraft(operation: String) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Only approved draft")
+        let target = AgentResourceReference(kind: .draft, id: note.id)
+        let (_, session) = try f.connect(scope: .resources([target]), capabilities: [.draftsRead, .draftsWrite])
+        let read = try f.values("drafts.get", session: session, targets: [target])
+        guard case .object(let metadata) = read["draft"], case .string(let version) = metadata["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation,
+            targets: operation == "drafts.create" ? [] : [target], expectedVersion: operation == "drafts.create" ? nil : version)
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        #expect(try f.response("mutations.prepare", session: session, parameters: ["request": frame]).outcome == .error(.permissionDenied))
+        #expect(try f.send(intent, session: session).outcome == .error(.permissionDenied))
+        let catalog = try AgentAvailableTools(capabilities: f.values("server.capabilities", session: session),
+            schemas: f.values("server.schemas", session: session))
+        #expect(catalog.definitions.contains { $0.operation == "drafts.update" })
+        #expect(!catalog.definitions.contains { ["drafts.create", "drafts.duplicate", "drafts.merge"].contains($0.operation) })
+        #expect(f.library.notes == [note])
+    }
+
     @Test(arguments: ["drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion", "drafts.flag", "drafts.syntax"])
     func losingTheActiveSessionBeforeCommitRollsBackDraftWrites(operation: String) throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }

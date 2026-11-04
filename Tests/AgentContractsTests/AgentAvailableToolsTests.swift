@@ -4,9 +4,9 @@ import AgentContracts
 
 @Suite("Shared local tool catalog")
 struct AgentAvailableToolsTests {
-    func capabilities(_ caps: [AgentCapability]) -> [String: AgentJSONValue] {
+    func capabilities(_ caps: [AgentCapability], allResources: Bool = false) -> [String: AgentJSONValue] {
         ["capabilities": .array(caps.map { .string($0.rawValue) }),
-         "scope": .object(["allResources": .bool(false), "resources": .array([])]),
+         "scope": .object(["allResources": .bool(allResources), "resources": .array([])]),
          "expiresAt": .string("2030-01-01T00:00:00Z")]
     }
     func operation(_ name: String, available: Bool = true) -> AgentJSONValue {
@@ -27,6 +27,21 @@ struct AgentAvailableToolsTests {
         #expect(request.operation == "drafts.list" && request.parameters["limit"] == .integer(1))
         #expect(throws: AgentErrorCode.permissionDenied) {
             try catalog.request(tool: "draftly_drafts_get", argumentsJSON: "{}")
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func libraryOnlyToolsAreHiddenFromScopedWriters(allResources: Bool) throws {
+        let catalog = try AgentAvailableTools(capabilities: capabilities([.draftsWrite], allResources: allResources),
+            schemas: ["operations": .array([operation("drafts.create"), operation("drafts.duplicate"), operation("drafts.merge"), operation("drafts.update")])])
+        #expect(catalog.definitions.contains { $0.operation == "drafts.update" })
+        for name in ["drafts.create", "drafts.duplicate", "drafts.merge"] {
+            #expect(catalog.definitions.contains { $0.operation == name } == allResources)
+            if !allResources {
+                #expect(throws: AgentErrorCode.permissionDenied) {
+                    try catalog.request(tool: AgentToolInput.name(for: name), argumentsJSON: "{}")
+                }
+            }
         }
     }
 

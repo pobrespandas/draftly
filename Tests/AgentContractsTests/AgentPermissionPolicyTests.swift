@@ -23,6 +23,17 @@ struct AgentPermissionPolicyTests {
             connectionID: connectionID ?? connection, grant: grant, now: now)
     }
 
+    @Test(arguments: ["drafts.create", "drafts.duplicate", "drafts.merge"])
+    func creatingDraftIdentitiesRequiresLibraryScope(operation: String) {
+        let other = AgentResourceReference(kind: .draft, id: UUID())
+        let targets: [AgentResourceReference] = operation == "drafts.create" ? [] : operation == "drafts.merge" ? [draft, other] : [draft]
+        let limited = grant([.draftsWrite], scope: .resources([draft, other]))
+        #expect(evaluate(operation, targets: targets, version: operation == "drafts.create" ? nil : "v1", grant: limited) == .denied(.permissionDenied))
+        #expect(evaluate(operation, targets: targets, version: operation == "drafts.create" ? nil : "v1",
+            grant: grant([.draftsWrite], scope: .library)) == .permitted(.library))
+        #expect(evaluate("drafts.update", targets: [draft], version: "v1", grant: limited) == .permitted(.resources([draft, other])))
+    }
+
     @Test func readGrantDoesNotAuthorizeWritingOrActionExecution() {
         let access = grant([.draftsRead], scope: .resources([draft]))
         #expect(evaluate("drafts.get", targets: [draft], grant: access) == .permitted(.resources([draft])))

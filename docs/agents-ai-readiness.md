@@ -207,6 +207,15 @@ rollback and retry from a fresh session across the draft write paths. The run
 passed 234 tests across ten suites. The normal native build passed. This is
 source-level evidence; installed lifecycle acceptance remains pending.
 
+## Draft creation scope
+
+Create and Duplicate require library scope. A grant for named existing drafts
+cannot authorize a new draft identity. The declared Merge contract has the same
+scope rule and remains unimplemented. The shared tool catalog hides all
+library-only tools from resource-scoped connections. Direct calls still check
+the live policy. The run passed 238 tests across ten suites. The normal native
+build passed. Full CI and installed acceptance remain pending.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found

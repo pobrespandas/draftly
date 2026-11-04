@@ -971,3 +971,15 @@ writes. The writer checks that session before a storage commit and before it
 returns a receipt. A valid persisted grant does not keep an ended service
 session valid. If the session ends before the commit, the transaction rolls
 back. A fresh authenticated session can retry the same authorized request.
+
+
+### Creation scope
+
+`drafts.create` and `drafts.duplicate` require library scope. A grant that names
+existing drafts does not cover a new draft identity. It can still edit its
+approved drafts. The declared `drafts.merge` contract has the same scope rule;
+that operation still has no connected handler.
+
+The shared tool catalog omits operations that require library scope when the
+connection has resource scope. Direct transport calls must still pass the live
+permission policy. Filtering a tool list does not replace that check.

@@ -17,7 +17,10 @@ package struct AgentAvailableTools: Sendable {
         try AgentReadSchemas.validateResult(capabilities, for: "server.capabilities")
         try AgentReadSchemas.validateResult(schemas, for: "server.schemas")
         guard case .array(let caps) = capabilities["capabilities"],
-              case .array(let operations) = schemas["operations"] else { throw AgentErrorCode.unavailable }
+              case .array(let operations) = schemas["operations"],
+              case .object(let scope) = capabilities["scope"], case .bool(let allResources) = scope["allResources"] else {
+            throw AgentErrorCode.unavailable
+        }
         let allowed = Set(caps.compactMap { if case .string(let name) = $0 { return AgentCapability(rawValue: name) }; return nil })
         var inputs: [String: AgentJSONValue] = [:]
         var seen = Set<String>()
@@ -27,6 +30,7 @@ package struct AgentAvailableTools: Sendable {
             guard fields["available"] == .bool(true),
                   let descriptor = AgentOperationCatalog.operation(named: name),
                   allowed.isSuperset(of: descriptor.capabilities),
+                  !descriptor.requiresLibraryScope || allResources,
                   let input = fields["inputSchema"], input != .null else { continue }
             inputs[name] = input
         }

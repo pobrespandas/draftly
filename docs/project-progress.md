@@ -3,6 +3,24 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Draft creation scope — 4 November
+
+Create and Duplicate now require library scope. Their new draft identity cannot
+belong to a grant that names only existing drafts. The declared Merge contract
+uses the same rule but still has no handler. Editing approved existing drafts
+keeps its resource scope. No grant is expanded by this change.
+
+The shared tool catalog now filters all operations that require library scope
+when the connection has only resource scope. Direct preparation and execution
+still enforce the permission policy. Tests check both routes and the catalog,
+including rejection with an otherwise valid draft-write capability. Library
+scope still permits creation and duplication.
+
+The final run passed 238 tests across ten suites. The normal native build passed.
+Full CI and installed acceptance remain pending. Operation coverage stays at 68
+connected or conditional names, with 69 missing direct handlers. Keep all broader
+client, provider, lifecycle, and distribution gates open.
+
 ## Draft request session at commit — 4 November
 
 Draft preparation, storage commits, and receipt responses now check the exact
