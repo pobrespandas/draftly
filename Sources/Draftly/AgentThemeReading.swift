@@ -52,7 +52,7 @@ import AgentContracts
         case "themes.list":
             let themes = library.themes.filter { grant.scope.permits(.init(kind: .theme, id: $0.id)) }
             let byID = Dictionary(themes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            var page = try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            var page = try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: { themes.map(\.id) }, value: { id in
                     guard let theme = byID[id] else { return nil }
                     return .object(["id": .string(id.uuidString), "name": .string(theme.name), "type": .string(theme.type),

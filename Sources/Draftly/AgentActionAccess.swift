@@ -409,7 +409,7 @@ import AgentContracts
             let encoded = try JSONEncoder().encode(group)
             return ["group": try JSONDecoder().decode(AgentJSONValue.self, from: encoded), "versionToken": .string(try groupVersion(group))]
         case "actions.groups":
-            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            return try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: { self.groups(in: grant.scope).map(\.id) }, value: { id in
                     guard let group = self.groups(in: grant.scope).first(where: { $0.id == id }) else { return nil }
                     let token = try self.groupVersion(group)
@@ -440,7 +440,7 @@ import AgentContracts
                       let group = actionLibrary.actionGroupIdentifiers[action.group] else { return false }
                 return requestedGroup == nil || requestedGroup == group
             }
-            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            return try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt,
                 ids: { self.actionLibrary.orderedActions(on: surface).filter(permitted).map(\.id) },
                 value: { id in

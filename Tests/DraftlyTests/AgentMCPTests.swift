@@ -155,6 +155,26 @@ struct AgentMCPTests {
         }
     }
 
+    @Test func oneShotCLICommandsCanReadTheNextPageWithoutReadingHiddenDrafts() async throws {
+        try await run(count: 2) { r in
+            let first = try await r.oneShotCall("drafts.list", arguments: ["parameters": .object([
+                "limit": .integer(1), "sort": .string("title"), "ascending": .bool(true)])])
+            guard case .result(.object(let page)) = first.outcome,
+                  case .string(let cursor) = page["nextCursor"], case .array(let initial) = page["items"],
+                  case .object(let item) = initial.first else { throw AgentErrorCode.storageError }
+            let next = try await r.oneShotCall("drafts.list", arguments: ["parameters": .object([
+                "limit": .integer(1), "sort": .string("title"), "ascending": .bool(true), "cursor": .string(cursor)])])
+            guard case .result(.object(let last)) = next.outcome, case .array(let items) = last["items"],
+                  case .object(let second) = items.first else { throw AgentErrorCode.storageError }
+            #expect(initial.count == 1 && items.count == 1 && last["nextCursor"] == .null)
+            let returned = [item["id"], second["id"]].compactMap { value -> String? in
+                guard case .string(let id) = value else { return nil }; return id
+            }
+            #expect(Set(returned) == Set(r.notes.map { $0.id.uuidString }))
+            #expect(second["id"] != .string(r.hidden.id.uuidString))
+        }
+    }
+
     @Test func oneShotCLIExportSurvivesTransportClosureAndIsReadableThroughMCP() async throws {
         try await run(fileAccess: true) { r in
             let note = try #require(r.notes.first), before = try r.library.backupData()

@@ -1750,7 +1750,7 @@ struct AgentCommandServiceTests {
         #expect(try items(page).map { $0["id"] } == [.string("editor.fontSize")])
     }
 
-    @Test func preferenceCursorCannotCrossSessionsOrFiltersAndExpires() throws {
+    @Test func preferenceCursorCannotCrossConnectionsOrFiltersAndExpires() throws {
         let f = try Fixture(), (_, first) = try f.connect(capabilities: [.preferencesRead]),
             (_, other) = try f.connect(capabilities: [.preferencesRead])
         let page = try f.values("preferences.schema", session: first, parameters: ["limit": .integer(1)])
@@ -2023,6 +2023,24 @@ struct AgentCommandServiceTests {
         #expect(try items(result).first?["title"] == .string("z"))
         #expect(result["nextCursor"] == .null)
         #expect(try f.values("drafts.list", session: session, parameters: next) == result)
+    }
+
+    @Test func cursorsResumeUnderTheSameGrantAfterTransportClosureAndStopOnInvalidation() throws {
+        let f = try Fixture(); _ = try f.note("A"); _ = try f.note("B")
+        let (record, first) = try f.connect()
+        let parameters: [String: AgentJSONValue] = ["sort": .string("title"), "ascending": .bool(true), "limit": .integer(1)]
+        let page = try f.values("drafts.list", session: first, parameters: parameters)
+        let cursor = try #require(page["nextCursor"])
+        f.service.close(first)
+        let resumed = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        var next = parameters; next["cursor"] = cursor
+        let second = try f.values("drafts.list", session: resumed, parameters: next)
+        #expect(try items(second).map { $0["title"] } == [.string("B")])
+        let (_, other) = try f.connect()
+        #expect(try f.response("drafts.list", session: other, parameters: next).outcome == .error(.invalidInput))
+        f.service.invalidate(connectionID: record.id)
+        let fresh = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        #expect(try f.response("drafts.list", session: fresh, parameters: next).outcome == .error(.invalidInput))
     }
 
     @Test func cursorLivesForTenMinutesButNotBeyondEitherClockBoundary() throws {

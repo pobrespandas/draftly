@@ -38,7 +38,7 @@ import AgentContracts
                 }
                 workspace = saved
             } else { workspace = try query(parameters) }
-            var result = try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            var result = try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: {
                     try workspace.filter(library.notes.filter { permitted($0.id) }.map { try snapshot($0).note }).map(\.id)
                 }, value: { id in
@@ -60,7 +60,7 @@ import AgentContracts
         case "drafts.versions":
             let parent = request.targets[0].id
             guard permitted(parent), library.notes.contains(where: { $0.id == parent }) else { throw AgentErrorCode.notFound }
-            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            return try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: {
                     library.revisions.filter { $0.noteID == parent }.sorted {
                         $0.date == $1.date ? $0.id.uuidString < $1.id.uuidString : $0.date > $1.date

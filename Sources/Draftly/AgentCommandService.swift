@@ -174,7 +174,7 @@ import AgentContracts
     }
 
     func close(_ session: Session) {
-        sessions.removeValue(forKey: session.id); pages.remove(sessionID: session.id)
+        sessions.removeValue(forKey: session.id)
     }
 
     func authorizedLibraryID(for session: Session) throws -> UUID { try authorize(session).libraryID }
@@ -187,8 +187,9 @@ import AgentContracts
 
     func invalidate(connectionID: UUID) {
         for id in sessions.filter({ $0.value.connectionID == connectionID }).keys {
-            sessions.removeValue(forKey: id); pages.remove(sessionID: id)
+            sessions.removeValue(forKey: id)
         }
+        pages.remove(connectionID: connectionID)
         transfers.remove(connectionID: connectionID)
     }
 
@@ -495,7 +496,7 @@ import AgentContracts
                 $0.type != "builtIn" && grant.scope.permits(.init(kind: .syntax, id: $0.id))
             }
             let byID = Dictionary(syntaxes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            var result = try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            var result = try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt,
                 ids: { syntaxes.map(\.id) }, value: { id in
                     guard let syntax = byID[id] else { return nil }
@@ -564,7 +565,7 @@ import AgentContracts
             let value = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(workspace))
             return ["workspace": value, "versionToken": .string(try workspaces.version(workspace))]
         case "workspaces.list":
-            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            return try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt,
                 ids: { self.actionLibrary.workspaces.filter { grant.scope.permits(.init(kind: .workspace, id: $0.id)) }.map(\.id) },
                 value: { id in
@@ -580,7 +581,7 @@ import AgentContracts
                 $0.connectionID == grant.connectionID && $0.grantID == grant.grantID && $0.libraryID == libraryID
             }
             let byID = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            return try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: { entries.map(\.id) }, value: { id in
                     guard let entry = byID[id] else { return nil }
                     return .object(["id": .string(entry.id.uuidString), "requestID": .string(entry.requestID.uuidString),
@@ -698,7 +699,7 @@ import AgentContracts
             if case .array(let ids) = parameters["ids"] {
                 selected = Set(ids.compactMap { if case .string(let id) = $0 { return id }; return nil })
             } else { selected = nil }
-            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            return try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: {
                     preferenceDescriptorIDs.filter { id in
                         guard let field = preferenceDescriptors[id] else { return false }
@@ -752,7 +753,7 @@ import AgentContracts
             return snapshot.draftID.map { grant.scope.permits(.init(kind: .draft, id: $0)) } ?? true
         }
         if request.operation == "editor.windows" {
-            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            return try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: {
                     try editorRegistry.windowSnapshots().filter(authorized).map(\.id)
                 }, value: { id in
@@ -796,7 +797,7 @@ import AgentContracts
                     UInt8(truncatingIfNeeded: index >> 8), UInt8(truncatingIfNeeded: index)))
             }
             let entries = Dictionary(uniqueKeysWithValues: zip(members, items))
-            let page = try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            let page = try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: bound, expiresAt: grant.expiresAt, ids: { members }, value: { entries[$0] })
             result.merge(page, uniquingKeysWith: { _, new in new })
             return result
