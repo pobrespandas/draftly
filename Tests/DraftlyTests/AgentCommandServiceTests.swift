@@ -166,7 +166,7 @@ struct AgentCommandServiceTests {
         }
     }
 
-    @Test(arguments: ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags"])
+    @Test(arguments: ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax"])
     func draftMetadataPagesProvideAnExactScopedBatchVersion(operation: String) throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let first = try f.note("First café 🐼"), second = try f.note("Second 語法")
@@ -181,7 +181,8 @@ struct AgentCommandServiceTests {
         }
         #expect(items.count == 2)
         let parameters: [String: AgentJSONValue] = operation == "drafts.flag" ? ["flag": .integer(2)]
-            : operation == "drafts.tags" ? ["mode": .string("replace"), "tags": .array([.string("Café")])] : [:]
+            : operation == "drafts.tags" ? ["mode": .string("replace"), "tags": .array([.string("Café")])]
+            : operation == "drafts.syntax" ? ["name": .string("TaskPaper")] : [:]
         let wrongSubset = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation,
             targets: [targets[0]], expectedVersion: version, parameters: parameters)
         let badFrame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(wrongSubset))
@@ -200,6 +201,47 @@ struct AgentCommandServiceTests {
         let stored = f.library.notes, revisions = f.library.revisions
         #expect(try f.send(request, session: session) == result)
         #expect(f.library.notes == stored && f.library.revisions == revisions)
+    }
+
+    @Test(arguments: 0..<4, [false, true])
+    func installedSyntaxNeedsReadCapabilityAndItsResourceScope(_ mask: Int, byName: Bool) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Scoped syntax café 🐼")
+        var source = try ScriptSyntax.definition("Plain Text").object
+        source["name"] = "QA Café"
+        let definition = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: source))
+        try f.library.saveSyntax(definition)
+        let draft = AgentResourceReference(kind: .draft, id: note.id), syntax = AgentResourceReference(kind: .syntax, id: definition.id)
+        var capabilities: Set<AgentCapability> = [.draftsRead, .draftsWrite]
+        if mask & 1 != 0 { capabilities.insert(.appearanceRead) }
+        let resources: Set<AgentResourceReference> = mask & 2 != 0 ? [draft, syntax] : [draft]
+        let (_, session) = try f.connect(scope: .resources(resources), capabilities: capabilities)
+        let read = try f.values("drafts.get", session: session, targets: [draft])
+        guard case .object(let metadata) = read["draft"], case .string(let version) = metadata["versionToken"] else {
+            Issue.record("Missing draft version"); return
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.syntax", targets: [draft],
+            expectedVersion: version, parameters: byName ? ["name": .string(definition.name.decomposedStringWithCanonicalMapping)] : ["syntaxID": .string(definition.id.uuidString)])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        let preparation = try f.response("mutations.prepare", session: session, parameters: ["request": frame])
+        if mask != 3 {
+            #expect(preparation.outcome == .error(mask & 1 == 0 ? .permissionDenied : .notFound))
+            #expect(f.library.notes == [note])
+            return
+        }
+        guard case .result(.object(let values)) = preparation.outcome, case .string(let key) = values["retryKey"] else {
+            Issue.record("Missing syntax retry key"); return
+        }
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: version, retryKey: key, parameters: intent.parameters)
+        let response = try f.send(request, session: session)
+        guard case .result = response.outcome else { Issue.record("Syntax write failed"); return }
+        #expect(f.library.notes.first?.syntax == definition.name)
+        let saved = f.library.notes, revisions = f.library.revisions
+        source["name"] = "Renamed after completion"
+        try f.library.saveSyntax(try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: source), id: definition.id))
+        #expect(try f.send(request, session: session) == response)
+        #expect(f.library.notes == saved && f.library.revisions == revisions)
     }
 
     @Test(arguments: ["approve", "deny", "cancel", "session"])
@@ -2100,7 +2142,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 55)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 56)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

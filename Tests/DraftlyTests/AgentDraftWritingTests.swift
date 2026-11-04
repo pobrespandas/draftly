@@ -35,11 +35,14 @@ struct AgentDraftWritingTests {
                 expiresAt: wall.addingTimeInterval(3600), capabilities: [.draftsRead, .draftsWrite], scope: .library)
         }
         func close() { undo.forEach { $0.close() }; editors.invalidate(); models.removeAll(); preferences.close() }
-        func writer() throws -> AgentDraftWriting {
+        func writer(resolveSyntax: (([String: AgentJSONValue], UUID) throws -> SyntaxDefinition)? = nil) throws -> AgentDraftWriting {
             try AgentDraftWriting(library: library, libraryID: libraryID, reader: reader, editors: editors, keys: keys,
                 now: { [unowned self] in self.wall }, validateAdmission: { [unowned self] in
                     if let error = self.admissionError { throw error }
                     try self.onAdmission?()
+                }, resolveSyntax: resolveSyntax ?? { [unowned self] parameters, _ in
+                    guard let grant = self.grant else { throw AgentErrorCode.permissionDenied }
+                    return try AgentDraftWriting.syntaxDefinition(parameters, grant: grant, library: self.library)
                 })
         }
         func model() -> WindowModel {
@@ -68,7 +71,7 @@ struct AgentDraftWritingTests {
         }
     }
 
-    @Test(arguments: ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags"])
+    @Test(arguments: ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax"])
     func metadataBatchCommitsAllDraftsAndRecoversWithoutRepeating(operation: String) throws {
         let f = try Fixture(); defer { f.close() }
         var first = f.note; first.isArchived = true; first.trashedAt = f.wall; first.tags = ["keep"]
@@ -78,7 +81,8 @@ struct AgentDraftWritingTests {
         let model = f.model(); model.editor.content = "Pending café 🐼"; model.hasUnsavedChanges = true
         let versions = try [first.id: f.token(first.id), second.id: f.token(second.id)]
         let parameters: [String: AgentJSONValue] = operation == "drafts.flag" ? ["flag": .integer(3)]
-            : operation == "drafts.tags" ? ["mode": .string("add"), "tags": .array([.string(" Café "), .string("keep")])] : [:]
+            : operation == "drafts.tags" ? ["mode": .string("add"), "tags": .array([.string(" Café "), .string("keep")])]
+            : operation == "drafts.syntax" ? ["name": .string("TaskPaper")] : [:]
         let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation,
             targets: [second.id, first.id].map { .init(kind: .draft, id: $0) },
             expectedVersion: try AgentDraftSchemas.expectedVersion(for: versions), parameters: parameters)
@@ -101,6 +105,7 @@ struct AgentDraftWritingTests {
             case "drafts.trash": #expect(note.isArchived && note.trashedAt == f.wall)
             case "drafts.restore": #expect(note.isArchived && note.trashedAt == nil)
             case "drafts.flag": #expect(note.flag == 3 && note.isArchived)
+            case "drafts.syntax": #expect(note.syntax == "TaskPaper")
             case "drafts.tags": #expect(note.tags == TagRules.normalize(["keep", "Café"]))
             default: Issue.record("Unexpected operation")
             }
@@ -145,6 +150,36 @@ struct AgentDraftWritingTests {
         #expect(model.hasUnsavedChanges)
         let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
         #expect(try f.library.mutationReceipt(for: identity, at: f.wall) == nil)
+    }
+
+    @Test(arguments: ["name", "source", "identity", "type"])
+    func syntaxChangeDuringCommitRollsBackEveryDraft(change: String) throws {
+        let f = try Fixture(); defer { f.close() }
+        let second = try f.library.createNote(content: "Other syntax target")
+        var object = try ScriptSyntax.definition("Plain Text").object
+        object["name"] = "QA Café"
+        let source = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: object))
+        var resolved = source
+        let writer = try f.writer(resolveSyntax: { _, _ in resolved })
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.syntax",
+            targets: [f.note.id, second.id].map { .init(kind: .draft, id: $0) },
+            expectedVersion: try AgentDraftSchemas.expectedVersion(for: [f.note.id: f.token(), second.id: f.token(second.id)]),
+            parameters: ["syntaxID": .string(source.id.uuidString)])
+        let ticket = try writer.prepare(intent, connectionID: f.connectionID)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value, parameters: intent.parameters)
+        let before = f.library.notes.sorted { $0.id.uuidString < $1.id.uuidString }
+        f.library.beforeBatchCommit = {
+            var changed = source.object
+            if change == "name" { changed["name"] = "Renamed" }
+            if change == "source" { changed["future"] = "Changed source" }
+            resolved = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: changed),
+                type: change == "type" ? "file" : "custom", id: change == "identity" ? UUID() : source.id)
+        }
+        #expect(throws: AgentErrorCode.versionConflict) { try writer.update(request, connectionID: f.connectionID) }
+        #expect(f.library.notes.sorted { $0.id.uuidString < $1.id.uuidString } == before)
+        let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        #expect(try f.library.mutationReceipt(for: mutation, at: f.wall) == nil)
     }
 
     @Test func createPersistsOneDraftWithoutARevisionAndRecoversItsReceipt() throws {

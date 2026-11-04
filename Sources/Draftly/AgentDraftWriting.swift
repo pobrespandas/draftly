@@ -5,22 +5,27 @@ import DraftlyCore
 // App-owned draft mutations share version checks and durable receipts.
 @MainActor final class AgentDraftWriting {
     private let libraryID: UUID
-    static let operationNames: Set<String> = ["drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags"]
-    static let metadataOperations: Set<String> = ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags"]
+    static let operationNames: Set<String> = ["drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax"]
+    static let metadataOperations: Set<String> = ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax"]
     private let library: LibraryStore
     private let reader: AgentDraftReading
     private let editors: AgentEditorRegistry
     private let keys: AgentRetryKeys
     private let now: () -> Date
     private let validateAdmission: () throws -> Void
+    private let resolveSyntax: ([String: AgentJSONValue], UUID) throws -> SyntaxDefinition
     private var updating = false
 
     init(library: LibraryStore, libraryID: UUID, reader: AgentDraftReading, editors: AgentEditorRegistry,
-         keys: AgentRetryKeys, now: @escaping () -> Date, validateAdmission: @escaping () throws -> Void) throws {
+         keys: AgentRetryKeys, now: @escaping () -> Date, validateAdmission: @escaping () throws -> Void,
+         resolveSyntax: @escaping ([String: AgentJSONValue], UUID) throws -> SyntaxDefinition = { parameters, _ in
+             guard case .string(let name) = parameters["name"], ScriptSyntax.names.contains(name) else { throw AgentErrorCode.unavailable }
+             return try ScriptSyntax.definition(name)
+         }) throws {
         guard reader.isBound(to: library, editors: editors) else { throw AgentErrorCode.invalidInput }
         self.libraryID = libraryID
         self.library = library; self.reader = reader; self.editors = editors
-        self.keys = keys; self.now = now; self.validateAdmission = validateAdmission
+        self.keys = keys; self.now = now; self.validateAdmission = validateAdmission; self.resolveSyntax = resolveSyntax
     }
 
     func prepare(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
@@ -40,8 +45,11 @@ import DraftlyCore
                 if try recoveredBatchReceipt(for: mutation, targets: request.targets) == nil {
                     guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
                     let initial = try reader.checkedSnapshots(for: request.targets.map(\.id), expectedVersion: expected)
+                    let syntax = request.operation == "drafts.syntax" ? try resolveSyntax(parameters, connectionID) : nil
                     let date = now()
-                    for state in initial.values { _ = try applyingMetadata(request, parameters: parameters, to: state.note, at: date) }
+                    for state in initial.values {
+                        _ = try applyingMetadata(request, parameters: parameters, to: state.note, at: date, syntaxName: syntax?.name)
+                    }
                 }
             } else if request.operation == "drafts.create" {
                 _ = try creationNote(parameters)
@@ -186,10 +194,11 @@ import DraftlyCore
         }
         guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
         let initial = try reader.checkedSnapshots(for: request.targets.map(\.id), expectedVersion: expected)
+        let syntax = request.operation == "drafts.syntax" ? try resolveSyntax(parameters, connectionID) : nil
         let mutationDate = now()
         let notes = try request.targets.map { target in
             guard let state = initial[target.id] else { throw AgentErrorCode.storageError }
-            return try applyingMetadata(request, parameters: parameters, to: state.note, at: mutationDate)
+            return try applyingMetadata(request, parameters: parameters, to: state.note, at: mutationDate, syntaxName: syntax?.name)
         }
         var receipt: LibraryMutationReceipt?
         _ = try editors.synchronizeMutations(notes) { values, generations in
@@ -204,6 +213,12 @@ import DraftlyCore
                 try self.validateAdmission(); _ = try self.keys.verify(key, request: request, connectionID: connectionID)
                 guard !ActionRunner.isExecuting(in: self.library) else { throw AgentErrorCode.busy }
                 try self.reader.validateMutationSnapshots(initial, expectedVersion: expected, reservedGenerations: generations)
+                if let syntax {
+                    let current = try self.resolveSyntax(parameters, connectionID)
+                    guard current.type == syntax.type, current.name.utf8.elementsEqual(syntax.name.utf8),
+                          current.source.utf8.elementsEqual(syntax.source.utf8),
+                          syntax.type == "builtIn" || current.id == syntax.id else { throw AgentErrorCode.versionConflict }
+                }
             }, makeResources: { saved in
                 try saved.flatMap { note in
                     guard let builder = resourceBuilders[note.id] else { throw AgentErrorCode.storageError }
@@ -220,12 +235,15 @@ import DraftlyCore
         return receipt
     }
 
-    private func applyingMetadata(_ request: AgentRequest, parameters: [String: AgentJSONValue], to original: Note, at date: Date) throws -> Note {
+    private func applyingMetadata(_ request: AgentRequest, parameters: [String: AgentJSONValue], to original: Note, at date: Date, syntaxName: String? = nil) throws -> Note {
         var note = original
         switch request.operation {
         case "drafts.archive": note.isArchived = true; note.trashedAt = nil
         case "drafts.trash": note.trashedAt = date
         case "drafts.restore": note.trashedAt = nil
+        case "drafts.syntax":
+            guard let syntaxName else { throw AgentErrorCode.unavailable }
+            note.syntax = syntaxName
         case "drafts.flag":
             guard case .integer(let flag) = parameters["flag"] else { throw AgentErrorCode.invalidInput }
             note.flag = Int(flag)
@@ -241,6 +259,23 @@ import DraftlyCore
         default: throw AgentErrorCode.unavailable
         }
         return note
+    }
+
+    static func syntaxDefinition(_ parameters: [String: AgentJSONValue], grant: AgentGrant,
+                                 library: LibraryStore) throws -> SyntaxDefinition {
+        if case .string(let name) = parameters["name"], ScriptSyntax.names.contains(name) {
+            return try ScriptSyntax.definition(name)
+        }
+        guard grant.capabilities.contains(.appearanceRead) else { throw AgentErrorCode.permissionDenied }
+        let candidates = library.syntaxes.filter { $0.type != "builtIn" && grant.scope.permits(.init(kind: .syntax, id: $0.id)) }
+        let value: SyntaxDefinition?
+        if case .string(let rawID) = parameters["syntaxID"], let id = UUID(uuidString: rawID) {
+            value = candidates.first { $0.id == id }
+        } else if case .string(let name) = parameters["name"] {
+            value = candidates.first { $0.name == name }
+        } else { throw AgentErrorCode.invalidInput }
+        guard let value else { throw AgentErrorCode.notFound }
+        return value
     }
 
     private func recoveredReceipt(for mutation: LibraryMutationIdentity, target: UUID) throws -> LibraryMutationReceipt? {

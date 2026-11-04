@@ -948,3 +948,17 @@ Archive clears trash state. Trash and restore keep the archived state; restore
 only clears the trash date. Tag changes use the app's tag normalization rules.
 A recovered receipt does not repeat metadata edits or overwrite later changes.
 Installed batch acceptance remains a separate readiness gate.
+
+
+### Draft syntax selection
+
+`drafts.syntax` uses the same atomic batch and retry rules as other draft
+metadata changes. A built-in `name` uses the public syntax definition. An
+installed `name` or `syntaxID` requires `appearance.read` and a grant that covers
+that syntax resource. Supplying a name does not bypass resource scope.
+
+Before committing, the handler resolves the selected stored definition again.
+A changed name, source, type, or installed identity prevents the whole batch.
+This check concerns the stored definition, not the current bytes of an external
+syntax file. Completed receipts return without applying a definition again,
+even if the person renamed that definition after the original commit.

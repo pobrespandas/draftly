@@ -3,6 +3,22 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Draft syntax mutation — 4 November
+
+Connected `drafts.syntax` through the atomic metadata path. Built-in syntax names
+need no installed-resource read. An installed name or ID requires
+`appearance.read` and access to that syntax resource. Name lookup follows the
+app's Unicode comparison rules. Before the storage commit, the handler checks
+the selected stored definition's name, source, type, and identity again.
+A completed receipt remains recoverable after a later definition rename.
+
+The run passed 265 tests across 13 suites. Tests cover scoped installed lookup,
+built-in batches, Unicode names, changes during commit, rollback, and retries.
+The normal native build passed. Source-set coverage is 68 connected or
+conditional names out of 137, with 69 missing direct handlers. Installed syntax
+acceptance and full CI remain pending. A separate active-session check at the
+draft storage boundary is the next hardening step. Keep PR #105 in draft.
+
 ## Atomic draft metadata batches — 4 November
 
 Connected `drafts.archive`, `drafts.trash`, `drafts.restore`, `drafts.flag`, and

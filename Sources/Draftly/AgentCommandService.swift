@@ -134,6 +134,9 @@ import AgentContracts
             writes = try AgentDraftWriting(library: library, libraryID: libraryID, reader: drafts, editors: editors,
                 keys: retryKeys, now: now, validateAdmission: { [weak self] in
                     guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
+                }, resolveSyntax: { parameters, connectionID in
+                    guard let grant = try connections.grantForAuthenticatedConnection(connectionID) else { throw AgentErrorCode.permissionDenied }
+                    return try AgentDraftWriting.syntaxDefinition(parameters, grant: grant, library: library)
                 })
             workspaceApplication = AgentWorkspaceApplication(library: library, editors: editors, keys: retryKeys,
                 currentGrant: { try connections.grantForAuthenticatedConnection($0) }, version: { [weak self] workspace in
@@ -573,7 +576,7 @@ import AgentContracts
             let receipt = try actions.updateAction(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
-        case "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags":
+        case "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax":
             guard let writes else { throw AgentErrorCode.unavailable }
             let receipt = try writes.update(request, connectionID: grant.connectionID)
             return ["resources": .array(receipt.resources.map { .object(["id": .string($0.id.uuidString),

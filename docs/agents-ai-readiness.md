@@ -189,11 +189,20 @@ rollback, revocation, concurrent edits, scope, and repeats without another write
 The final run passed 266 tests across 16 suites. The normal native build passed.
 Full CI and installed acceptance for these handlers remain pending.
 
+## Draft syntax
+
+`drafts.syntax` now uses the atomic metadata handler. Installed definitions
+require `appearance.read` and resource scope. Built-in names use the app's
+public definitions. The commit checks the stored definition again. Tests cover
+Unicode names, changes in definition identity and content, and repeat results
+after a later rename. The run passed 265 tests across 13 suites, and the normal
+native build passed. Full CI and installed acceptance remain pending.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-67 names in implemented or conditional handler sets. The other 70 names have
-no direct handler in those sets. These counts do not prove that 67 operations
+68 names in implemented or conditional handler sets. The other 69 names have
+no direct handler in those sets. These counts do not prove that 68 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -204,7 +213,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Drafts | `drafts.merge`, `drafts.purge`, `drafts.syntax` |
+| Drafts | `drafts.merge`, `drafts.purge` |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
 | Themes | All 14 declared `themes.*` contracts. |
