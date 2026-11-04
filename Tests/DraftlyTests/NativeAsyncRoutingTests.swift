@@ -5,7 +5,7 @@ import Testing
 @Suite("Native asynchronous routing policies") @MainActor
 struct NativeAsyncRoutingTests {
     private let supported: [(operation: String, route: NativeAsyncRoute)] = [
-        ("confirmAction", .prompt), ("alert", .prompt), ("prompt", .prompt), ("selectPrompt", .prompt),
+        ("http", .http), ("confirmAction", .prompt), ("alert", .prompt), ("prompt", .prompt), ("selectPrompt", .prompt),
         ("callbackURL", .callback), ("shellScript", .shell), ("shortcut", .shortcut), ("eventAPI", .eventAPI),
         ("reminder", .event), ("event", .event), ("location", .location), ("speak", .speech),
         ("transcribe", .transcription), ("modelModes", .model), ("modelRespond", .model), ("appleScript", .appleScript),

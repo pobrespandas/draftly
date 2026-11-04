@@ -8,12 +8,39 @@ struct AgentNativeSchemaTests {
         .init(requestID: UUID(), libraryID: UUID(), operation: operation, parameters: parameters)
     }
 
+    @Test func httpInputsKeepExplicitBinaryAndRejectHeaderOrURLOverrides() throws {
+        let good = request("native.http", ["url": .string("https://fixture.invalid/qa"), "method": .string("PATCH"), "headersJSON": .string("{\"Authorization\":\"Bearer explicit\"}"), "bodyBase64": .string("AID/")])
+        let values = try AgentNativeSchemas.validatedParameters(for: good)
+        #expect(values["followRedirects"] == .bool(false) && values["bodyBase64"] == .string("AID/"))
+        let textBody = request("native.http", ["url": .string("https://fixture.invalid/qa"), "bodyText": .string("café\r\n🐼")])
+        #expect(try AgentNativeSchemas.validatedParameters(for: textBody)["bodyText"] == .string("café\r\n🐼"))
+        for fields: [String: AgentJSONValue] in [
+            ["url": .string("file:///tmp/private")], ["url": .string("https://user:password@fixture.invalid/")],
+            ["method": .string("GET\r\nInjected")], ["headersJSON": .string("{\"Host\":\"other.invalid\"}")],
+            ["headersJSON": .string(#"{"X-Value":"one\r\ntwo"}"#)],
+            ["headersJSON": .string("{\"X-Test\":\"a\",\"x-test\":\"b\"}")],
+            ["bodyText": .string("text"), "bodyBase64": .string("AID/")], ["bodyBase64": .string("AID/\n")],
+            ["timeout": .integer(0)], ["bodyText": .string(String(repeating: "🐼", count: 20_000))]
+        ] {
+            var input = ["url": AgentJSONValue.string("https://fixture.invalid/qa")]
+            input.merge(fields) { _, new in new }
+            #expect(throws: (any Error).self) { try AgentNativeSchemas.validatedParameters(for: request("native.http", input)) }
+        }
+    }
+
+    @Test func httpResultsAreTransientAndPreserveBinaryAndFailureStatus() throws {
+        let response: AgentJSONValue = .object(["success": .bool(false), "statusCode": .integer(503), "headersJSON": .string("{}"), "responseText": .string(""), "bodyBase64": .string("AID/")])
+        try AgentNativeSchemas.validateResult(["response": response, "resultAvailable": .bool(true)], for: "native.http")
+        #expect(AgentNativeSchemas.unavailableResult(for: "native.http") == ["response": .null, "resultAvailable": .bool(false)])
+        #expect(throws: (any Error).self) { try AgentNativeSchemas.validateResult(["response": response, "resultAvailable": .bool(false)], for: "native.http") }
+    }
+
     @Test func concreteSchemasDoNotPublishOtherNativeContracts() {
         #expect(AgentNativeSchemas.operationNames == ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown",
             "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe",
-            "native.location", "native.shell", "native.appleScript", "native.shortcut"])
+            "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http"])
         #expect(AgentNativeSchemas.operationNames.isSubset(of: AgentOperationSchemas.operationNames))
-        #expect(AgentOperationSchemas.schema(for: "native.http") == nil)
+        #expect(AgentOperationSchemas.schema(for: "native.xmlrpc") == nil)
     }
 
     @Test(arguments: ["native.clipboardWrite", "native.share", "native.print", "native.speak"])

@@ -23,6 +23,7 @@ import DraftlyCore
         let operation: String
         let values: [String: AgentJSONValue]
         switch request.operation {
+        case "native.http": operation = "http"; values = parameters
         case "native.clipboardRead": operation = "getClipboard"; values = [:]
         case "native.clipboardWrite": operation = "clipboard"; values = parameters
         case "native.htmlToMarkdown": operation = "htmlToMarkdown"; values = ["text": parameters["html"]!]
@@ -93,6 +94,8 @@ import DraftlyCore
             if case .bool(let completed) = result["completed"] { outcome = completed ? "completed" : "failed" }
             else if request.operation == "native.shell", case .object(let process) = result["process"] {
                 outcome = process["status"] == .integer(0) ? "completed" : "failed"
+            } else if request.operation == "native.http", case .object(let response) = result["response"] {
+                outcome = response["success"] == .bool(true) ? "completed" : "failed"
             } else { outcome = "completed" }
             try AgentNativeSchemas.validateResult(result, for: request.operation)
             try validateAuthority(); try Task.checkCancellation()

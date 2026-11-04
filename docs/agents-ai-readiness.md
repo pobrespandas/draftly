@@ -536,8 +536,8 @@ See [selection validation](agent-theme-selection-acceptance.md).
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-114 names in implemented or conditional handler sets. The other 23 names have
-no direct handler in those sets. These counts do not prove that 114 operations
+115 names in implemented or conditional handler sets. The other 22 names have
+no direct handler in those sets. These counts do not prove that 115 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -552,7 +552,7 @@ a direct handler for every `native.*` contract.
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
 | Backups | `backups.requestRestore` |
-| Native operations | `native.http`, `native.xmlrpc`, `native.fileRead`, `native.fileWrite`, `native.htmlPreview`, `native.mail`, `native.messages`, `native.calendar`, `native.reminders`, `native.scanDocument`, `native.models` |
+| Native operations | `native.xmlrpc`, `native.fileRead`, `native.fileWrite`, `native.htmlPreview`, `native.mail`, `native.messages`, `native.calendar`, `native.reminders`, `native.scanDocument`, `native.models` |
 | Operation control and activity | `operations.answerPrompt`, `activity.changes` |
 
 Keep the full [operation inventory](research/agent-operation-inventory.md) and
@@ -828,3 +828,10 @@ or their hash. A same-content retarget invalidates stale local operations, inclu
 pending destructive review. Installation result tokens match subsequent reads.
 Strict 2,702 tests and native Debug passed. Installed retarget acceptance remains
 open. See [installation evidence](agent-theme-installation-review.md).
+
+## Reviewed bounded HTTP
+
+The native effect host now connects `native.http` with app-owned review, bounded
+response reads and a private session. Redirects stay on the reviewed origin.
+Response content is transient and recovery does not send again. Automatic HTTPS
+input resolution remains open. See [HTTP evidence](agent-native-http-acceptance.md).

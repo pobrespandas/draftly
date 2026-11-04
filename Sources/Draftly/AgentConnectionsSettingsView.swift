@@ -151,6 +151,7 @@ private struct AgentOperationReviewSheet: View {
         if review.operation == "actionGroups.delete" { return "Remove Action Group" }
         guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
         switch operation {
+        case "http": return "Make an HTTP request"
         case "clipboard": return "Copy text to the clipboard"
         case "getClipboard": return "Read the current clipboard"
         case "htmlToMarkdown": return "Convert HTML to Markdown"
@@ -202,7 +203,7 @@ private struct AgentOperationReviewSheet: View {
         guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
         let rows = fields.keys.sorted().map { key in
             let value = fields[key]!
-            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion"][key] ?? key
+            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion", "method": "Method", "headersJSON": "Headers", "bodyText": "Body", "bodyBase64": "Body (Base64)", "timeout": "Timeout (seconds)", "followRedirects": "Follow redirects on this origin"][key] ?? key
             if case .string(let text) = value { return (label, text) }
             let data = try? JSONEncoder().encode(value)
             return (label, data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unavailable")

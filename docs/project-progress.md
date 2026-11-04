@@ -3,6 +3,17 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Reviewed bounded HTTP — 4 November
+
+Connected `native.http` to app-owned review and a private asynchronous session.
+Explicit text/binary bodies and response bodies are limited to 64 KiB. Redirects
+stay on the reviewed origin. Response data is transient; recovery does not send
+again. Real loopback checks cover redirects, bodyless representation sizes and
+connection closure on cancellation. Strict 2,711 tests and native Debug passed.
+Coverage is 115/137 connected or conditional names; 22 lack direct handlers.
+Automatic HTTPS inputs, signed installed HTTP and distribution remain open. See
+[HTTP evidence](agent-native-http-acceptance.md).
+
 ## File-theme permission versions — 4 November
 
 File-theme versions now bind the saved permission as well as the definition.

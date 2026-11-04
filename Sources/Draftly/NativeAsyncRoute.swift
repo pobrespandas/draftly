@@ -1,4 +1,5 @@
 enum NativeAsyncRoute: Equatable {
+    case http
     case model
     case prompt
     case sharing
@@ -23,6 +24,7 @@ enum NativeAsyncRoute: Equatable {
         if operation == "modelModes" || operation == "modelRespond" { return .model }
         if NativePromptAdapter.operations.contains(operation) { return .prompt }
         switch operation {
+        case "http": return .http
         case "share", "shareFile", "shareURL": return .sharing
         case "print": return .printing
         case "arrangeText": return .arrangement

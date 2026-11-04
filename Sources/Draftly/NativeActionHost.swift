@@ -32,6 +32,11 @@ final class NativeActionHost: ActionHost {
         }
         let result: Any?
         switch NativeAsyncRoute.resolve(operation) {
+        case .http:
+            let response = try await BoundedHTTP.request(payload, maximumBytes: 65_536)
+            let headers = String(decoding: try JSONSerialization.data(withJSONObject: response.headers, options: [.sortedKeys]), as: UTF8.self)
+            result = ["success": (200..<300).contains(response.statusCode), "statusCode": response.statusCode,
+                      "headersJSON": headers, "responseText": response.text, "bodyBase64": response.data.base64EncodedString()]
         case .model: return try await models.performAsync(operation, payload: payload)
         case .prompt:
             result = try await NativePromptAdapter().performAsync(operation, values: values)

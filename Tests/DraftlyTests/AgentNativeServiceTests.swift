@@ -23,7 +23,7 @@ struct AgentNativeServiceTests {
         func finishAction() { finishes += 1 }
     }
 
-    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut"])
+    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http"])
     func directNativeRequestsRequireReviewAndNeverReplay(operation: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -43,6 +43,10 @@ struct AgentNativeServiceTests {
         if isText {
             host.response = "{\"value\":\"PRIVATE native café 🐼\"}"
             expected = ["text": .string("PRIVATE native café 🐼"), "resultAvailable": .bool(true)]; resultField = "text"
+        } else if operation == "native.http" {
+            let response: AgentJSONValue = .object(["success": .bool(false), "statusCode": .integer(503), "headersJSON": .string("{}"), "responseText": .string("PRIVATE HTTP café 🐼"), "bodyBase64": .string(Data("PRIVATE HTTP café 🐼".utf8).base64EncodedString())])
+            host.response = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(["value": response])), as: UTF8.self)
+            expected = ["response": response, "resultAvailable": .bool(true)]; resultField = "response"
         } else if operation == "native.location" {
             host.response = #"{"value":{"latitude":42,"longitude":-71}}"#
             expected = ["coordinates": .object(["latitude": .integer(42), "longitude": .integer(-71)]), "resultAvailable": .bool(true)]; resultField = "coordinates"
@@ -58,6 +62,7 @@ struct AgentNativeServiceTests {
             capabilities: unrestricted.contains(operation) ? [.nativeUse, .scriptsUnrestricted] : [.nativeUse])
         let parameters: [String: AgentJSONValue]
         switch operation {
+        case "native.http": parameters = ["url": .string("https://example.invalid/qa"), "method": .string("POST"), "bodyText": .string("PRIVATE request")]
         case "native.clipboardRead", "native.location": parameters = [:]
         case "native.dictate", "native.transcribe": parameters = ["locale": .string("es-AR")]
         case "native.openURL": parameters = ["url": .string("https://example.com/qa")]
@@ -80,20 +85,21 @@ struct AgentNativeServiceTests {
         #expect(reply.outcome == .result(.object(expected)) && host.calls.count == 1 && host.finishes == 1 && host.constructions == 1)
         let mappings = ["native.clipboardRead": "getClipboard", "native.clipboardWrite": "clipboard", "native.htmlToMarkdown": "htmlToMarkdown",
             "native.share": "share", "native.print": "print", "native.openURL": "openURL", "native.speak": "speak", "native.dictate": "dictate",
-            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut"]
+            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut", "native.http": "http"]
         #expect(host.calls.first?.0 == mappings[operation])
         let payload = try JSONDecoder().decode([String: AgentJSONValue].self, from: Data(try #require(host.calls.first?.1).utf8))
         if operation == "native.shortcut" { #expect(payload["waitForResponse"] == .bool(true)) }
         if operation == "native.appleScript" {
             #expect(payload["argumentsJSON"] == nil && payload["arguments"] == .array([.string("café 🐼"), .object(["record": .array([.bool(true), .null])])]))
         }
-        if operation == "native.shell" { #expect(try operations.snapshot(id, connectionID: record.id).effects.map(\.outcome) == ["failed"]) }
+        if ["native.shell", "native.http"].contains(operation) { #expect(try operations.snapshot(id, connectionID: record.id).effects.map(\.outcome) == ["failed"]) }
         #expect(try f.send(request, session: session) == reply && host.calls.count == 1)
         let changed = AgentRequest(requestID: request.requestID, libraryID: f.libraryID,
             operation: "native.clipboardWrite", parameters: ["text": .string("Changed intent")])
         #expect(try f.send(changed, session: session).outcome == .error(.versionConflict) && host.calls.count == 1)
         let saved = String(decoding: try Data(contentsOf: root.appendingPathComponent("Agents/operation-request-" + record.id.uuidString + "-" + request.requestID.uuidString + ".json")), as: UTF8.self)
         #expect(!saved.contains("PRIVATE"))
+        if operation == "native.http" { #expect(!saved.contains(Data("PRIVATE HTTP café 🐼".utf8).base64EncodedString())) }
         let restarted = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
             validateHost: {}, isLocked: { false }, now: { f.wall }, journal: try AgentOperationJournal(parentDirectory: root))
         defer { restarted.cancelAll() }
@@ -195,7 +201,7 @@ struct AgentNativeServiceTests {
         defer { tools.invalidate(revoke: false) }
         let names = Set(try await tools.tools().map(\.operation).filter { $0.hasPrefix("native.") })
         var expected: Set<String> = ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.share",
-            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location"]
+            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http"]
         if allResources && unrestricted { expected.formUnion(["native.shell", "native.appleScript", "native.shortcut"]) }
         #expect(names == expected && host.calls.isEmpty && approvals.pendingFromUserInterface().isEmpty)
     }
