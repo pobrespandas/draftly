@@ -3,6 +3,18 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Indexed operation journal — 4 November
+
+Individual request records and operation indexes remove the permanent global
+128-record limit. The bounded live cache still controls admission. Old request
+identities and uncertain outcomes remain recoverable without replay. Migration
+keeps the original array and publishes a format marker that older apps reject.
+New work starts only after both record writes are durable. Disk use grows with
+history; no automatic pruning is implemented. See
+[retention validation](agent-operation-retention-review.md) and the
+[storage decision](adr/0006-agent-indexed-operation-journal.md).
+Full local validation and installed migration acceptance are tracked separately.
+
 ## Direct native requests — 4 November
 
 Connected thirteen typed native requests. The latest six add dictation,
@@ -26,10 +38,9 @@ before terminal cancellation. Other new effects use test adapters. Signed
 installed acceptance and CI for this increment remain open. The earlier source
 `18a6e14` passed [full CI](https://github.com/pobrespandas/draftly/actions/runs/41849728024).
 
-Publication also needs a bounded journal retention policy. The current 128-record
-limit can permanently reject new work in a long-lived library. Retention must
-preserve unknown-effect records and must not permit silent replay of effects.
-No journal reset or automatic replay is an accepted workaround.
+The indexed journal described above removes the former permanent count limit.
+Installed migration and signed-update checks remain open. No journal reset or
+automatic replay is an accepted workaround.
 
 ## Reviewed action-group removal — 4 November
 
@@ -2444,9 +2455,15 @@ the global-capacity reproduction and the requirements for a safe replacement.
 
 Live admission now releases terminal durable cache entries and resolves retries
 from the journal before applying capacity limits. Active jobs keep their slots.
-The persistent 128-record limit remains unresolved; this is not full retention
-acceptance. See the operation retention review for scope and regression evidence.
+The later indexed journal removes the persistent count limit. See the operation
+retention review for current scope and remaining acceptance checks.
 
 The live-cache correction passed the strict complete inventory: 1 consumer,
 193 contract, 824 Core and 1,637 app tests (2,655 total). Native Debug build passed.
 Full CI and installed acceptance of this correction remain open.
+
+Indexed journal validation passed the strict inventory: 1 consumer, 193 contract,
+824 Core and 1,640 app tests (2,658 total). After the final missing-marker guard,
+39 focal tests and the final native Debug build passed. Full CI of the final
+source and installed migration/update acceptance remain open. See the retention
+review for exact validation scope and logs.

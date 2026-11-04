@@ -486,10 +486,12 @@ Installed acceptance of capture and automation and CI for this increment remain
 open. The previous source `18a6e14` passed
 [full CI](https://github.com/pobrespandas/draftly/actions/runs/41849728024).
 
-Before publication, define bounded journal retention. Its current 128-record
-limit can permanently reject new jobs. Any retention policy must preserve
-unknown-effect records and prevent silent replay. This is an unresolved
-reliability gate, separate from handler coverage.
+Individual request records and operation indexes now remove the persistent
+128-record limit. The old array remains as recovery evidence. A format marker
+prevents older apps from ignoring new identities. There is no automatic pruning;
+disk use grows with accepted work. Current validation and remaining installed
+migration and storage-failure checks are in the
+[retention review](agent-operation-retention-review.md).
 
 ## Operation coverage
 
@@ -701,9 +703,15 @@ the global-capacity reproduction and the requirements for a safe replacement.
 
 Live admission now releases terminal durable cache entries and resolves retries
 from the journal before applying capacity limits. Active jobs keep their slots.
-The persistent 128-record limit remains unresolved; this is not full retention
-acceptance. See the operation retention review for scope and regression evidence.
+The later indexed journal removes the persistent count limit. See the operation
+retention review for current scope and remaining acceptance checks.
 
 The live-cache correction passed the strict complete inventory: 1 consumer,
 193 contract, 824 Core and 1,637 app tests (2,655 total). Native Debug build passed.
 Full CI and installed acceptance of this correction remain open.
+
+Indexed journal validation passed the strict inventory: 1 consumer, 193 contract,
+824 Core and 1,640 app tests (2,658 total). After the final missing-marker guard,
+39 focal tests and the final native Debug build passed. Full CI of the final
+source and installed migration/update acceptance remain open. See the retention
+review for exact validation scope and logs.

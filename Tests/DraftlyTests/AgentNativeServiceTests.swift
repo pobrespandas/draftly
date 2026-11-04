@@ -92,7 +92,7 @@ struct AgentNativeServiceTests {
         let changed = AgentRequest(requestID: request.requestID, libraryID: f.libraryID,
             operation: "native.clipboardWrite", parameters: ["text": .string("Changed intent")])
         #expect(try f.send(changed, session: session).outcome == .error(.versionConflict) && host.calls.count == 1)
-        let saved = String(decoding: try Data(contentsOf: root.appendingPathComponent("Agents/operations.json")), as: UTF8.self)
+        let saved = String(decoding: try Data(contentsOf: root.appendingPathComponent("Agents/operation-request-" + record.id.uuidString + "-" + request.requestID.uuidString + ".json")), as: UTF8.self)
         #expect(!saved.contains("PRIVATE"))
         let restarted = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
             validateHost: {}, isLocked: { false }, now: { f.wall }, journal: try AgentOperationJournal(parentDirectory: root))

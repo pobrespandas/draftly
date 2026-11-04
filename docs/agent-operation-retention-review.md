@@ -1,84 +1,78 @@
 # Operation retention review
 
-The current journal has one limit of 128 records per library. This is not a
-concurrency limit. Completed and uncertain records use the same capacity as
-running work. The file survives host restart. A new connection does not receive
-new capacity. Before the live-cache fix, `removeCompleted` removed a live entry but kept its
-request reservation and durable record.
+The journal now separates durable request identity from the bounded live result
+cache. Individual records replace the global 128-record admission limit. This
+removes the permanent request-count failure without dropping replay protection.
+See the [storage decision](adr/0006-agent-indexed-operation-journal.md).
+Implementation and local validation do not establish installed acceptance.
 
-`journalCapacityIsGlobalAndSurvivesConnectionReplacement` characterizes this
-failure. It fills the journal, opens a fresh registry with only a different
-connection, and checks that new work returns `busy` before any effect. The first
-request identity remains recoverable. This test records the existing failure
-mode. It does not accept it as publication behavior.
+## Original failure
 
-## Required behavior
+The previous array allowed only 128 records per library. Completed and uncertain
+records used the same capacity as running work. A restart or a new connection
+did not receive new capacity. A characterization test reproduced that behavior.
+Its corrected test now verifies reservation and recovery of 260 identities.
+Raising the array limit or deleting oldest records was not a valid fix.
 
-Separate concurrent-work admission, cached results and durable request identity.
-A completed result must not consume a permanent execution slot. Evicting result
-content must not evict the fact that a request already submitted an effect.
-An uncertain outcome must remain distinguishable from a request never accepted.
-A restart, transport reconnect or grant replacement must not bypass this rule.
+## Current storage
 
-Define when a request identity becomes permanently inadmissible before removing
-its replay protection. Wall-clock expiry alone is insufficient: the clock can
-move backward. A paused connection can resume and is not retired. A missing
-credential read can be a transient storage failure and does not prove retirement.
+Each connection/request pair has one bounded private record. An operation index
+maps its identifier to that record. Lookups read the requested files and the
+bounded legacy recovery copy; they never enumerate the history directory.
+The existing global lock serializes reservations and snapshot changes. The
+index commits first. Work starts only after the request record also completes
+its file and directory durability checks. A partial index alone is not accepted
+work and fails closed on result lookup. Failed reservation never launches work.
 
-The connection registry commits revocation and changes its grant identifier before
-it removes credentials. Failed revocation can block only the current process.
-Any future retirement cleanup must use committed authority state, not just that
-process-local block. Cleanup must not race with in-flight result persistence.
-The treatment of uncertain effects as retained activity also needs an explicit
-policy; denying old authority alone does not provide an audit record.
+The old array remains unchanged in `operations-legacy.json`. Migration publishes
+a format marker at `operations.json` after the copy is durable. Older apps reject
+that marker, so they cannot ignore new requests and repeat effects. Migration
+can resume after failure. Legacy records preserve their operation, request and
+grant identity. Snapshot changes use individual records and retain the legacy
+copy. Corruption is rejected without repair or automatic replay.
 
-## Implementation checks
+Disk use grows with accepted requests. Each file and each read has a byte bound;
+the full history has no fixed byte budget. Storage failures must stop reservation
+before submission. After submission, uncertain effects retain their identity.
+No automatic age cutoff or deletion policy is implemented. A paused connection,
+a clock change or a transient credential failure cannot remove protection.
 
-- More than 128 sequential completed jobs must work under one valid grant.
-- A full active-work limit must reject before an effect and recover capacity
-  after confirmed completion or cancellation.
-- Retrying an evicted result must return its identity or an explicit unavailable
-  result. It must never start work again.
-- Retain uncertain-effect protection across restart, storage failure and clock
-  rollback. Test committed revocation separately from pause and failed writes.
-- Keep file size and memory bounds. Storage exhaustion must fail before submission.
-- Migrate the existing journal atomically. Preserve old reservations if migration
-  fails. Do not reset or delete the file to gain capacity.
+## Live cache
 
-No retention algorithm is accepted yet. Raising the numeric limit or deleting
-oldest records does not meet these requirements. Publication remains gated on
-implementation and tests of the selected policy.
+Admission evicts only the oldest terminal durable entries when the cache is full.
+It removes cached request mappings, not journal records. Requests check durable
+identity before admission limits. Active work keeps its slot until terminal
+completion. Without a journal, the existing in-memory identity bound still
+applies. Private native results can become explicitly unavailable after eviction,
+just as after restart. No effect runs to rebuild them.
 
-Validation: all 18 journal tests passed. The log is
-`/tmp/draftly-journal-capacity-characterization.log`. No production behavior changed.
+## Regression evidence
 
-## Live-cache capacity correction
+- A capacity-one registry completes 140 sequential requests and retries each
+  without another execution. It covers Actions and typed value operations.
+- Active work blocks new admission, then releases capacity after cancellation
+  reaches terminal state. Its retry cannot execute again.
+- 260 request reservations survive reopening with their original identifiers.
+  A different connection can reserve additional work.
+- A full legacy array retains all 128 uncertain reservations after migration.
+  New reservations work. The original recovery copy remains byte-for-byte intact.
+- Failed migration keeps the original array. A retry preserves its identities.
+- An orphan index fails closed. An obstructed reservation cannot launch work;
+  removing the obstruction permits one execution and subsequent recovery.
+- Native-result tests inspect the individual record for private input and output.
 
-Admission now evicts the oldest terminal durable entries when the live cache is
-full. It removes their cached request mappings, not their journal records.
-Requests check durable identity before capacity admission. Old retries still
-return the original operation identifier and cannot execute again, even when
-the live cache holds another operation. Explicit removal also releases a durable
-entry's cached request mapping. Active work is never evicted. Without a journal,
-request identities remain in memory and the existing bound still applies.
+Before the live-cache fix, both parameter cases failed with `busy`; see
+`/tmp/draftly-live-retention-red.log`. The earlier source passed 2,655 strict
+Swift tests and native Debug build. Current indexed-storage validation is recorded below. Installed migration, disk-exhaustion fault injection
+and signed update acceptance remain publication checks.
 
-Private native results can become unavailable after cache eviction, just as after
-restart. The journal already returns an explicit unavailable payload. No effect
-runs to rebuild that output. A failed final journal write can recover as uncertain;
-the durable reservation still prevents replay.
+## Final local validation
 
-The parameterized regression uses a live capacity of one, completes three jobs,
-and retries all three without another execution. It covers Actions and typed
-value operations. A separate test verifies active-work backpressure, cancellation,
-release after terminal completion and no replay of the cancelled request. Both
-parameter cases failed with `busy` before the fix.
-
-This fixes live-cache exhaustion only. The persistent 128-record limit remains
-and the full replacement checks above are still required before publication.
-
-Strict validation verified 1 consumer, 193 contract, 824 Core and 1,637 app tests
-(2,655 total). The package-name native Debug build passed. Logs:
-`/tmp/draftly-live-retention-full.log` and `/tmp/draftly-live-retention-build.log`.
-The focused regression failed before the fix in both parameter cases; see
-`/tmp/draftly-live-retention-red.log`. The final active-work fixture explicitly
-waits for running state before it tests backpressure and cancellation.
+The strict runner verified 1 consumer, 193 contract, 824 Core and 1,640 app tests
+(2,658 total). After the final missing-marker recovery guard and its test,
+39 focused tests in three suites passed. The final native Debug build passed.
+The full run preceded that last guard; full CI for the final source remains open.
+Logs: `/tmp/draftly-indexed-journal-full.log`,
+`/tmp/draftly-indexed-journal-recovery-final.log` and
+`/tmp/draftly-indexed-journal-final-build.log`.
+No installed library or public release was changed.

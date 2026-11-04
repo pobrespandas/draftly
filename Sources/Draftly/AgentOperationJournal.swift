@@ -17,13 +17,13 @@ import AgentLocalSecurity
     }
 
     private let directory: AgentStateDirectory
-    private let limit = 128
+    private let legacyLimit = 128
     private let name = "operations.json"
     private let lock = "operations.lock"
 
     init(parentDirectory: URL) throws {
         directory = try AgentStateDirectory(parentDirectory: parentDirectory)
-        _ = try read()
+        try locked { try migrateLegacy() }
     }
 
     func reserve(_ request: AgentRequest, grant: AgentGrant, operationID: UUID) throws -> (record: Record, isNew: Bool) {
@@ -31,72 +31,56 @@ import AgentLocalSecurity
         let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
         let requestFingerprint = try fingerprint(prepared.value)
         let grantFingerprint = try fingerprint(AgentRequestBinding.grantValue(grant))
-        var selected: Record?
-        var isNew = false
-        try update { records in
-            isNew = false
-            if let old = records.first(where: { $0.connectionID == grant.connectionID && $0.requestID == request.requestID }) {
-                guard old.libraryID == grant.libraryID, old.grantFingerprint == grantFingerprint else {
-                    throw AgentErrorCode.permissionDenied
-                }
+        return try locked {
+            if let old = try loadRequest(connectionID: grant.connectionID, requestID: request.requestID) {
+                try validateGrant(old, grant: grant, fingerprint: grantFingerprint)
                 guard old.requestFingerprint == requestFingerprint else { throw AgentErrorCode.versionConflict }
-                selected = old
-            } else {
-                guard records.count < limit, !records.contains(where: { $0.operationID == operationID }) else {
-                    throw AgentErrorCode.busy
-                }
-                let record = Record(connectionID: grant.connectionID, libraryID: grant.libraryID,
-                    requestID: request.requestID, operationID: operationID, requestFingerprint: requestFingerprint,
-                    grantFingerprint: grantFingerprint, operationName: request.operation)
-                records.append(record); selected = record; isNew = true
+                return (old, false)
             }
+            guard try loadOperation(operationID) == nil else { throw AgentErrorCode.busy }
+            let record = Record(connectionID: grant.connectionID, libraryID: grant.libraryID,
+                requestID: request.requestID, operationID: operationID, requestFingerprint: requestFingerprint,
+                grantFingerprint: grantFingerprint, operationName: request.operation)
+            try write(record)
+            return (record, true)
         }
-        guard let selected else { throw AgentErrorCode.storageError }
-        return (selected, isNew)
     }
 
     func record(_ operationID: UUID, grant: AgentGrant) throws -> Record? {
-        guard let record = try read().records.first(where: { $0.operationID == operationID && $0.connectionID == grant.connectionID }) else {
-            return nil
+        try locked {
+            guard let record = try loadOperation(operationID), record.connectionID == grant.connectionID else { return nil }
+            try validateGrant(record, grant: grant, fingerprint: fingerprint(AgentRequestBinding.grantValue(grant)))
+            return record
         }
-        guard record.libraryID == grant.libraryID,
-              record.grantFingerprint == (try fingerprint(AgentRequestBinding.grantValue(grant))) else {
-            throw AgentErrorCode.permissionDenied
-        }
-        return record
     }
 
     func existingRequest(_ request: AgentRequest, grant: AgentGrant) throws -> Record? {
         guard Self.supports(request.operation), request.libraryID == grant.libraryID else { throw AgentErrorCode.invalidInput }
         let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
-        guard let record = try read().records.first(where: {
-            $0.connectionID == grant.connectionID && $0.requestID == request.requestID
-        }) else { return nil }
-        guard record.libraryID == grant.libraryID,
-              record.grantFingerprint == (try fingerprint(AgentRequestBinding.grantValue(grant))) else {
-            throw AgentErrorCode.permissionDenied
+        return try locked {
+            guard let record = try loadRequest(connectionID: grant.connectionID, requestID: request.requestID) else { return nil }
+            try validateGrant(record, grant: grant, fingerprint: fingerprint(AgentRequestBinding.grantValue(grant)))
+            guard record.requestFingerprint == (try fingerprint(prepared.value)) else { throw AgentErrorCode.versionConflict }
+            return record
         }
-        guard record.requestFingerprint == (try fingerprint(prepared.value)) else { throw AgentErrorCode.versionConflict }
-        return record
     }
 
     func save(_ snapshot: AgentJSONValue, operationID: UUID, grant: AgentGrant) throws {
         try validateSnapshot(snapshot, operationID: operationID)
         let grantFingerprint = try fingerprint(AgentRequestBinding.grantValue(grant))
-        try update { records in
-            guard let index = records.firstIndex(where: { $0.operationID == operationID && $0.connectionID == grant.connectionID }) else {
+        try locked {
+            guard var record = try loadOperation(operationID), record.connectionID == grant.connectionID else {
                 throw AgentErrorCode.notFound
             }
-            guard records[index].libraryID == grant.libraryID, records[index].grantFingerprint == grantFingerprint else {
-                throw AgentErrorCode.permissionDenied
-            }
-            try validateSnapshot(snapshot, operationID: operationID, name: records[index].operationName ?? "actions.run")
-            if let previous = records[index].snapshot, previous != snapshot,
+            try validateGrant(record, grant: grant, fingerprint: grantFingerprint)
+            try validateSnapshot(snapshot, operationID: operationID, name: record.operationName ?? "actions.run")
+            if let previous = record.snapshot, previous != snapshot,
                case .object(let fields) = previous, case .string(let raw) = fields["state"],
                let state = AgentOperationState(rawValue: raw), state.isTerminal {
                 throw AgentErrorCode.versionConflict
             }
-            records[index].snapshot = snapshot
+            record.snapshot = snapshot
+            try write(record)
         }
     }
 
@@ -111,19 +95,17 @@ import AgentLocalSecurity
         let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
         let requestFingerprint = try fingerprint(prepared.value)
         let grantFingerprint = try fingerprint(AgentRequestBinding.grantValue(grant))
-        try update { records in
-            guard let index = records.firstIndex(where: { $0.operationID == operationID && $0.connectionID == grant.connectionID }) else {
+        try locked {
+            guard var record = try loadOperation(operationID), record.connectionID == grant.connectionID else {
                 throw AgentErrorCode.notFound
             }
-            let record = records[index]
-            guard record.libraryID == grant.libraryID, record.grantFingerprint == grantFingerprint else {
-                throw AgentErrorCode.permissionDenied
-            }
+            try validateGrant(record, grant: grant, fingerprint: grantFingerprint)
             guard record.requestID == request.requestID, record.operationName == request.operation,
                   record.requestFingerprint == requestFingerprint else { throw AgentErrorCode.versionConflict }
             guard case .object(let previous) = record.snapshot,
                   previous["state"] == .string("outcome_unknown") else { throw AgentErrorCode.versionConflict }
-            records[index].snapshot = snapshot
+            record.snapshot = snapshot
+            try write(record)
         }
     }
 
@@ -150,36 +132,126 @@ import AgentLocalSecurity
         }
     }
 
-    private func read() throws -> (data: Data?, records: [Record]) {
-        let data = try directory.read(name, lockName: lock, maximumBytes: AgentRequest.maximumBytes)
-        guard let data else { return (nil, []) }
+    private struct Format: Codable, Equatable { let format: Int }
+
+    private struct OperationIndex: Codable, Equatable {
+        let connectionID: UUID
+        let requestID: UUID
+    }
+
+    private func requestName(connectionID: UUID, requestID: UUID) -> String {
+        "operation-request-" + connectionID.uuidString + "-" + requestID.uuidString + ".json"
+    }
+
+    private func operationName(_ id: UUID) -> String { "operation-index-" + id.uuidString + ".json" }
+
+    private func locked<T>(_ body: () throws -> T) throws -> T {
+        let lease = try directory.acquireLock(lock)
+        return try withExtendedLifetime(lease, body)
+    }
+
+    private func validateGrant(_ record: Record, grant: AgentGrant, fingerprint: String) throws {
+        guard record.libraryID == grant.libraryID, record.grantFingerprint == fingerprint else {
+            throw AgentErrorCode.permissionDenied
+        }
+    }
+
+    private func validateRecord(_ record: Record) throws {
+        guard Data(base64Encoded: record.requestFingerprint)?.count == 32,
+              Data(base64Encoded: record.grantFingerprint)?.count == 32,
+              Self.supports(record.operationName ?? "actions.run") else { throw AgentErrorCode.storageError }
+        if let snapshot = record.snapshot {
+            try validateSnapshot(snapshot, operationID: record.operationID, name: record.operationName ?? "actions.run")
+        }
+    }
+
+    // A format barrier prevents older apps from ignoring the new request records.
+    private func migrateLegacy() throws {
+        let old = try directory.readSnapshot(name, maximumBytes: AgentRequest.maximumBytes)
+        if let old, (try? JSONDecoder().decode(Format.self, from: old)) == Format(format: 2) {
+            _ = try readLegacy()
+            return
+        }
+        let preserved = try directory.readSnapshot("operations-legacy.json", maximumBytes: AgentRequest.maximumBytes)
+        let data = old ?? preserved ?? Data("[]".utf8)
+        _ = try decodeLegacy(data)
+        try replace("operations-legacy.json", data: data, maximumBytes: AgentRequest.maximumBytes)
+        try replace(name, data: JSONEncoder().encode(Format(format: 2)), maximumBytes: AgentRequest.maximumBytes)
+    }
+
+    private func readLegacy() throws -> [Record] {
+        guard let marker = try directory.readSnapshot(name, maximumBytes: AgentRequest.maximumBytes),
+              (try? JSONDecoder().decode(Format.self, from: marker)) == Format(format: 2),
+              let data = try directory.readSnapshot("operations-legacy.json", maximumBytes: AgentRequest.maximumBytes) else {
+            throw AgentErrorCode.storageError
+        }
+        return try decodeLegacy(data)
+    }
+
+    private func decodeLegacy(_ data: Data) throws -> [Record] {
         do {
             let records = try JSONDecoder().decode([Record].self, from: data)
-            guard records.count <= limit, Set(records.map(\.operationID)).count == records.count,
+            guard records.count <= legacyLimit, Set(records.map(\.operationID)).count == records.count,
                   Set(records.map { $0.connectionID.uuidString + "/" + $0.requestID.uuidString }).count == records.count else {
                 throw AgentErrorCode.storageError
             }
-            for record in records {
-                guard Data(base64Encoded: record.requestFingerprint)?.count == 32,
-                      Data(base64Encoded: record.grantFingerprint)?.count == 32 else { throw AgentErrorCode.storageError }
-                guard Self.supports(record.operationName ?? "actions.run") else { throw AgentErrorCode.storageError }
-                if let snapshot = record.snapshot { try validateSnapshot(snapshot, operationID: record.operationID, name: record.operationName ?? "actions.run") }
-            }
-            return (data, records)
+            for record in records { try validateRecord(record) }
+            return records
         } catch { throw AgentErrorCode.storageError }
     }
 
-    private func update(_ change: (inout [Record]) throws -> Void) throws {
-        for _ in 0..<3 {
-            let old = try read()
-            var records = old.records; try change(&records)
-            guard records != old.records else { return }
-            do {
-                try directory.replace(name, lockName: lock, data: JSONEncoder().encode(records),
-                    expected: old.data, maximumBytes: AgentRequest.maximumBytes)
-                return
-            } catch AgentErrorCode.versionConflict { continue }
+    private func loadRequest(connectionID: UUID, requestID: UUID) throws -> Record? {
+        let legacy = try readLegacy().first { $0.connectionID == connectionID && $0.requestID == requestID }
+        guard let data = try directory.readSnapshot(requestName(connectionID: connectionID, requestID: requestID),
+            maximumBytes: AgentRequest.maximumBytes) else { return legacy }
+        do {
+            let record = try JSONDecoder().decode(Record.self, from: data)
+            try validateRecord(record)
+            guard record.connectionID == connectionID, record.requestID == requestID else { throw AgentErrorCode.storageError }
+            if let legacy {
+                guard record.operationID == legacy.operationID, record.libraryID == legacy.libraryID,
+                      record.requestFingerprint == legacy.requestFingerprint,
+                      record.grantFingerprint == legacy.grantFingerprint,
+                      (record.operationName ?? "actions.run") == (legacy.operationName ?? "actions.run") else {
+                    throw AgentErrorCode.storageError
+                }
+            }
+            return record
+        } catch { throw AgentErrorCode.storageError }
+    }
+
+    private func loadOperation(_ id: UUID) throws -> Record? {
+        guard let data = try directory.readSnapshot(operationName(id), maximumBytes: 1024) else {
+            guard let legacy = try readLegacy().first(where: { $0.operationID == id }) else { return nil }
+            return try loadRequest(connectionID: legacy.connectionID, requestID: legacy.requestID)
         }
-        throw AgentErrorCode.busy
+        do {
+            let index = try JSONDecoder().decode(OperationIndex.self, from: data)
+            guard let record = try loadRequest(connectionID: index.connectionID, requestID: index.requestID),
+                  record.operationID == id else { throw AgentErrorCode.storageError }
+            return record
+        } catch { throw AgentErrorCode.storageError }
+    }
+
+    private func replace(_ name: String, data: Data, maximumBytes: Int) throws {
+        let old = try directory.readSnapshot(name, maximumBytes: maximumBytes)
+        guard old != data else { return }
+        try directory.replace(name, lockName: "operations-data.lock", data: data, expected: old, maximumBytes: maximumBytes)
+    }
+
+    private func write(_ record: Record) throws {
+        try validateRecord(record)
+        let index = OperationIndex(connectionID: record.connectionID, requestID: record.requestID)
+        let indexName = operationName(record.operationID)
+        if let old = try directory.readSnapshot(indexName, maximumBytes: 1024) {
+            guard (try? JSONDecoder().decode(OperationIndex.self, from: old)) == index else {
+                throw AgentErrorCode.storageError
+            }
+        }
+        // Publish the index first. Work starts only after both writes are durable.
+        // A failed second write cannot submit work. Keep its index as evidence.
+        try replace(indexName, data: JSONEncoder().encode(index), maximumBytes: 1024)
+        try replace(requestName(connectionID: record.connectionID, requestID: record.requestID),
+            data: JSONEncoder().encode(record), maximumBytes: AgentRequest.maximumBytes)
     }
 }

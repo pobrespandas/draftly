@@ -34,6 +34,10 @@ struct AgentOperationJournalTests {
         func cleanup() { try? FileManager.default.removeItem(at: root) }
     }
 
+    private func recordURL(_ root: URL, request: AgentRequest, connectionID: UUID) -> URL {
+        root.appendingPathComponent("Agents/operation-request-" + connectionID.uuidString + "-" + request.requestID.uuidString + ".json")
+    }
+
     private func previewFixture() throws -> (Fixture, AgentGrant, AgentRequest, [String: AgentJSONValue]) {
         let f = try Fixture(), window = UUID(), draft = UUID()
         let targets: Set<AgentResourceReference> = [.init(kind: .window, id: window), .init(kind: .draft, id: draft)]
@@ -84,7 +88,7 @@ struct AgentOperationJournalTests {
             return try registry.startValueRequest(request, grant: grant) { _ in starts += 1; return result }
         }
         var accepted: [(AgentRequest, UUID)] = []
-        for _ in 0..<3 {
+        for _ in 0..<140 {
             let request = AgentRequest(requestID: UUID(), libraryID: grant.libraryID,
                 operation: template.operation, targets: template.targets,
                 expectedVersion: template.expectedVersion, parameters: template.parameters)
@@ -99,7 +103,7 @@ struct AgentOperationJournalTests {
             #expect(try submit(request) == id)
             #expect(try registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal)
         }
-        #expect(starts == 3)
+        #expect(starts == 140)
     }
 
     @Test func durableActiveWorkStillOwnsItsCapacityUntilTerminal() async throws {
@@ -152,7 +156,7 @@ struct AgentOperationJournalTests {
         let (f, grant, request, _) = try previewFixture(); defer { f.cleanup() }
         let journal = try AgentOperationJournal(parentDirectory: f.root), id = UUID()
         _ = try journal.reserve(request, grant: grant, operationID: id)
-        let path = f.root.appendingPathComponent("Agents/operations.json"), original = try Data(contentsOf: path)
+        let path = recordURL(f.root, request: request, connectionID: grant.connectionID), original = try Data(contentsOf: path)
         let wrong = try AgentOperationRegistry.Snapshot(id: id, state: .outcomeUnknown, updatedAt: Date(),
             output: nil, error: .outcomeUnknown, effects: [], name: "themes.reload").wireValue()
         #expect(throws: AgentErrorCode.invalidInput) { try journal.save(wrong, operationID: id, grant: grant) }
@@ -163,7 +167,7 @@ struct AgentOperationJournalTests {
         let (f, grant, request, _) = try previewFixture(); defer { f.cleanup() }
         let journal = try AgentOperationJournal(parentDirectory: f.root), id = UUID()
         _ = try journal.reserve(request, grant: grant, operationID: id)
-        let path = f.root.appendingPathComponent("Agents/operations.json"), original = try Data(contentsOf: path)
+        let path = recordURL(f.root, request: request, connectionID: grant.connectionID), original = try Data(contentsOf: path)
         let malformed = try AgentOperationRegistry.Snapshot(id: id, state: .succeeded, updatedAt: Date(),
             output: nil, error: nil, effects: [], name: "editor.preview", result: .object([:])).wireValue()
         #expect(throws: (any Error).self) { try journal.save(malformed, operationID: id, grant: grant) }
@@ -173,16 +177,109 @@ struct AgentOperationJournalTests {
     @Test func legacyActionReservationWithoutNameRemainsReadable() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let id = UUID(), journal = try AgentOperationJournal(parentDirectory: f.root)
-        _ = try journal.reserve(f.request, grant: f.grant, operationID: id)
-        let path = f.root.appendingPathComponent("Agents/operations.json")
-        var records = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: path)) as? [[String: Any]])
-        records[0].removeValue(forKey: "operationName")
-        try JSONSerialization.data(withJSONObject: records).write(to: path)
+        var record = try journal.reserve(f.request, grant: f.grant, operationID: id).record
+        record.operationName = nil
+        try FileManager.default.removeItem(at: recordURL(f.root, request: f.request, connectionID: f.grant.connectionID))
+        try FileManager.default.removeItem(at: f.root.appendingPathComponent("Agents/operation-index-" + id.uuidString + ".json"))
+        let legacy = try JSONEncoder().encode([record])
+        try legacy.write(to: f.root.appendingPathComponent("Agents/operations.json"))
         let registry = AgentOperationRegistry(currentGrant: { _ in f.grant }, validateHost: {}, isLocked: { false },
             journal: try AgentOperationJournal(parentDirectory: f.root))
         let value = try registry.snapshot(id, connectionID: f.grant.connectionID)
         #expect(value.name == "actions.run" && value.state == .outcomeUnknown)
+        #expect(try Data(contentsOf: f.root.appendingPathComponent("Agents/operations-legacy.json")) == legacy)
         _ = try value.wireValue()
+    }
+
+    @Test func fullLegacyJournalMigratesWithoutDroppingUnknownReservations() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        var records: [AgentOperationJournal.Record] = []
+        for _ in 0..<128 {
+            let request = AgentRequest(requestID: UUID(), libraryID: f.grant.libraryID,
+                operation: "actions.run", targets: f.request.targets, expectedVersion: f.request.expectedVersion)
+            let record = try journal.reserve(request, grant: f.grant, operationID: UUID()).record
+            records.append(record)
+            try FileManager.default.removeItem(at: recordURL(f.root, request: request, connectionID: f.grant.connectionID))
+            try FileManager.default.removeItem(at: f.root.appendingPathComponent("Agents/operation-index-" + record.operationID.uuidString + ".json"))
+        }
+        let legacy = try JSONEncoder().encode(records)
+        let path = f.root.appendingPathComponent("Agents/operations.json")
+        try legacy.write(to: path)
+        let migrated = try AgentOperationJournal(parentDirectory: f.root)
+        #expect(try Data(contentsOf: f.root.appendingPathComponent("Agents/operations-legacy.json")) == legacy)
+        #expect(throws: (any Error).self) { try JSONDecoder().decode([AgentOperationJournal.Record].self, from: Data(contentsOf: path)) }
+        #expect(try migrated.reserve(f.request, grant: f.grant, operationID: UUID()).isNew)
+        let registry = AgentOperationRegistry(currentGrant: { _ in f.grant }, validateHost: {}, isLocked: { false }, journal: migrated)
+        for record in records {
+            #expect(try registry.snapshot(record.operationID, connectionID: f.grant.connectionID).state == .outcomeUnknown)
+        }
+        #expect(try Data(contentsOf: f.root.appendingPathComponent("Agents/operations-legacy.json")) == legacy)
+    }
+
+    @Test func missingFormatMarkerUsesPreservedLegacyCopy() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        let record = try journal.reserve(f.request, grant: f.grant, operationID: UUID()).record
+        let legacy = try JSONEncoder().encode([record])
+        try legacy.write(to: f.root.appendingPathComponent("Agents/operations-legacy.json"))
+        try FileManager.default.removeItem(at: f.root.appendingPathComponent("Agents/operations.json"))
+        let recovered = try AgentOperationJournal(parentDirectory: f.root)
+        #expect(try Data(contentsOf: f.root.appendingPathComponent("Agents/operations-legacy.json")) == legacy)
+        #expect(try recovered.reserve(f.request, grant: f.grant, operationID: UUID()).record.operationID == record.operationID)
+    }
+
+    @Test func failedLegacyMigrationRetainsOriginalBeforeRetry() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        let record = try journal.reserve(f.request, grant: f.grant, operationID: UUID()).record
+        let legacy = try JSONEncoder().encode([record])
+        let path = f.root.appendingPathComponent("Agents/operations.json")
+        try legacy.write(to: path)
+        let directory = try AgentStateDirectory(parentDirectory: f.root)
+        var obstruction: AgentStateFileLock? = try directory.acquireLock("operations-data.lock")
+        #expect(throws: AgentErrorCode.busy) { try AgentOperationJournal(parentDirectory: f.root) }
+        #expect(try Data(contentsOf: path) == legacy)
+        withExtendedLifetime(obstruction) {}
+        obstruction = nil
+        let migrated = try AgentOperationJournal(parentDirectory: f.root)
+        #expect(try migrated.reserve(f.request, grant: f.grant, operationID: UUID()).record.operationID == record.operationID)
+    }
+
+    @Test func obstructedReservationPreventsWorkAndRetryRunsOnce() async throws {
+        let (f, grant, request, result) = try previewFixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        let path = recordURL(f.root, request: request, connectionID: grant.connectionID)
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: false)
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false }, journal: journal)
+        var starts = 0
+        #expect(throws: (any Error).self) {
+            try registry.startValueRequest(request, grant: grant) { _ in starts += 1; return result }
+        }
+        #expect(starts == 0)
+        try FileManager.default.removeItem(at: path)
+        let id = try registry.startValueRequest(request, grant: grant) { _ in starts += 1; return result }
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal { await Task.yield() }
+        #expect(try registry.startValueRequest(request, grant: grant) { _ in starts += 1; return result } == id)
+        #expect(starts == 1)
+    }
+
+    @Test func orphanIndexFailsClosedAndDoesNotReserveAnUnsubmittedRequest() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        let interruptedID = UUID()
+        let path = f.root.appendingPathComponent("Agents/operation-index-" + interruptedID.uuidString + ".json")
+        let data = try JSONSerialization.data(withJSONObject: ["connectionID": f.grant.connectionID.uuidString,
+            "requestID": f.request.requestID.uuidString])
+        let directory = try AgentStateDirectory(parentDirectory: f.root)
+        try directory.replace(path.lastPathComponent, lockName: "operations-data.lock", data: data,
+            expected: nil, maximumBytes: 1024)
+        #expect(throws: AgentErrorCode.storageError) { try journal.record(interruptedID, grant: f.grant) }
+        let acceptedID = UUID()
+        #expect(try journal.reserve(f.request, grant: f.grant, operationID: acceptedID).isNew)
+        #expect(try journal.record(acceptedID, grant: f.grant)?.requestID == f.request.requestID)
+        #expect(throws: AgentErrorCode.storageError) { try journal.record(interruptedID, grant: f.grant) }
+        #expect(try Data(contentsOf: path) == data)
     }
 
     @Test func stopWorkPreservesCompletedNonActionEffectsAndDoesNotReplay() async throws {
@@ -245,7 +342,7 @@ struct AgentOperationJournalTests {
         #expect(throws: AgentErrorCode.permissionDenied) {
             try registry.startValueRequest(request, grant: grant) { _ in Issue.record("Unexpected work"); return result }
         }
-        #expect(!FileManager.default.fileExists(atPath: f.root.appendingPathComponent("Agents/operations.json").path))
+        #expect(!FileManager.default.fileExists(atPath: recordURL(f.root, request: request, connectionID: grant.connectionID).path))
     }
 
     @Test func reservationSurvivesReopenWithoutStoringRequestParameters() throws {
@@ -255,14 +352,14 @@ struct AgentOperationJournalTests {
         let reopened = try AgentOperationJournal(parentDirectory: f.root)
         let reservation = try reopened.reserve(f.request, grant: f.grant, operationID: UUID())
         #expect(!reservation.isNew && reservation.record.operationID == original)
-        let stored = try Data(contentsOf: f.root.appendingPathComponent("Agents/operations.json"))
+        let stored = try Data(contentsOf: recordURL(f.root, request: f.request, connectionID: f.grant.connectionID))
         #expect(!String(decoding: stored, as: UTF8.self).contains("PRIVATE-REQUEST-SENTINEL"))
         let changed = AgentRequest(requestID: f.request.requestID, libraryID: f.grant.libraryID, operation: "actions.run",
             targets: f.request.targets, expectedVersion: "changed")
         #expect(throws: AgentErrorCode.versionConflict) {
             try reopened.reserve(changed, grant: f.grant, operationID: UUID())
         }
-        #expect(try Data(contentsOf: f.root.appendingPathComponent("Agents/operations.json")) == stored)
+        #expect(try Data(contentsOf: recordURL(f.root, request: f.request, connectionID: f.grant.connectionID)) == stored)
     }
 
     @Test func savedEffectsAndUncertainOutcomeSurviveReopenWithOriginalGrantOnly() throws {
@@ -287,9 +384,9 @@ struct AgentOperationJournalTests {
         let f = try Fixture(); defer { f.cleanup() }
         let journal = try AgentOperationJournal(parentDirectory: f.root)
         _ = try journal.reserve(f.request, grant: f.grant, operationID: UUID())
-        let path = f.root.appendingPathComponent("Agents/operations.json"), corrupt = Data("broken".utf8)
+        let path = recordURL(f.root, request: f.request, connectionID: f.grant.connectionID), corrupt = Data("broken".utf8)
         try corrupt.write(to: path)
-        #expect(throws: AgentErrorCode.storageError) { try AgentOperationJournal(parentDirectory: f.root) }
+        #expect(throws: AgentErrorCode.storageError) { try AgentOperationJournal(parentDirectory: f.root).existingRequest(f.request, grant: f.grant) }
         #expect(try Data(contentsOf: path) == corrupt)
     }
 
@@ -348,60 +445,30 @@ struct AgentOperationJournalTests {
         #expect(throws: AgentErrorCode.busy) {
             try registry.startRequest(f.request, grant: f.grant) { _ in fatalError("Must not execute") }
         }
-        #expect(!FileManager.default.fileExists(atPath: f.root.appendingPathComponent("Agents/operations.json").path))
+        #expect(!FileManager.default.fileExists(atPath: recordURL(f.root, request: f.request, connectionID: f.grant.connectionID).path))
         withExtendedLifetime(obstruction) {}
     }
 
-    @Test func fullJournalRejectsNewWorkWithoutDroppingOldRequestIdentities() throws {
+    @Test func moreThan128ReservationsRetainEveryRequestAcrossRestart() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let journal = try AgentOperationJournal(parentDirectory: f.root)
-        var first: (request: AgentRequest, operation: UUID)?
-        for _ in 0..<128 {
+        var accepted: [(AgentRequest, UUID)] = []
+        for _ in 0..<260 {
             let request = AgentRequest(requestID: UUID(), libraryID: f.grant.libraryID, operation: "actions.run",
                 targets: f.request.targets, expectedVersion: f.request.expectedVersion)
             let operation = UUID()
-            _ = try journal.reserve(request, grant: f.grant, operationID: operation)
-            if first == nil { first = (request, operation) }
+            #expect(try journal.reserve(request, grant: f.grant, operationID: operation).isNew)
+            accepted.append((request, operation))
         }
-        let path = f.root.appendingPathComponent("Agents/operations.json"), before = try Data(contentsOf: path)
-        #expect(throws: AgentErrorCode.busy) { try journal.reserve(f.request, grant: f.grant, operationID: UUID()) }
-        #expect(try Data(contentsOf: path) == before)
-        let original = try #require(first), reopened = try AgentOperationJournal(parentDirectory: f.root)
-        let recovered = try reopened.reserve(original.request, grant: f.grant, operationID: UUID())
-        #expect(!recovered.isNew && recovered.record.operationID == original.operation)
-        #expect(try Data(contentsOf: path) == before)
-    }
-
-    @Test func journalCapacityIsGlobalAndSurvivesConnectionReplacement() throws {
-        let f = try Fixture(); defer { f.cleanup() }
-        let journal = try AgentOperationJournal(parentDirectory: f.root)
-        var first: (request: AgentRequest, operation: UUID)?
-        for _ in 0..<128 {
-            let request = AgentRequest(requestID: UUID(), libraryID: f.grant.libraryID,
-                operation: "actions.run", targets: f.request.targets,
-                expectedVersion: f.request.expectedVersion)
-            let operation = UUID()
-            _ = try journal.reserve(request, grant: f.grant, operationID: operation)
-            if first == nil { first = (request, operation) }
+        let reopened = try AgentOperationJournal(parentDirectory: f.root)
+        for (request, operation) in accepted {
+            let recovered = try reopened.reserve(request, grant: f.grant, operationID: UUID())
+            #expect(!recovered.isNew && recovered.record.operationID == operation)
+            #expect(try reopened.record(operation, grant: f.grant)?.requestID == request.requestID)
         }
         let replacement = AgentGrant(connectionID: UUID(), libraryID: f.grant.libraryID,
             expiresAt: f.grant.expiresAt, capabilities: f.grant.capabilities, scope: f.grant.scope)
-        let request = AgentRequest(requestID: UUID(), libraryID: replacement.libraryID,
-            operation: "actions.run", targets: f.request.targets,
-            expectedVersion: f.request.expectedVersion)
-        let reopened = try AgentOperationJournal(parentDirectory: f.root)
-        let registry = AgentOperationRegistry(currentGrant: { id in
-            id == replacement.connectionID ? replacement : nil
-        }, validateHost: {}, isLocked: { false }, journal: reopened)
-        #expect(throws: AgentErrorCode.busy) {
-            try registry.startRequest(request, grant: replacement) { _ in
-                Issue.record("Full journal must not submit an effect")
-                throw AgentErrorCode.unavailable
-            }
-        }
-        let original = try #require(first)
-        let recovered = try reopened.reserve(original.request, grant: f.grant, operationID: UUID())
-        #expect(!recovered.isNew && recovered.record.operationID == original.operation)
+        #expect(try reopened.reserve(f.request, grant: replacement, operationID: UUID()).isNew)
     }
 
     @Test(arguments: [false, true])

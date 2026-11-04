@@ -337,6 +337,11 @@ access, and is distinct from a saved revision.
 A signed, time-limited reference to one normalized request and its authorization
 context. It identifies retries. It does not grant access or approve effects.
 
+**Agent operation journal**:
+The device-local durable store of accepted request identities and recoverable
+operation state. It prevents replay across transport closure and app restart.
+It does not grant access or retain private native output.
+
 **Agent result cache**:
 The bounded in-memory state and output of accepted operations. A terminal durable
 entry can leave this cache while the operation journal keeps its request identity.
