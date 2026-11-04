@@ -83,7 +83,7 @@ import DraftlyCore
     }
     private var entries: [UUID: Entry] = [:]
     private struct RequestKey: Hashable { let connectionID: UUID; let requestID: UUID }
-    private var requests: [RequestKey: (value: AgentJSONValue, operationID: UUID)] = [:]
+    private var requests: [RequestKey: (fingerprint: Data, operationID: UUID)] = [:]
     private let authorization: AgentOperationAuthorization
     private let now: () -> Date
     private let capacity: Int
@@ -115,8 +115,9 @@ import DraftlyCore
             connectionID: grant.connectionID, grant: grant, now: now()) { throw error }
         try authorization.validate(grant, targets: Set(request.targets), operationName: request.operation)
         let key = RequestKey(connectionID: grant.connectionID, requestID: request.requestID)
+        let fingerprint = try requestFingerprint(prepared.value)
         if let previous = requests[key] {
-            guard previous.value == prepared.value else { throw AgentErrorCode.versionConflict }
+            guard previous.fingerprint == fingerprint else { throw AgentErrorCode.versionConflict }
             _ = try snapshot(previous.operationID, connectionID: grant.connectionID)
             return previous.operationID
         }
@@ -125,7 +126,7 @@ import DraftlyCore
         let id = UUID()
         if let reservation = try journal?.reserve(prepared.request, grant: grant, operationID: id), !reservation.isNew {
             _ = try snapshot(reservation.record.operationID, connectionID: grant.connectionID)
-            requests[key] = (prepared.value, reservation.record.operationID)
+            requests[key] = (fingerprint, reservation.record.operationID)
             return reservation.record.operationID
         }
         _ = try startIdentified(grant: grant, targets: Set(request.targets), operationID: id,
@@ -134,7 +135,7 @@ import DraftlyCore
         if case .integer(let value) = prepared.request.parameters["timeoutSeconds"] { seconds = value }
         else { seconds = 120 }
         scheduleDeadline(id, seconds: seconds)
-        requests[key] = (prepared.value, id)
+        requests[key] = (fingerprint, id)
         return id
     }
 
@@ -160,7 +161,7 @@ import DraftlyCore
         }
         entries[id] = Entry(connectionID: grant.connectionID, grant: grant, targets: Set(request.targets),
             updatedAt: now(), durable: journal != nil, name: request.operation)
-        requests[RequestKey(connectionID: grant.connectionID, requestID: request.requestID)] = (prepared.value, id)
+        requests[RequestKey(connectionID: grant.connectionID, requestID: request.requestID)] = (try requestFingerprint(prepared.value), id)
         launch(id) { id in
             let result = try await work(id)
             try AgentOperationSchemas.validateResult(result, for: prepared.request, preferences: AgentPreferenceCatalog.make())
@@ -176,13 +177,17 @@ import DraftlyCore
         let key = RequestKey(connectionID: grant.connectionID, requestID: request.requestID)
         let id: UUID
         if let previous = requests[key] {
-            guard previous.value == prepared.value else { throw AgentErrorCode.versionConflict }
+            guard previous.fingerprint == (try requestFingerprint(prepared.value)) else { throw AgentErrorCode.versionConflict }
             id = previous.operationID
         } else if let record = try journal?.existingRequest(prepared.request, grant: grant) {
             id = record.operationID
         } else { return nil }
         _ = try snapshot(id, connectionID: grant.connectionID)
         return id
+    }
+
+    private func requestFingerprint(_ value: AgentJSONValue) throws -> Data {
+        Data(SHA256.hash(data: try AgentRequestBinding.encoded(value, maximum: AgentRequest.maximumBytes * 2)))
     }
 
     func startIdentified(grant: AgentGrant, targets: Set<AgentResourceReference>,

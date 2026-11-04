@@ -8,6 +8,36 @@ import AgentContracts
 
 @Suite("Authenticated agent reads") @MainActor
 struct AgentCommandServiceTests {
+    @Test(arguments: [false, true])
+    func acceptedRequestIdentityKeepsCanonicalEquivalentTextBytesDistinct(durable: Bool) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: root) }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall },
+            journal: durable ? try AgentOperationJournal(parentDirectory: root) : nil)
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        let host = AgentNativeServiceTests.DirectNativeHost()
+        f.operations = operations; f.nativeExecution = .init(makeHost: { host }, approvals: approvals)
+        f.service = try f.makeService(withoutEditors: true)
+        let (record, session) = try f.connect(capabilities: [.nativeUse])
+        let first = "cafe\u{301}", second = "café"
+        #expect(first == second && Array(first.utf8) != Array(second.utf8))
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "native.clipboardWrite",
+            parameters: ["text": .string(first)])
+        let changed = AgentRequest(requestID: request.requestID, libraryID: request.libraryID, operation: request.operation,
+            parameters: ["text": .string(second)])
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing operation"); return }
+        #expect(try f.send(changed, session: session).outcome == .error(.versionConflict))
+        _ = try operations.cancel(id, connectionID: record.id)
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(host.calls.isEmpty)
+    }
+
     @Test(arguments: ["transport", "all", "connection", "other"])
     func acceptedNativeWorkSurvivesOnlyTransportClosure(change: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
