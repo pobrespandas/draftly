@@ -5,16 +5,15 @@ struct ChatConsolePanel: View {
     @ObservedObject var model: ChatConsoleModel
     var connectTools: (@MainActor () throws -> AgentChatToolSession)? = nil
     var toolsUnavailableReason = "Local agent access is unavailable in this build."
+    var openAgentSettings: (() -> Void)? = nil
+    var hasDraft = false
     @FocusState private var promptFocused: Bool
     @State private var showChatGPTAccount = false
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            if model.hasTools {
-                Label("Draftly tools · this draft", systemImage: "checkmark.shield")
-                    .font(.caption).foregroundStyle(.secondary).padding(.bottom, 8)
-            }
+            toolsStatus
             Divider()
             if let conversation = model.selectedConversation, conversation.messages.isEmpty {
                 emptyState
@@ -63,24 +62,62 @@ struct ChatConsolePanel: View {
             .frame(maxWidth: .infinity)
             .disabled(model.availableModels.isEmpty)
 
-            Button {
-                if model.hasTools { model.disconnectTools() }
-                else if let connectTools {
-                    do { try model.connectTools(connectTools()) }
-                    catch is CancellationError {}
-                    catch let error as AgentErrorCode where error == .cancelled {}
-                    catch { model.reportToolError(error) }
-                }
-            } label: { Image(systemName: model.hasTools ? "wrench.and.screwdriver.fill" : "wrench.and.screwdriver") }
-                .help(model.hasTools ? "Disconnect Draftly tools" : (connectTools == nil ? toolsUnavailableReason : "Connect Draftly tools"))
-                .disabled(!model.hasTools && (connectTools == nil || !model.canConnectTools))
-
             Button { showChatGPTAccount = true } label: { Image(systemName: "person.crop.circle") }
                 .help("ChatGPT Account")
             Button { model.startConversation() } label: { Image(systemName: "plus") }
                 .buttonStyle(.plain).help("New Chat")
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
+    }
+
+    private var toolsStatus: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Label(model.hasTools ? "Draft tools connected" : "Draft tools off",
+                      systemImage: model.hasTools ? "checkmark.shield" : "wrench.and.screwdriver")
+                    .font(.caption.weight(.semibold))
+                    .accessibilityAddTraits(.updatesFrequently)
+                Spacer(minLength: 4)
+                if model.hasTools {
+                    Button("Disconnect") { model.disconnectTools() }
+                } else if let openAgentSettings {
+                    Button("Agent Settings…", action: openAgentSettings)
+                } else if connectTools != nil && hasDraft && model.canConnectTools {
+                    Button("Connect…", action: connectDraftTools)
+                } else if connectTools != nil && hasDraft && model.selectedModel.hasPrefix("chatgpt:"),
+                          model.chatGPTAccount?.isSignedIn == false {
+                    Button("Sign In…") { showChatGPTAccount = true }
+                }
+            }
+            .controlSize(.small)
+            Text(toolsStatusDetail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var toolsStatusDetail: String {
+        if model.hasTools { return "Access is limited to this draft and editor." }
+        if connectTools == nil { return toolsUnavailableReason }
+        if !hasDraft { return "Open or save a draft to connect its tools." }
+        if model.isResponding { return "Wait for the response to finish before connecting." }
+        if model.selectedModel.hasPrefix("chatgpt:"), model.chatGPTAccount?.isSignedIn == false {
+            return "Sign in to ChatGPT, then grant access to this draft."
+        }
+        if !model.canConnectTools { return "Choose an available model to connect draft tools." }
+        return "Allow this chat to read or edit the open draft."
+    }
+
+    private func connectDraftTools() {
+        guard let connectTools else { return }
+        do { try model.connectTools(connectTools()) }
+        catch is CancellationError {}
+        catch let error as AgentErrorCode where error == .cancelled {}
+        catch { model.reportToolError(error) }
     }
 
     private var emptyState: some View {
@@ -177,10 +214,17 @@ struct ChatConsolePanel: View {
 struct LocalChatConsolePanel: View {
     @ObservedObject var model: ChatConsoleModel
     @ObservedObject var settings: AgentConnectionsSettingsModel
+    let hasDraft: Bool
     let connectTools: @MainActor () throws -> AgentChatToolSession
+    @Environment(\.openSettings) private var openSettings
+    @AppStorage("settings.selectedTab") private var selectedTab = "general"
 
     var body: some View {
         ChatConsolePanel(model: model, connectTools: settings.accessEnabled ? connectTools : nil,
-            toolsUnavailableReason: "Enable local agent access in Settings to connect tools.")
+            toolsUnavailableReason: "Enable local agent access to let this chat read or edit a draft.",
+            openAgentSettings: settings.accessEnabled ? nil : {
+                selectedTab = "agents"
+                openSettings()
+            }, hasDraft: hasDraft)
     }
 }
