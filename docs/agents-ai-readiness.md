@@ -844,3 +844,12 @@ available; its earlier unavailable state has no established root cause. The test
 ended with connection revoked, access off and a denied fresh CLI request.
 See [scoped installed evidence](agent-https-input-acceptance.md). Coverage remains
 115/137. This does not close the remaining installed or distribution gates.
+
+## Installed lock and sleep follow-up — 5 November
+
+A scoped read-only MCP session now has real lock/unlock and sleep evidence.
+Lock cut access. Unlock did not resume it. Explicit enable restored reading.
+Sleep cut access before expiry. The subsequent user wake happened after expiry;
+wake-with-valid-grant and explicit post-wake resume are still open. Native
+revocation and a fresh CLI denial closed the session. See
+[installed transition evidence](agent-lock-sleep-installed-acceptance.md).

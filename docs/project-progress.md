@@ -3,6 +3,15 @@
 Updated: 5 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Installed lock and sleep acceptance — 5 November
+
+A one-theme read-only MCP session lost access on real user-confirmed lock and did
+not resume on unlock. Explicit native enable restored reads within the original
+grant. Real sleep cut access again. The user wake happened after expiry, so
+wake-with-valid-grant and explicit post-wake resume still need a short repeat.
+The connection was revoked and access stayed off. See
+[transition evidence](agent-lock-sleep-installed-acceptance.md).
+
 ## Installed HTTPS acceptance — 5 November
 
 Protected data became available without changing admission rules. Signed isolated
