@@ -2,6 +2,7 @@
 """Check published release history before a release. Never publish."""
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,11 @@ import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 
+
+import importlib.util
+_channels_spec = importlib.util.spec_from_file_location("release_channels", Path(__file__).with_name("release-channels.py"))
+channels = importlib.util.module_from_spec(_channels_spec)
+_channels_spec.loader.exec_module(channels)
 
 VERSION = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
 BUILD = re.compile(r"[1-9][0-9]*\Z")
@@ -61,9 +67,15 @@ def feed_versions(data):
     return versions
 
 
-def validate_history(version, build, releases, appcast, *, resume_candidate=False):
+def validate_history(version, build, releases, appcast, *, resume_candidate=False, candidate_tag=None, prerelease_builds=()):
+    tag_version, channel = channels.parse(candidate_tag or "v" + version)
+    if tag_version != version:
+        raise ValueError("The candidate tag and app version do not match.")
+    candidate_tag = candidate_tag or "v" + version
     candidate = version_tuple(version)
     candidate_build = build_number(build)
+    if any(build_number(old) >= candidate_build for old in prerelease_builds):
+        raise ValueError("The candidate build must be greater than every published prerelease build.")
     if not isinstance(releases, list):
         raise ValueError("GitHub release history is invalid.")
     published = set()
@@ -74,8 +86,8 @@ def validate_history(version, build, releases, appcast, *, resume_candidate=Fals
                 or not isinstance(release.get("prerelease"), bool)):
             raise ValueError("A GitHub release has invalid metadata.")
         tag = release["tag_name"]
-        if tag == "v" + version:
-            if not resume_candidate or candidate_seen or release["prerelease"]:
+        if tag == candidate_tag:
+            if not resume_candidate or candidate_seen or release["prerelease"] != (channel != "stable"):
                 raise ValueError("The candidate already has a GitHub release.")
             candidate_seen = True
             continue
@@ -116,6 +128,41 @@ def fetch_releases():
     return [release for page in pages for release in page]
 
 
+def fetch_prerelease_builds(releases, candidate_tag=None):
+    builds = []
+    environment = dict(os.environ)
+    for name in ("DRAFTLY_SPARKLE_PRIVATE_KEY", "DRAFTLY_FIREBASE_ACCESS_TOKEN"):
+        environment.pop(name, None)
+    for release in releases:
+        if not isinstance(release, dict):
+            raise ValueError("GitHub release history is invalid.")
+        if release.get("draft") is not False or release.get("prerelease") is not True or release.get("tag_name") == candidate_tag:
+            continue
+        version, channel = channels.parse(release.get("tag_name"))
+        if channel == "stable":
+            raise ValueError("A prerelease must have an alpha or beta tag.")
+        assets = [asset for asset in release.get("assets", []) if asset.get("name") == "candidate.json"]
+        if len(assets) != 1:
+            raise ValueError("A published prerelease has no unique candidate metadata.")
+        asset = assets[0]
+        asset_id, size = asset.get("id"), asset.get("size")
+        if (isinstance(asset_id, bool) or not isinstance(asset_id, int) or asset_id <= 0
+                or isinstance(size, bool) or not isinstance(size, int) or not 0 < size <= 65536):
+            raise ValueError("The prerelease candidate metadata asset is invalid.")
+        result = subprocess.run(["gh", "api", "repos/pobrespandas/draftly/releases/assets/" + str(asset_id),
+                                 "-H", "Accept: application/octet-stream"],
+                                check=True, capture_output=True, timeout=60, env=environment)
+        contents = result.stdout
+        if len(contents) != size or asset.get("digest") != "sha256:" + hashlib.sha256(contents).hexdigest():
+            raise ValueError("The prerelease candidate metadata checksum is invalid.")
+        metadata = json.loads(contents)
+        if not isinstance(metadata, dict) or metadata.get("tag") != release["tag_name"] or metadata.get("version") != version:
+            raise ValueError("The prerelease candidate identity is invalid.")
+        build_number(metadata.get("build"))
+        builds.append(metadata["build"])
+    return builds
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, request, fp, code, message, headers, new_url):
         return None
@@ -143,8 +190,11 @@ def main():
     try:
         with Path("Configuration/Info.plist").open("rb") as source:
             info = plistlib.load(source)
+        releases = fetch_releases()
+        candidate_tag = os.environ.get("RELEASE_TAG")
         validate_history(info.get("CFBundleShortVersionString"), info.get("CFBundleVersion"),
-                         fetch_releases(), fetch_appcast(), resume_candidate=args.resume_candidate)
+                         releases, fetch_appcast(), resume_candidate=args.resume_candidate,
+                         candidate_tag=candidate_tag, prerelease_builds=fetch_prerelease_builds(releases, candidate_tag))
     except (ValueError, OSError, plistlib.InvalidFileException, subprocess.SubprocessError) as error:
         raise SystemExit("Release history check failed: " + str(error))
     print("Release history check passed. Nothing was published.")
