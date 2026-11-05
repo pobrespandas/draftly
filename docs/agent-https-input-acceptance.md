@@ -8,7 +8,7 @@ intent before approval and before download.
 
 The private HTTP session uses GET and follows redirects only on the same origin.
 It does not use shared credentials, cookies or cache. Theme input is limited to
-1 MiB. Backup input is limited to 32 MiB. Backup validation and preview do not
+8 MiB (`AgentRequest.maximumBytes`). Backup input is limited to 32 MiB. Backup validation and preview do not
 restore the library. Downloaded themes use custom mode.
 
 The parent operation records the download effect. Recovery does not download the
@@ -57,3 +57,18 @@ Apple describes this API as protected-data availability, not a complete graphica
 screen-lock contract. See [AppKit property documentation](https://developer.apple.com/documentation/appkit/nsapplication/isprotecteddataavailable)
 and the [DTS discussion](https://developer.apple.com/forums/thread/850327).
 The cause of the persistent unavailable state is not established.
+
+## Admission recheck — 5 November
+
+Two isolated Developer ID AppKit probes reported protected data available at
+launch and after one run-loop second. One enabled secure state restoration; the
+other disabled it. Both returned true. Draftly then also reported console, login
+and protected data available in native Settings. Access remained off and there
+were no approved connections. This clears the observed admission condition. It
+does not establish why the previous process reported false or prove lock handling.
+No protection was disabled and no admission source was replaced.
+
+The retained probe source and outputs are in
+`/tmp/draftly-protected-data-probe`. The source input bound above now states the
+actual `AgentRequest.maximumBytes` value. The earlier temporary TLS smoke used a
+separate explicit 1 MiB limit.
