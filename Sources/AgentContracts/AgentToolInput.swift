@@ -14,6 +14,16 @@ package enum AgentToolInput {
             exact["description"] = .string("Use JSON object text instead of parameters when exact decimal values are needed. Do not supply both.")
             properties["parametersJSON"] = .object(exact)
         }
+        if ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "drafts.merge"].contains(operation.name),
+           case .object(var field) = properties["expectedVersion"] {
+            field["description"] = .string("For one draft use its versionToken. For all drafts in one list or search page use that page's batchVersion. Read again after any change. Never reuse a page token for a subset or another target set.")
+            properties["expectedVersion"] = .object(field)
+        }
+        if ["themes.select", "themes.selectBuiltIn"].contains(operation.name),
+           case .object(var field) = properties["expectedVersion"] {
+            field["description"] = .string("Use the current versionToken from themes.selection for the requested appearance. For themes.select, also pass the target theme's themes.get versionToken as parameters.expectedThemeVersion.")
+            properties["expectedVersion"] = .object(field)
+        }
         root["properties"] = .object(properties)
         root["not"] = .object(["required": .array([.string("parameters"), .string("parametersJSON")])])
         return .object(root)
@@ -82,10 +92,22 @@ package extension AgentOperationDescriptor {
         case "server.status": "Read the Draftly host version and access status."
         case "server.capabilities": "Read this connection's current permissions, resource scope and expiry."
         case "server.schemas": "Read operation schemas and current handler availability."
+        case "editor.open": "Open an authorized draft in an explicit window and its current expectedWindowVersion, or request newWindow. Never choose an implicit active window. Saving pending text also requires drafts.write and source-draft scope. Focus defaults to false. Retrying recovers the original outcome without opening again."
+        case "editor.navigate": "Move to the previous or next draft in the current visible list. Read the editor for its current version first. Both drafts must be in scope. Saving pending text also requires drafts.write. Retry the same request to recover its original outcome without navigating again."
+        case "editor.preview": "Set Markdown preview visibility for the authorized current draft without saving pending text. Retrying reports the original outcome and does not change the view again."
+        case "native.http": "Request an app-reviewed HTTP request with explicit headers and a text or Base64 body. Response bodies are bounded to 64 KiB. Redirects stay on the reviewed origin. No automatic cookies or credentials. Response content is unavailable after restart; uncertain effects do not replay."
+        case "themes.install": "Install a new theme from inline JSON, an owned transfer, a scoped bookmark or an installation link. File mode keeps a saved file permission. Optional selection needs themes.selection expectedSelectionVersion. HTTPS requires native.use and an app-owned download approval. Call directly and wait for the accepted operation; retries report the original result without installing again."
+        case "themes.replace": "Replace a scoped installed theme using its stored themes.list versionToken. A missing original file does not block replacement. Keep its ID and type. Optional selection needs its separate themes.selection token. HTTPS requires native.use and an app-owned download approval. Call directly and wait for the accepted operation; uncertain partial effects do not replay."
+        case "themes.delete": "Request app-owned review to delete an installed theme. Use its stored versionToken from themes.list, including for file themes. The source file is not read or deleted. A recovered request does not delete a replacement theme."
+        case "themes.reload": "Refresh an authorized file theme without changing selection. Use the current themes.get versionToken. Requires files.read. Retrying recovers the original outcome without reloading again."
+        case "themes.select": "Select an authorized installed theme for light or dark appearance. Read themes.selection and themes.get first for their separate version tokens. File themes also require files.read. Retrying recovers the original outcome without selecting again."
+        case "themes.selectBuiltIn": "Select a bundled theme for light or dark appearance. Use the current themes.selection versionToken. Retrying recovers the original outcome without selecting again."
         case "library.summary": "Count drafts inside the approved scope, including Trash."
         case "drafts.list": "List authorized draft metadata with filters, order and opaque pagination."
         case "drafts.search": "Search authorized drafts. Return metadata and matching previews."
         case "drafts.get": "Read authorized draft metadata and a bounded UTF-16 content chunk."
+        case "drafts.merge": "Merge all target drafts in the explicit order into one new draft. Requires library scope. Archive, trash, or keep the originals atomically; preserve their pending editor text."
+        case "drafts.syntax": "Change syntax for authorized drafts atomically. Use a built-in name, or an installed name or syntaxID with appearance.read permission and access to that syntax."
         case "drafts.versions": "Read versions of an authorized draft. Content is optional."
         default: "Request the named \(name) operation in Draftly."
         }

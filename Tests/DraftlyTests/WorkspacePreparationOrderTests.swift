@@ -42,6 +42,33 @@ struct WorkspacePreparationOrderTests {
         return workspace
     }
 
+    private enum AuthorizationFailure: Error { case denied }
+
+    @Test func authorizationPrecedesTheFirstViewEffectWithoutCancellingAnAction() async throws {
+        try await withPendingAction { model, pending in
+            let candidate = try workspace()
+            let folder = model.folder, query = model.query
+            let noteID = model.editor.noteID, text = model.editor.content
+            var events: [String] = []
+            let changes = model.$folder.dropFirst().sink { _ in events.append("applied") }
+            defer { changes.cancel() }
+            #expect(throws: AuthorizationFailure.self) {
+                try model.applyScriptWorkspace(candidate, authorize: {
+                    events.append("authorized")
+                    #expect(model.folder == folder && model.query == query)
+                    throw AuthorizationFailure.denied
+                })
+            }
+            #expect(events == ["authorized"] && !pending.isCancelled)
+            #expect(model.folder == folder && model.query == query && model.selectedWorkspace == nil)
+            #expect(model.editor.noteID == noteID && model.editor.content == text)
+            events.removeAll()
+            try model.applyScriptWorkspace(candidate, authorize: { events.append("authorized") })
+            #expect(events == ["authorized", "applied"] && !pending.isCancelled)
+            #expect(model.folder == candidate.folder && model.query == candidate.query)
+        }
+    }
+
     @Test func savingCommitsBeforeCancellationAndAppliesAfterCancellation() async throws {
         try await withPendingAction { model, pending in
             let library = model.library

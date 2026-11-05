@@ -11,6 +11,16 @@ struct AgentActionSchemaTests {
             expectedVersion: "snapshot", parameters: parameters)
     }
 
+    @Test(arguments: ["actions.delete", "actionGroups.delete"])
+    func deletionResultsMustMatchTheRequestedResource(_ operation: String) throws {
+        let target = AgentResourceReference(kind: operation == "actions.delete" ? .action : .actionGroup, id: UUID())
+        let input = request(operation, targets: [target])
+        try AgentOperationSchemas.validateResult(["deletedIDs": .array([.string(target.id.uuidString)])], for: input)
+        #expect(throws: (any Error).self) {
+            try AgentOperationSchemas.validateResult(["deletedIDs": .array([.string(UUID().uuidString)])], for: input)
+        }
+    }
+
     @Test func canonicalActionRoundTripPreservesUnknownFieldsAndIndependentStepIdentities() throws {
         let includedID = UUID()
         var included = ActionStep("includeAction", ["uuid": includedID.uuidString, "name": "Imported", "template": "[[draft]]"])
@@ -100,7 +110,7 @@ struct AgentActionSchemaTests {
     }
 
     @Test func unsupportedOperationsDoNotReceiveAnEmptyFallbackSchema() {
-        #expect(AgentOperationSchemas.schema(for: "native.shell") == nil)
+        #expect(AgentActionSchemas.schema(for: "native.shell") == nil)
         #expect(throws: AgentErrorCode.unavailable) {
             try AgentOperationSchemas.validatedParameters(for: request("future.operation"))
         }

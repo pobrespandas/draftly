@@ -35,7 +35,7 @@ struct LibraryView: View {
     }
     var body: some View {
         LibrarySplitView(model: model, panels: [
-            panel(sidebar), panel(noteList), panel(editor), panel(actionPanel)
+            panel(sidebar), panel(noteList), panel(editor), panel(model.showChatConsole ? AnyView(chatConsole) : AnyView(actionPanel))
         ])
         .ignoresSafeArea(.container, edges: .top)
         .overlay(alignment: .top) {
@@ -69,6 +69,7 @@ struct LibraryView: View {
         .onChange(of: typewriter) { _, enabled in model.editor.typewriterScrollingEnabled = enabled }
         .onChange(of: model.selectedDraftIDs) { _, ids in if ids.count == 1 { model.selectFromList(ids.first) } }
         .onChange(of: model.editor.noteID) { _, id in
+            model.chatConsole.disconnectTools()
             restoredDraftID = id?.uuidString ?? ""
             hub.draftSelectionDidChange(id, for: model)
         }
@@ -82,6 +83,7 @@ struct LibraryView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { event in
             if let window = event.object as? NSWindow, window === model.window {
+                model.chatConsole.close()
                 model.cancelActions(); model.actionPreview?.finish(false); model.flush()
                 hub.unregisterWindow(model)
             }
@@ -128,6 +130,15 @@ struct LibraryView: View {
 
     private var actionPanel: some View {
         ActionListPanel(model: model, library: library)
+    }
+
+    @ViewBuilder private var chatConsole: some View {
+        if let settings = hub.agentSettings {
+            LocalChatConsolePanel(model: model.chatConsole, settings: settings,
+                connectTools: { try hub.requestChatToolsFromUserInterface(for: model) })
+        } else {
+            ChatConsolePanel(model: model.chatConsole)
+        }
     }
 
 }

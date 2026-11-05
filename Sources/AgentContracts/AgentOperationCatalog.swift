@@ -50,6 +50,12 @@ package struct AgentOperationDescriptor: Sendable {
                 "themes.install", "themes.replace", "syntaxes.export", "syntaxes.install", "syntaxes.replace", "syntaxes.reload"].contains(name)
     }
 
+    package func permits(capabilities allowed: Set<AgentCapability>) -> Bool {
+        guard allowed.isSuperset(of: capabilities) else { return false }
+        // Upload owners can cancel without export access. Plain draft readers cannot own transfers.
+        return name != "transfers.cancel" || !allowed.isDisjoint(with: [.filesRead, .filesWrite])
+    }
+
     package func acceptsTargets(_ values: [AgentResourceReference]) -> Bool {
         targets.accepts(values)
     }
@@ -72,11 +78,11 @@ package enum AgentOperationCatalog {
         .init(name: "drafts.search", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .none, isReadOnly: true),
         .init(name: "drafts.get", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .one(.draft), isReadOnly: true),
         .init(name: "drafts.versions", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .one(.draft), isReadOnly: true),
-        .init(name: "drafts.create", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .none),
+        .init(name: "drafts.create", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .none, requiresLibraryScope: true),
         .init(name: "drafts.update", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .one(.draft), requiresExpectedVersion: true),
         .init(name: "drafts.patch", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .one(.draft), requiresExpectedVersion: true),
-        .init(name: "drafts.duplicate", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .one(.draft), requiresExpectedVersion: true),
-        .init(name: "drafts.merge", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .many(.draft), requiresExpectedVersion: true),
+        .init(name: "drafts.duplicate", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .one(.draft), requiresExpectedVersion: true, requiresLibraryScope: true),
+        .init(name: "drafts.merge", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .many(.draft), requiresExpectedVersion: true, requiresLibraryScope: true),
         .init(name: "drafts.archive", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .many(.draft), requiresExpectedVersion: true),
         .init(name: "drafts.trash", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .many(.draft), requiresExpectedVersion: true),
         .init(name: "drafts.restore", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .many(.draft), requiresExpectedVersion: true),
@@ -125,18 +131,18 @@ package enum AgentOperationCatalog {
         .init(name: "workspaces.list", owner: "Workspace + LibraryStore", capabilities: [.workspacesRead], targets: .none, isReadOnly: true),
         .init(name: "workspaces.get", owner: "Workspace + LibraryStore", capabilities: [.workspacesRead], targets: .one(.workspace), isReadOnly: true),
         .init(name: "workspaces.query", owner: "Workspace + LibraryStore", capabilities: [.workspacesRead, .draftsRead], targets: .one(.workspace), isReadOnly: true),
-        .init(name: "workspaces.create", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .none),
+        .init(name: "workspaces.create", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .none, requiresLibraryScope: true),
         .init(name: "workspaces.update", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .one(.workspace), requiresExpectedVersion: true),
-        .init(name: "workspaces.duplicate", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .one(.workspace), requiresExpectedVersion: true),
-        .init(name: "workspaces.reorder", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .many(.workspace), requiresExpectedVersion: true),
+        .init(name: "workspaces.duplicate", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .one(.workspace), requiresExpectedVersion: true, requiresLibraryScope: true),
+        .init(name: "workspaces.reorder", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .many(.workspace), requiresExpectedVersion: true, requiresLibraryScope: true),
         .init(name: "workspaces.delete", owner: "LibraryStore", capabilities: [.workspacesManage, .destructiveRequest], targets: .one(.workspace), requiresExpectedVersion: true, requiresHumanApproval: true),
         .init(name: "workspaces.apply", owner: "WindowModel.prepareWorkspace", capabilities: [.workspacesApply, .presentUI], targets: .pair(.workspace, .window), requiresExpectedVersion: true),
         .init(name: "themes.list", owner: "InstalledThemeCommands", capabilities: [.appearanceRead], targets: .none),
         .init(name: "themes.get", owner: "InstalledThemeCommands", capabilities: [.appearanceRead], targets: .one(.theme)),
         .init(name: "themes.export", owner: "InstalledThemeCommands", capabilities: [.appearanceRead], targets: .one(.theme)),
-        .init(name: "themes.create", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .none),
+        .init(name: "themes.create", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .none, requiresLibraryScope: true),
         .init(name: "themes.update", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .one(.theme), requiresExpectedVersion: true),
-        .init(name: "themes.duplicate", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .one(.theme), requiresExpectedVersion: true),
+        .init(name: "themes.duplicate", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .one(.theme), requiresExpectedVersion: true, requiresLibraryScope: true),
         .init(name: "themes.select", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .one(.theme), requiresExpectedVersion: true),
         .init(name: "themes.selection", owner: "EditorThemePreferences", capabilities: [.appearanceRead], targets: .none),
         .init(name: "themes.replace", owner: "ThemeFileAccess + InstalledThemeCommands", capabilities: [.appearanceManage, .filesRead], targets: .one(.theme), requiresExpectedVersion: true),
@@ -158,7 +164,7 @@ package enum AgentOperationCatalog {
         .init(name: "preferences.get", owner: "Typed preference commands", capabilities: [.preferencesRead], targets: .none, isReadOnly: true),
         .init(name: "preferences.update", owner: "Typed preference commands", capabilities: [.preferencesWrite], targets: .none, requiresExpectedVersion: true),
         .init(name: "preferences.reset", owner: "Typed preference commands", capabilities: [.preferencesWrite], targets: .none, requiresExpectedVersion: true),
-        .init(name: "bookmarks.list", owner: "BookmarkPreferences", capabilities: [.preferencesRead], targets: .none),
+        .init(name: "bookmarks.list", owner: "BookmarkPreferences", capabilities: [.preferencesRead], targets: .none, isReadOnly: true),
         .init(name: "bookmarks.requestAdd", owner: "BookmarkPreferences", capabilities: [.preferencesWrite], targets: .none, requiresHumanApproval: true),
         .init(name: "bookmarks.forget", owner: "BookmarkPreferences", capabilities: [.preferencesWrite], targets: .one(.bookmark), requiresExpectedVersion: true, requiresHumanApproval: true),
         .init(name: "imports.validate", owner: "DraftFileCommands + importers", capabilities: [.filesRead, .draftsWrite], targets: .none),
@@ -173,7 +179,7 @@ package enum AgentOperationCatalog {
         .init(name: "transfers.appendChunk", owner: "AgentTransferStore", capabilities: [.filesRead], targets: .one(.operation)),
         .init(name: "transfers.finishImport", owner: "AgentTransferStore", capabilities: [.filesRead], targets: .one(.operation)),
         .init(name: "transfers.readChunk", owner: "AgentTransferStore", capabilities: [.filesWrite], targets: .one(.operation)),
-        .init(name: "transfers.cancel", owner: "AgentTransferStore", capabilities: [.filesWrite], targets: .one(.operation)),
+        .init(name: "transfers.cancel", owner: "AgentTransferStore", capabilities: [], targets: .one(.operation)),
         .init(name: "activity.list", owner: "AgentActivityStore", capabilities: [], targets: .none, isReadOnly: true),
         .init(name: "activity.changes", owner: "AgentActivityStore", capabilities: [], targets: .none),
         .init(name: "native.http", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
@@ -197,8 +203,8 @@ package enum AgentOperationCatalog {
         .init(name: "native.print", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
         .init(name: "native.speak", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
         .init(name: "native.openURL", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
-        .init(name: "native.shell", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresHumanApproval: true),
-        .init(name: "native.appleScript", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresHumanApproval: true),
-        .init(name: "native.shortcut", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresHumanApproval: true),
+        .init(name: "native.shell", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresLibraryScope: true, requiresHumanApproval: true),
+        .init(name: "native.appleScript", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresLibraryScope: true, requiresHumanApproval: true),
+        .init(name: "native.shortcut", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresLibraryScope: true, requiresHumanApproval: true),
     ]
 }

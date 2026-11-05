@@ -14,6 +14,7 @@ import AgentLocalSecurity
     let service: AgentCommandService
     private let library: LibraryStore
     private let editors: AgentEditorRegistry?
+    private let preferenceDefaults: UserDefaults
     private let lease: AgentHostLease
     private let publications: AgentHostPublications
     private let activity: AgentActivityStore
@@ -26,6 +27,12 @@ import AgentLocalSecurity
     private let validateHelper: @Sendable (Data) throws -> Void
     private let isLocked: () -> Bool
     private let resolveTargets: (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>
+    private let readCredential: (UUID) throws -> Data?
+    private final class WeakChatSession {
+        weak var value: AgentChatToolSession?
+        init(_ value: AgentChatToolSession) { self.value = value }
+    }
+    private var chatSessions: [UUID: WeakChatSession] = [:]
     private var broker: AgentSocketBroker?
     private var closed = false
 
@@ -46,6 +53,8 @@ import AgentLocalSecurity
     init(library: LibraryStore, appVersion: String,
          editors: AgentEditorRegistry? = nil,
          enableReviewedActions: Bool = false,
+         nativeHost: (@MainActor () -> any ActionHost)? = nil,
+         enableReviewedMutations: Bool = false,
          nativePreferenceRead: ((String) throws -> AgentPreferenceReading)? = nil,
          preferenceDefaults: UserDefaults = .standard,
          preferenceStorage: AgentPreferenceStorage? = nil,
@@ -69,7 +78,7 @@ import AgentLocalSecurity
             file = try AgentConnectionFile(parentDirectory: parent)
             locator = try AgentHostLocator(parentDirectory: parent)
             activity = try AgentActivityStore(parentDirectory: parent)
-            journal = enableReviewedActions ? try AgentOperationJournal(parentDirectory: parent) : nil
+            journal = (enableReviewedActions || enableReviewedMutations) ? try AgentOperationJournal(parentDirectory: parent) : nil
             _ = try locator.endpoints()
         }
         catch { lease.close(); throw error }
@@ -78,14 +87,16 @@ import AgentLocalSecurity
             guard let owner else { throw AgentErrorCode.cancelled }
             try owner.validateOwnership()
         }
+        let credentialAccess = credentials ?? AgentCredentialKeychain(role: .application).registryAccess
+        self.readCredential = credentialAccess.read
         let registry = AgentConnectionRegistry(metadata: .init(read: {
             try validateOwner(); return try file.read()
         }, replace: { data, expected in
             try validateOwner(); try file.replace(data, expected: expected)
-        }), credentials: credentials ?? AgentCredentialKeychain(role: .application).registryAccess,
+        }), credentials: credentialAccess,
             authorityChanged: { id in owner?.authorityChanged(id) })
         self.lease = lease; self.publications = AgentHostPublications(locator: locator); libraryID = lease.libraryID; connections = registry
-        self.library = library; self.editors = editors
+        self.library = library; self.editors = editors; self.preferenceDefaults = preferenceDefaults
         self.activity = activity
         self.socketParentDirectory = socketParentDirectory
         self.validateApplication = validateApplication; self.validateHelper = validateHelper
@@ -96,6 +107,10 @@ import AgentLocalSecurity
         operations = AgentOperationRegistry(currentGrant: { id in
             try registry.grantForAuthenticatedConnection(id)
         }, validateHost: validateOwner, isLocked: isLocked, journal: journal)
+        let nativeEnvironment: AgentNativeExecution.Environment?
+        if enableReviewedActions, let nativeHost {
+            nativeEnvironment = .init(makeHost: nativeHost, approvals: approvals)
+        } else { nativeEnvironment = nil }
         do {
             service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
                 appVersion: appVersion, preferenceDefaults: preferenceDefaults, preferenceStorage: preferenceStorage,
@@ -114,7 +129,8 @@ import AgentLocalSecurity
                 }, operations: operations, submitAction: enableReviewedActions ? { request, grant in
                     guard let owner else { throw AgentErrorCode.cancelled }
                     return try owner.submitReviewedAction(request, grant: grant)
-                } : nil)
+                } : nil, deletionApprovals: enableReviewedMutations ? approvals : nil,
+                nativeExecution: nativeEnvironment)
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
             validateHost: validateOwner, isLocked: isLocked, resolveTargets: resolveTargets)
@@ -169,6 +185,37 @@ import AgentLocalSecurity
         !closed && self.library === library && self.editors === editors && editors.isBound(to: library)
     }
 
+    func makeChatToolsFromUserInterface(capabilities: Set<AgentCapability>, targets: Set<AgentResourceReference>,
+                                       providerName: String = "ChatGPT",
+                                       onRevocationError: @escaping @MainActor (Error) -> Void,
+                                       validateContext: @escaping @MainActor () throws -> Void = {}) throws -> AgentChatToolSession {
+        try requireReady()
+        guard broker != nil, try service.permitsTransportStart(), !targets.isEmpty,
+              try resolveTargets(targets) == targets else { throw AgentErrorCode.permissionDenied }
+        let permitted: Set<AgentCapability> = [.draftsRead, .draftsWrite, .editorRead, .editorWrite]
+        guard capabilities.isSubset(of: permitted) else { throw AgentErrorCode.invalidInput }
+        let record = try connections.connectFromUserInterface(name: "Draftly Chat · " + String(providerName.prefix(80)), libraryID: libraryID,
+            capabilities: capabilities, scope: .resources(targets), expiresAt: Date().addingTimeInterval(900))
+        do {
+            guard let credential = try readCredential(record.id) else { throw AgentErrorCode.permissionDenied }
+            let authenticated = try service.authenticate(connectionID: record.id, credential: credential, expectedLibraryID: libraryID)
+            let tools = AgentChatToolSession(service: service, session: authenticated, onDisconnect: { [weak self] in
+                guard let self else { return }
+                do {
+                    _ = try self.connections.revokeFromUserInterface(record.id)
+                    try self.connections.forgetRevokedFromUserInterface(record.id)
+                }
+                catch { onRevocationError(error) }
+            }, validateContext: validateContext)
+            chatSessions[record.id] = WeakChatSession(tools)
+            return tools
+        } catch {
+            do { _ = try connections.revokeFromUserInterface(record.id) }
+            catch { onRevocationError(error) }
+            throw error
+        }
+    }
+
     func close() {
         guard !closed else { publications.withdraw(); return }
         suspend()
@@ -197,6 +244,9 @@ import AgentLocalSecurity
     }
 
     func suspend() {
+        let chats = chatSessions.values.compactMap(\.value)
+        chats.forEach { $0.invalidate() }
+        chatSessions.removeAll()
         broker?.stop(); broker = nil
         service.invalidateAll(); pairing.invalidatePending()
         approvals.invalidateForScreenLock()
@@ -310,7 +360,7 @@ import AgentLocalSecurity
     }
 
     func makeLibrarySettingsModel() throws -> AgentConnectionsSettingsModel {
-        let resources = AgentLibraryResourceChoices(library: library, editors: editors)
+        let resources = AgentLibraryResourceChoices(library: library, editors: editors, bookmarkDefaults: preferenceDefaults)
         return try makeSettingsModel(choices: { resources.choices() })
     }
 
@@ -335,6 +385,7 @@ import AgentLocalSecurity
     }
 
     private func authorityChanged(_ id: UUID) {
+        chatSessions.removeValue(forKey: id)?.value?.invalidate(revoke: false)
         service.invalidate(connectionID: id)
         pairing.invalidatePending()
         approvals.invalidateConnection(id)

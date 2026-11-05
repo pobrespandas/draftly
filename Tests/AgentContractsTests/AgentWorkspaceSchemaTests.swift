@@ -17,6 +17,26 @@ struct AgentWorkspaceSchemaTests {
         #expect(names.count == 9)
     }
 
+    @Test func deletionResultMustNameExactlyTheRequestedWorkspace() throws {
+        let target = AgentResourceReference(kind: .workspace, id: UUID())
+        let request = request("workspaces.delete", targets: [target])
+        try AgentOperationSchemas.validateResult(["deletedIDs": .array([.string(target.id.uuidString)])], for: request)
+        for ids in [[], [UUID()], [target.id, target.id], [target.id, UUID()]] {
+            #expect(throws: AgentSchemaError.self) {
+                try AgentOperationSchemas.validateResult(["deletedIDs": .array(ids.map { .string($0.uuidString) })], for: request)
+            }
+        }
+    }
+
+    @Test func workspacePagesCanCarryAnOpaqueOrderVersion() throws {
+        var page: [String: AgentJSONValue] = ["items": .array([]), "nextCursor": .null]
+        try AgentOperationSchemas.validateResult(page, for: "workspaces.list")
+        page["orderVersion"] = .string("opaque-snapshot")
+        try AgentOperationSchemas.validateResult(page, for: "workspaces.list")
+        page["orderVersion"] = .integer(1)
+        #expect(throws: AgentSchemaError.self) { try AgentOperationSchemas.validateResult(page, for: "workspaces.list") }
+    }
+
     @Test func canonicalRoundTripPreservesMetadataAndListOptions() throws {
         var workspace = Workspace(name: "café 🐼")
         workspace.folder = .flagged; workspace.sort = .accessed
@@ -61,6 +81,21 @@ struct AgentWorkspaceSchemaTests {
         for invalid in [[valid[0]], [valid[0], valid[0]], [valid[0], .string(UUID().uuidString)]] {
             #expect(throws: AgentSchemaError.self) {
                 try AgentOperationSchemas.validatedParameters(for: request("workspaces.reorder", targets: [a, b], parameters: ["order": .array(invalid)]))
+            }
+        }
+    }
+
+    @Test func reorderReceiptsMustMatchEveryTargetExactlyOnce() throws {
+        let a = AgentResourceReference(kind: .workspace, id: UUID())
+        let b = AgentResourceReference(kind: .workspace, id: UUID())
+        let input = request("workspaces.reorder", targets: [a, b])
+        func resource(_ id: UUID) -> AgentJSONValue {
+            .object(["id": .string(id.uuidString), "versionToken": .string("new")])
+        }
+        try AgentOperationSchemas.validateResult(["resources": .array([resource(b.id), resource(a.id)])], for: input)
+        for invalid in [[resource(a.id)], [resource(a.id), resource(a.id)], [resource(a.id), resource(UUID())]] {
+            #expect(throws: AgentSchemaError.self) {
+                try AgentOperationSchemas.validateResult(["resources": .array(invalid)], for: input)
             }
         }
     }

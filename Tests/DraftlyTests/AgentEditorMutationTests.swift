@@ -42,6 +42,76 @@ struct AgentEditorMutationTests {
         }
     }
 
+    @Test func deletionDetachesEveryEditorWithoutSavingPendingTextAgain() throws {
+        let f = try Fixture(); defer { f.close() }
+        var trash = f.note; trash.trashedAt = Date(); try f.library.saveNote(trash)
+        let first = f.model(), second = f.model()
+        first.editor.content = "Pending café 🐼"; first.contentChanged()
+        second.editor.content = first.editor.content; second.contentChanged()
+        let retained = try f.library.createNote(content: "Keep")
+        let unrelated = f.model()
+        unrelated.editor.load(retained, focusEditor: false)
+        unrelated.editor.synchronizeScriptEdit?()
+        try f.registry.synchronizeDeletion([trash.id]) { validate in
+            try validate()
+            try f.library.emptyTrash()
+        }
+        for model in [first, second] {
+            #expect(model.editor.noteID != trash.id && model.editor.content.isEmpty)
+            #expect(!model.hasUnsavedChanges && !model.editor.hasUnpersistedText)
+            #expect(model.flush())
+        }
+        #expect(f.undo.allSatisfy { !$0.text.manager.canUndo && !$0.text.manager.canRedo })
+        #expect(unrelated.editor.noteID == retained.id && unrelated.editor.content == retained.content)
+        #expect(f.library.notes == [retained])
+        #expect(!f.library.revisions.contains { $0.noteID == trash.id })
+    }
+
+    @Test func failedDeletionKeepsDirtyEditorsAndConcurrentEditsFailValidation() throws {
+        let f = try Fixture(); defer { f.close() }
+        var trash = f.note; trash.trashedAt = Date(); try f.library.saveNote(trash)
+        let model = f.model()
+        model.editor.content = "Pending 🐼"; model.contentChanged()
+        defer { model.pausePendingAutosave { true } }
+        #expect(throws: AgentErrorCode.storageError) {
+            try f.registry.synchronizeDeletion([trash.id]) { validate in
+                try validate(); throw AgentErrorCode.storageError
+            }
+        }
+        #expect(model.editor.noteID == trash.id && model.editor.content == "Pending 🐼" && model.hasUnsavedChanges)
+        #expect(throws: AgentErrorCode.editorConflict) {
+            try f.registry.synchronizeDeletion([trash.id]) { validate in
+                model.editor.content = "Later café"
+                try validate()
+                Issue.record("Concurrent editor change allowed deletion")
+            }
+        }
+        #expect(f.library.notes.contains { $0.id == trash.id })
+        #expect(model.editor.content == "Later café")
+    }
+
+    @Test func undoRequiresALiveEditorAndAuthorizationBeforeChangingNativeHistory() throws {
+        let f = try Fixture(); defer { f.close() }
+        let model = f.model()
+        model.editor.canApplyExternalEdit = { true }
+        defer { model.pausePendingAutosave { true }; model.editor.canApplyExternalEdit = nil }
+        model.editor.content = "Pending 🐼"; model.editor.synchronizeScriptEdit?()
+        let snapshot = try #require(f.registry.windowSnapshots().first)
+        #expect(throws: AgentErrorCode.permissionDenied) {
+            try f.registry.undo(snapshot, redo: false) { throw AgentErrorCode.permissionDenied }
+        }
+        #expect(model.editor.content == "Pending 🐼" && f.undo[0].text.manager.canUndo)
+        model.editor.selection = NSRange(location: 1, length: 0)
+        #expect(throws: AgentErrorCode.versionConflict) {
+            try f.registry.undo(snapshot, redo: false) {}
+        }
+        #expect(model.editor.content == "Pending 🐼")
+        let current = try #require(f.registry.windowSnapshots().first)
+        model.editor.performUndo = nil
+        #expect(throws: AgentErrorCode.interactionRequired) { try f.registry.undo(current, redo: false) {} }
+        #expect(model.editor.content == "Pending 🐼")
+    }
+
     @Test func committedTextReachesEveryEditorWithUndoAndStableGeneration() throws {
         let f = try Fixture(); defer { f.close() }
         let first = f.model(), second = f.model()

@@ -17,6 +17,20 @@ struct AgentPreferenceStorageTests {
         #expect(writes == 0 && values["editor.fontSize"] as? Int == 21)
     }
 
+    @Test func finalValidationFailureDoesNotWriteThePreferenceDomain() throws {
+        var values: [String: Any] = ["keep": 7]
+        var writes = 0
+        let store = AgentPreferenceStorage(read: { values }, replace: { _, updated in
+            writes += 1; values = updated; return true
+        })
+        let before = try store.snapshot()
+        #expect(throws: AgentErrorCode.versionConflict) {
+            try store.commit(["changed": .scalar(.bool(true))], against: before,
+                validateCommit: { throw AgentErrorCode.versionConflict }, authorize: {})
+        }
+        #expect(writes == 0 && values["keep"] as? Int == 7 && values["changed"] == nil)
+    }
+
     @Test func writeFailureAndLostAuthorityKeepTheAppliedValueUnknown() throws {
         var values: [String: Any] = [:]
         let failing = AgentPreferenceStorage(read: { values }, replace: { _, updated in

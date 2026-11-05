@@ -60,7 +60,7 @@ package enum AgentPermissionPolicy {
         guard let operation = AgentOperationCatalog.operation(named: request.operation) else {
             return .denied(.unavailable)
         }
-        guard grant.capabilities.isSuperset(of: operation.capabilities) else {
+        guard operation.permits(capabilities: grant.capabilities) else {
             return .denied(.permissionDenied)
         }
         if operation.requiresLibraryScope, grant.scope != .library { return .denied(.permissionDenied) }

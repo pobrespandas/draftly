@@ -42,6 +42,131 @@ import AgentContracts
         return candidates
     }
 
+    private func workspaceModel(_ windowID: UUID) throws -> WindowModel {
+        guard valid else { throw AgentErrorCode.cancelled }
+        guard let model = trackedModels().first(where: { entries[ObjectIdentifier($0)]?.windowID == windowID }) else {
+            throw AgentErrorCode.notFound
+        }
+        guard !ActionRunner.isExecuting(in: library), !model.actionPending, !model.runner.isRunning else {
+            throw AgentErrorCode.busy
+        }
+        return model
+    }
+
+    func validateWorkspaceApplication(windowID: UUID) throws { _ = try workspaceModel(windowID) }
+
+    func applyWorkspace(_ workspace: Workspace, windowID: UUID, authorize: () throws -> Void) throws {
+        let model = try workspaceModel(windowID)
+        let draftID = model.editor.noteID, content = model.editor.content
+        let selection = model.editor.safeSelection, dirty = model.hasUnsavedChanges
+        try model.applyScriptWorkspace(workspace, authorize: {
+            try authorize()
+            guard try self.workspaceModel(windowID) === model else { throw AgentErrorCode.notFound }
+        })
+        guard try workspaceModel(windowID) === model, model.selectedWorkspace == workspace.id,
+              model.editor.noteID == draftID, DraftOperations.sameText(model.editor.content, content),
+              model.editor.safeSelection == selection, model.hasUnsavedChanges == dirty else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+    }
+
+    func validatePreview(_ expected: WindowSnapshot) throws {
+        let model = try matchingModel(expected)
+        guard !ActionRunner.isExecuting(in: library), !model.actionPending, !model.runner.isRunning,
+              model.actionPreview == nil, model.previewHTML == nil, !model.arrangementSession.isActive else { throw AgentErrorCode.busy }
+        guard model.editor.canApplyExternalEdit?() != false else { throw AgentErrorCode.interactionRequired }
+    }
+
+    func setPreview(_ expected: WindowSnapshot, visible: Bool, authorize: () throws -> Void) throws {
+        try validatePreview(expected)
+        try authorize()
+        try validatePreview(expected)
+        let model = try matchingModel(expected)
+        // Presentation must not flush pending edits or change their Undo history.
+        model.setEditorPreviewVisible(visible)
+        try authorize()
+        guard valid, trackedModels().contains(where: { $0 === model }),
+              model.editor.noteID == expected.draftID, model.showPreview == visible,
+              DraftOperations.sameText(model.editor.content, expected.content),
+              model.editor.safeSelection == expected.selection,
+              (model.hasUnsavedChanges || model.editor.hasUnpersistedText) == expected.dirty else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+    }
+
+    func navigationDestination(_ expected: WindowSnapshot, offset: Int, allowSaving: Bool) throws -> UUID {
+        try validatePreview(expected)
+        let model = try matchingModel(expected)
+        guard let source = expected.draftID, library.notes.contains(where: { $0.id == source }) else {
+            throw AgentErrorCode.notFound
+        }
+        let destination = model.navigationDestination(offset) ?? source
+        try validateOpening(expected, destination: destination, allowSaving: allowSaving)
+        return destination
+    }
+
+    func validateOpening(_ expected: WindowSnapshot, destination: UUID, allowSaving: Bool) throws {
+        try validatePreview(expected)
+        guard let source = expected.draftID, let stored = library.notes.first(where: { $0.id == source }),
+              library.notes.contains(where: { $0.id == destination }) else { throw AgentErrorCode.notFound }
+        _ = try snapshot(stored)
+        if destination != source, expected.dirty || !DraftOperations.sameText(stored.content, expected.content) {
+            guard allowSaving else { throw AgentErrorCode.permissionDenied }
+        }
+    }
+
+    func openNewWindow(draftID: UUID, focus: Bool, authorize: @escaping () throws -> Void) async throws -> WindowSnapshot {
+        guard valid, let openWindow else { throw AgentErrorCode.unavailable }
+        try authorize(); try Task.checkCancellation()
+        let model = try await openWindow(draftID, focus, authorize)
+        try Task.checkCancellation(); try authorize()
+        guard valid, model.library === library, model.window != nil, trackedModels().contains(where: { $0 === model }),
+              let id = entries[ObjectIdentifier(model)]?.windowID,
+              let snapshot = try windowSnapshots().first(where: { $0.id == id }), snapshot.draftID == draftID else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+        return snapshot
+    }
+
+    func openExisting(_ expected: WindowSnapshot, destination: UUID, focus: Bool, allowSaving: Bool,
+                      authorize: () throws -> Void) throws -> WindowSnapshot {
+        try validateOpening(expected, destination: destination, allowSaving: allowSaving)
+        try authorize()
+        try validateOpening(expected, destination: destination, allowSaving: allowSaving)
+        return try select(expected, destination: destination, focus: focus, activate: focus, authorize: authorize)
+    }
+
+    func navigate(_ expected: WindowSnapshot, offset: Int, destination: UUID, allowSaving: Bool,
+                  authorize: () throws -> Void) throws -> WindowSnapshot {
+        guard try navigationDestination(expected, offset: offset, allowSaving: allowSaving) == destination else {
+            throw AgentErrorCode.versionConflict
+        }
+        try authorize()
+        guard try navigationDestination(expected, offset: offset, allowSaving: allowSaving) == destination else {
+            throw AgentErrorCode.versionConflict
+        }
+        return try select(expected, destination: destination, focus: true, authorize: authorize)
+    }
+
+    private func select(_ expected: WindowSnapshot, destination: UUID, focus: Bool, activate: Bool = false,
+                        authorize: () throws -> Void) throws -> WindowSnapshot {
+        let model = try matchingModel(expected)
+        guard try model.selectAuthorized(destination, focusEditor: focus, authorize: {
+            try authorize()
+            guard self.library.notes.contains(where: { $0.id == destination }),
+                  self.library.notes.contains(where: { $0.id == expected.draftID }) else { throw AgentErrorCode.notFound }
+        }) else { throw AgentErrorCode.storageError }
+        try authorize()
+        if activate {
+            model.window?.makeKeyAndOrderFront(nil)
+            model.editor.focusToken = UUID()
+            try authorize()
+        }
+        guard valid, let result = try windowSnapshots().first(where: { $0.id == expected.id }),
+              result.draftID == destination else { throw AgentErrorCode.outcomeUnknown }
+        return result
+    }
+
     func setSelection(_ expected: WindowSnapshot, range: NSRange, authorize: () throws -> Void) throws {
         guard valid else { throw AgentErrorCode.cancelled }
         try validateSelection(expected)
@@ -79,13 +204,36 @@ import AgentContracts
         }
     }
 
-    func replaceRange(_ expected: WindowSnapshot, range: NSRange, text: String, authorize: () throws -> Void) throws {
+    func validateUndo(_ expected: WindowSnapshot) throws {
+        try validateReplacement(expected)
+        guard try matchingModel(expected).editor.performUndo != nil else { throw AgentErrorCode.interactionRequired }
+    }
+
+    func undo(_ expected: WindowSnapshot, redo: Bool, authorize: () throws -> Void) throws -> NSRange {
+        try validateUndo(expected)
+        try authorize()
+        try validateUndo(expected)
+        let model = try matchingModel(expected)
+        guard let perform = model.editor.performUndo else { throw AgentErrorCode.interactionRequired }
+        perform(redo)
+        guard valid, trackedModels().contains(where: { $0 === model }), model.editor.noteID == expected.draftID else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+        try authorize()
+        return model.editor.safeSelection
+    }
+
+    func replaceRange(_ expected: WindowSnapshot, range: NSRange, text: String, preservingSelection: Bool = false, authorize: () throws -> Void) throws {
         try validateReplacement(expected)
         try authorize()
         try validateReplacement(expected)
         let model = try matchingModel(expected)
         let result = (expected.content as NSString).replacingCharacters(in: range, with: text)
         try model.editor.replace(range, with: text)
+        if preservingSelection {
+            let offset = min(expected.selection.location, result.utf16.count)
+            model.editor.selection = NSRange(location: offset, length: min(expected.selection.length, result.utf16.count - offset))
+        }
         func validateProjection() throws {
             guard valid, trackedModels().contains(where: { $0 === model }), model.editor.noteID == expected.draftID,
                   DraftOperations.sameText(model.editor.content, result) else { throw AgentErrorCode.outcomeUnknown }
@@ -125,6 +273,10 @@ import AgentContracts
             selection = model.editor.selection
         }
     }
+    typealias WindowOpening = @MainActor (UUID, Bool, @escaping () throws -> Void) async throws -> WindowModel
+    private let openWindow: WindowOpening?
+    var canOpenWindow: Bool { valid && openWindow != nil }
+
     private let library: LibraryStore
     private let models: () -> [WindowModel]
     private var entries: [ObjectIdentifier: Entry] = [:]
@@ -133,7 +285,8 @@ import AgentContracts
     private var committing = false
     private var controlledChanges: Set<ObjectIdentifier> = []
 
-    init(library: LibraryStore, models: @escaping () -> [WindowModel]) {
+    init(library: LibraryStore, models: @escaping () -> [WindowModel], openWindow: WindowOpening? = nil) {
+        self.openWindow = openWindow
         self.library = library; self.models = models
     }
 
@@ -173,53 +326,103 @@ import AgentContracts
 
     // The caller owns authority, expected-version checks and the durable transaction.
     func synchronizeMutation(_ note: Note, committing: (Note, String) throws -> Note) throws -> Snapshot {
+        let values = try synchronizeMutations([note]) { notes, generations in
+            guard let value = notes.first, let generation = generations[value.id] else { throw AgentErrorCode.storageError }
+            return [try committing(value, generation)]
+        }
+        guard let value = values.first else { throw AgentErrorCode.storageError }
+        return value
+    }
+
+    func synchronizeMutations(_ notes: [Note],
+                              committing: ([Note], [UUID: String]) throws -> [Note]) throws -> [Snapshot] {
         guard valid else { throw AgentErrorCode.cancelled }
         guard !self.committing else { throw AgentErrorCode.busy }
-        guard let stored = library.notes.first(where: { $0.id == note.id }) else { throw AgentErrorCode.notFound }
-        _ = try snapshot(stored)
-        let affected = trackedModels().filter { $0.editor.noteID == note.id }
-        let originals = affected.map { (model: $0, content: $0.editor.content, dirty: $0.hasUnsavedChanges) }
+        let ids = Set(notes.map(\.id))
+        guard !notes.isEmpty, ids.count == notes.count else { throw AgentErrorCode.invalidInput }
+        var stored: [UUID: Note] = [:]
+        for note in notes {
+            guard let value = library.notes.first(where: { $0.id == note.id }) else { throw AgentErrorCode.notFound }
+            _ = try snapshot(value); stored[note.id] = value
+        }
+        let affected = trackedModels().filter { $0.editor.noteID.map(ids.contains) ?? false }
+        let originals = affected.map { (model: $0, id: $0.editor.noteID!, content: $0.editor.content, dirty: $0.hasUnsavedChanges) }
         self.committing = true
         defer { self.committing = false }
         for model in affected { controlled(model) { model.hasUnsavedChanges = true } }
-        let previousGeneration = generations[note.id]
-        let generation = UUID()
-        generations[note.id] = generation
+        let previousGenerations = generations.filter { ids.contains($0.key) }
+        let reserved = Dictionary(uniqueKeysWithValues: ids.map { ($0, UUID()) })
+        for (id, generation) in reserved { generations[id] = generation }
         do {
-            let saved = try committing(note, generation.uuidString)
-            guard saved.id == note.id, DraftOperations.sameText(saved.content, note.content) else { throw AgentErrorCode.storageError }
+            let saved = try committing(notes, reserved.mapValues(\.uuidString))
+            let byID = Dictionary(grouping: saved, by: \.id)
+            guard byID.count == ids.count, saved.count == notes.count,
+                  notes.allSatisfy({ note in
+                      guard let value = byID[note.id]?.first else { return false }
+                      return DraftOperations.sameText(value.content, note.content)
+                  }) else { throw AgentErrorCode.storageError }
             guard valid else { throw AgentErrorCode.cancelled }
-            guard originals.allSatisfy({ $0.model.editor.noteID == note.id && DraftOperations.sameText($0.model.editor.content, $0.content) }) else {
+            guard originals.allSatisfy({ $0.model.editor.noteID == $0.id && DraftOperations.sameText($0.model.editor.content, $0.content) }) else {
                 throw AgentErrorCode.editorConflict
             }
             for original in originals {
                 let model = original.model
-                guard model.editor.noteID == note.id, DraftOperations.sameText(model.editor.content, original.content) else {
-                    throw AgentErrorCode.editorConflict
-                }
+                guard model.editor.noteID == original.id, DraftOperations.sameText(model.editor.content, original.content),
+                      let value = byID[original.id]?.first, let previous = stored[original.id] else { throw AgentErrorCode.editorConflict }
                 controlled(model) {
-                    model.editor.content = saved.content
+                    model.editor.content = value.content
                     model.editor.selection = model.editor.safeSelection
-                    model.editor.acknowledgeSaved(saved)
-                    if DraftOperations.sameText(model.tagsText, stored.tags.joined(separator: ", ")) {
-                        model.tagsText = saved.tags.joined(separator: ", ")
+                    model.editor.acknowledgeSaved(value)
+                    if DraftOperations.sameText(model.tagsText, previous.tags.joined(separator: ", ")) {
+                        model.tagsText = value.tags.joined(separator: ", ")
                     }
                     model.hasUnsavedChanges = false
                 }
-                // Keep callbacks outside the controlled assignments. New edits must invalidate the version.
                 model.editor.synchronizeScriptEdit?()
             }
-            return try snapshot(saved)
+            return try saved.map { try snapshot($0) }
         } catch {
-            for original in originals where original.model.editor.noteID == note.id
+            for original in originals where original.model.editor.noteID == original.id
                 && DraftOperations.sameText(original.model.editor.content, original.content) {
                 controlled(original.model) {
                     original.model.hasUnsavedChanges = original.dirty || original.model.editor.hasUnpersistedText
                 }
             }
-            if generations[note.id] == generation { generations[note.id] = previousGeneration }
+            for (id, generation) in reserved where generations[id] == generation { generations[id] = previousGenerations[id] }
             throw error
         }
+    }
+
+    // Recheck this boundary inside the storage transaction, before its commit.
+    func synchronizeDeletion(_ ids: Set<UUID>, committing: (() throws -> Void) throws -> Void) throws {
+        guard valid else { throw AgentErrorCode.cancelled }
+        guard !self.committing else { throw AgentErrorCode.busy }
+        guard !ids.isEmpty else { throw AgentErrorCode.invalidInput }
+        var expected: [UUID: String] = [:]
+        for id in ids {
+            guard let stored = library.notes.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+            expected[id] = try snapshot(stored).generation
+        }
+        func validate() throws {
+            guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+            for (id, generation) in expected { try validateMutationGeneration(for: id, expected: generation) }
+            for model in trackedModels() where model.editor.noteID.map(ids.contains) == true {
+                guard !model.actionPending, !model.runner.isRunning else { throw AgentErrorCode.busy }
+                guard model.editor.canApplyExternalEdit?() != false else { throw AgentErrorCode.interactionRequired }
+            }
+        }
+        try validate()
+        self.committing = true
+        defer { self.committing = false }
+        try committing(validate)
+        guard !library.notes.contains(where: { ids.contains($0.id) }) else { throw AgentErrorCode.storageError }
+        // Keep cleanup synchronous even if a storage publication ended authority.
+        for model in models() where model.library === library {
+            if let id = model.editor.noteID, ids.contains(id) {
+                controlled(model) { model.discardDeletedDraft(id) }
+            }
+        }
+        for id in ids { generations.removeValue(forKey: id) }
     }
 
     func validateMutationGeneration(for id: UUID, expected: String) throws {

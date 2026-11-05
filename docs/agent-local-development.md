@@ -123,8 +123,10 @@ request with a group ID and the `all` surface returns an order version for the
 complete group. Its cursor pages reject concurrent changes.
 
 The host does not start in the normal app. Agent access remains unavailable in
-released builds. The signed helper and host still need a real installed-app
-pairing and MCP session. Screen-lock behavior also needs a reliable initial
+released builds. The signed `2ea267b` QA passed fresh native helper pairing, scoped CLI/MCP
+reads, another-draft denial, forbidden writes, active read-session Stop Work,
+explicit resume, and actual expiry. Complete operation acceptance remains
+pending; see [current readiness](agents-ai-readiness.md). Screen-lock behavior also needs a reliable initial
 state and signed native checks. Protected-data notifications describe keybag
 availability. They do not establish every graphical screen-lock transition.
 Do not use them alone as proof that the screen is unlocked. See the
@@ -884,3 +886,182 @@ write, update, reset, exact result recovery after a later Settings change,
 conflicts in shared encoded storage, native admission and operation availability.
 The focused service, writer, storage, host and settings run passed 132 tests.
 Signed installed mutation acceptance and native review integration remain pending.
+
+## Signed chat QA startup
+
+A build with `DRAFTLY_AGENT_QA` can also use these Info.plist keys:
+
+- `DraftlyUITesting`: `true`.
+- `DraftlyAgentIsolatedQA`: `true`.
+- `DraftlyUITestingLibraryID`: a unique UUID string.
+
+This opens the temporary library and the QA host without launch arguments.
+Production builds ignore `DraftlyAgentIsolatedQA`. The QA host still starts with
+access off in a new library. Never ship a build with `DRAFTLY_AGENT_QA`.
+
+ChatGPT account preferences, conversation history, and credential service names
+use a namespace derived from that library UUID. Complete a separate official
+sign-in. Do not copy tokens from another installation. This does not isolate all
+application preferences. The signed app must keep its provisioned bundle ID.
+Close the normal app, preserve its preferences and saved window state before
+QA, and restore them after QA exits. Do not run the normal app during that test.
+
+Sign the app and helper with their matching profiles and the same team. A Debug
+app can load a sibling `Draftly.debug.dylib`. Sign each sibling dynamic library
+with the same team before signing the outer app. Static bundle verification can
+pass even when a dynamic library has a different team and fails at launch.
+Keep library validation enabled. Check installed launch separately.
+
+
+### Draft metadata batches
+
+`drafts.archive`, `drafts.trash`, `drafts.restore`, `drafts.flag`, and
+`drafts.tags` accept one or more authorized draft targets. Each request uses
+`mutations.prepare` and a retry key. All targets commit in one transaction with
+one durable receipt. A stale draft, conflicting editor, lost grant, or storage
+failure prevents a partial batch. Pending editor text uses the same mutation
+boundary as a direct draft update. These handlers do not grant editor reads.
+
+For one draft, use its `versionToken` as `expectedVersion`. A nonempty draft
+list, search, or Workspace query page also returns `batchVersion`. That token
+covers exactly the IDs in the page, independent of target order. It cannot
+cover a subset, an extra draft, or a changed draft. Empty pages omit it.
+Pages still contain only authorized drafts.
+
+A client that selects an arbitrary set can combine its current read tokens.
+`AgentDraftSchemas.expectedVersion(for:)` implements this contract:
+
+1. For one ID, use its token unchanged.
+2. For multiple IDs, start the UTF-8 input with `draftly-draft-batch-v1` and a
+   newline. Sort canonical UUID strings in ascending order.
+3. Append each lowercase UUID, a colon, the decimal UTF-8 byte count of its
+   token, a colon, the token, and a newline.
+4. Hash the input with SHA-256. Encode the digest as standard padded Base64.
+   Prefix the result with `batch-v1:`.
+
+For UUIDs ending in `0001` and `0002`, with all other digits zero, and tokens
+`one` and `two`, the result is
+`batch-v1:a1oJhvkjwIoZkg0o9HjvWrK0TfmqbJgy6JefQvTjSH8=`.
+This token detects stale state. It does not grant access.
+
+Archive clears trash state. Trash and restore keep the archived state; restore
+only clears the trash date. Tag changes use the app's tag normalization rules.
+A recovered receipt does not repeat metadata edits or overwrite later changes.
+Installed batch acceptance remains a separate readiness gate.
+
+
+### Draft syntax selection
+
+`drafts.syntax` uses the same atomic batch and retry rules as other draft
+metadata changes. A built-in `name` uses the public syntax definition. An
+installed `name` or `syntaxID` requires `appearance.read` and a grant that covers
+that syntax resource. Supplying a name does not bypass resource scope.
+
+Before committing, the handler resolves the selected stored definition again.
+A changed name, source, type, or installed identity prevents the whole batch.
+This check concerns the stored definition, not the current bytes of an external
+syntax file. Completed receipts return without applying a definition again,
+even if the person renamed that definition after the original commit.
+
+
+### Active draft request sessions
+
+The command service passes its current session check to draft preparation and
+writes. The writer checks that session before a storage commit and before it
+returns a receipt. A valid persisted grant does not keep an ended service
+session valid. If the session ends before the commit, the transaction rolls
+back. A fresh authenticated session can retry the same authorized request.
+
+
+### Creation scope
+
+`drafts.create` and `drafts.duplicate` require library scope. A grant that names
+existing drafts does not cover a new draft identity. It can still edit its
+approved drafts. `drafts.merge` has the same scope rule.
+
+The shared tool catalog omits operations that require library scope when the
+connection has resource scope. Direct transport calls must still pass the live
+permission policy. Filtering a tool list does not replace that check.
+
+
+### Atomic draft merge
+
+`drafts.merge` requires library scope. Its `order` must name every target draft
+exactly once. Use the source set's `expectedVersion`, then prepare and execute
+the request with its retry key. Page batch versions cover only the exact page
+set; an arbitrary selection can combine its current per-draft tokens.
+
+The operation uses the native merge engine for separators, tags, and syntax.
+It creates a new Inbox draft and applies the requested destination to the
+originals in one transaction. `archive` clears trash state. `trash` keeps the
+archive state. `keep` preserves folder state. Pending source text is saved with
+revision protection. Existing editors stay on their current draft.
+
+The result contains the new draft in `resource` and every source receipt in
+`originals`. Repeating the same request returns that stored result. It does not
+merge again or overwrite later edits. An ended session, changed source version,
+conflicting editor, or storage error before commit prevents partial storage.
+Service recreation is covered by tests. Installed process-restart acceptance
+remains separate. Read a fresh version before a new write after a host restart.
+
+
+### Authorized Apple chat tools
+
+Apple chat uses `AgentChatToolSession`. It does not attach the legacy
+`ScriptModelTool` callbacks. Its two native tools provide discovery and request
+execution. Tool names are constrained to the authorized catalog. Common fields
+such as targets, versions, request IDs, and retry keys use native generation
+schemas. Only operation-specific parameters use `parametersJSON`. The local
+service validates the reconstructed request with the shared CLI/MCP contract.
+
+The adapter rechecks its response lifetime across asynchronous catalog reads.
+Response completion, cancellation, or its monotonic deadline closes later calls.
+Each response has at most 32 adapter calls, including initial discovery. Closing
+a response does not undo an effect that already committed. The adapter does not
+automatically replay an uncertain write. A new response can use a still-valid
+connection; a provider, Apple mode, or conversation change disconnects it.
+
+The native permission dialog names the provider and destination. Apple models
+need no ChatGPT login. Cloud is listed only when both its signed managed
+entitlement and runtime availability are present. Account eligibility and a
+compatible distribution channel remain required; see
+[Apple's PCC access requirements](https://developer.apple.com/private-cloud-compute/).
+
+The real on-device probe is opt-in and uses only neutral in-memory fixture data:
+
+```sh
+swift test -Xswiftc -DDRAFTLY_APPLE_LIVE_QA --no-parallel --jobs 1 --filter onDeviceInferenceReadsOnlyTheNeutralFixtureThroughTheGateway
+```
+
+The probe checks a real `drafts.get` and the expected Unicode response. It does
+not establish installed application acceptance, real-model editing, inference
+cancellation, or Cloud access. Routine builds exclude this probe from their
+inventory. They do not skip a selected test or claim a live inference pass.
+
+## Theme reads
+
+`themes.list`, `themes.get`, `themes.export`, `themes.selection` and
+`themes.exportBuiltIn` require appearance read permission. Resource scope limits
+installed themes. A selected installed theme outside scope returns a null
+reference. Built-in names remain public. Definitions and exports return opaque
+version tokens. File themes also require `files.read`; the app uses its saved
+bookmark with a bounded regular-file read. Missing access never falls back to
+the saved file snapshot. Requests cannot supply a path. Export formats are
+native JSON, Drafts JSON and a portable installation URL. These calls do not
+select or modify a theme. Installed-client acceptance remains separate.
+
+## Theme mutation
+
+`themes.create`, `themes.update` and `themes.duplicate` use `mutations.prepare`.
+Creation and duplication require library scope. Update can use a scoped grant
+for its exact custom theme. The expected version comes from `themes.get`.
+Native constructor defaults fill absent creation fields. Definitions use the
+existing color and name validators. Imported Drafts fields remain in canonical
+definitions. These operations do not change the selected light or dark theme.
+
+File duplication also requires `files.read`. It resolves the app bookmark and
+creates a custom snapshot. A file change before commit rejects the write.
+Direct file update returns `interaction_required`; use the separate native
+Reload or replacement route when those handlers are connected. A saved receipt
+recovers the original result across service recreation. It never repeats a
+completed write or replaces a later user edit. Installed acceptance is pending.

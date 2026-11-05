@@ -5,7 +5,7 @@ import AgentContracts
 // Freeze membership and order, not content. Cursors never contain draft data.
 @MainActor final class AgentReadPages {
     struct Owner: Equatable {
-        let sessionID: UUID
+        let connectionID: UUID
         let grantID: UUID
     }
     private struct Snapshot {
@@ -26,7 +26,7 @@ import AgentContracts
         self.now = now; self.uptime = uptime
     }
 
-    func remove(sessionID: UUID) { snapshots = snapshots.filter { $0.value.owner.sessionID != sessionID } }
+    func remove(connectionID: UUID) { snapshots = snapshots.filter { $0.value.owner.connectionID != connectionID } }
     func removeAll() { snapshots.removeAll() }
 
     func page(owner: Owner, request: AgentRequest, parameters: [String: AgentJSONValue],

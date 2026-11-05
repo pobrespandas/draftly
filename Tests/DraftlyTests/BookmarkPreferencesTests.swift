@@ -1,9 +1,58 @@
 import Foundation
+import CryptoKit
 import Testing
 @testable import Draftly
 
 @Suite("Bookmark preferences")
 struct BookmarkPreferencesTests {
+    @Test func agentIdentitiesSurviveReloadAndChangeWithPermissionOrRecreation() throws {
+        let prefs = try TestPreferences(prefix: "Draftly-Bookmark-Identity-"); defer { prefs.close() }
+        let name = "Folder café 🐼"
+        BookmarkPreferences.store(Data([1, 2, 3]), named: name, defaults: prefs.defaults)
+        let first = try #require(BookmarkPreferences.agentRecords(defaults: prefs.defaults).first)
+        let reopened = try #require(UserDefaults(suiteName: prefs.name))
+        #expect(try BookmarkPreferences.agentRecords(defaults: reopened).first?.id == first.id)
+        BookmarkPreferences.store(Data([1, 2, 3]), named: name, defaults: prefs.defaults)
+        #expect(try BookmarkPreferences.agentRecords(defaults: prefs.defaults).first?.id == first.id)
+        BookmarkPreferences.store(Data([4, 5, 6]), named: name, defaults: prefs.defaults)
+        let replaced = try #require(BookmarkPreferences.agentRecords(defaults: prefs.defaults).first)
+        #expect(replaced.id != first.id)
+        BookmarkPreferences.forget(name, defaults: prefs.defaults)
+        BookmarkPreferences.store(replaced.data, named: name, defaults: prefs.defaults)
+        #expect(try BookmarkPreferences.agentRecords(defaults: prefs.defaults).first?.id != replaced.id)
+    }
+
+    @Test func legacyAndCorruptMetadataCannotRetargetAnExistingIdentity() throws {
+        let prefs = try TestPreferences(prefix: "Draftly-Bookmark-Migration-"); defer { prefs.close() }
+        let name = "Existing folder"
+        prefs.defaults.set(Data([1]), forKey: "bookmark." + name)
+        let first = try #require(BookmarkPreferences.agentRecords(defaults: prefs.defaults).first)
+        let key = "agent.bookmark.identities.v1"
+        var metadata = try #require(prefs.defaults.dictionary(forKey: key) as? [String: [String: String]])
+        let index = Data(name.utf8).base64EncodedString(), changed = Data([2])
+        metadata[index]?["digest"] = SHA256.hash(data: changed).map { String(format: "%02x", $0) }.joined()
+        prefs.defaults.set(changed, forKey: "bookmark." + name)
+        prefs.defaults.set(metadata, forKey: key)
+        let retargeted = try #require(BookmarkPreferences.agentRecords(defaults: prefs.defaults).first)
+        #expect(retargeted.id != first.id)
+        prefs.defaults.set("corrupt", forKey: key)
+        let recovered = try #require(BookmarkPreferences.agentRecords(defaults: prefs.defaults).first)
+        #expect(recovered.id != first.id && recovered.id != retargeted.id)
+        #expect(recovered.data == changed)
+    }
+
+    @Test func failedIdentityPersistenceDoesNotPublishOrRetainANewIdentity() throws {
+        let prefs = try TestPreferences(prefix: "Draftly-Bookmark-Storage-"); defer { prefs.close() }
+        prefs.defaults.set(Data([1]), forKey: "bookmark.Folder")
+        #expect(throws: (any Error).self) {
+            try BookmarkPreferences.agentRecords(defaults: prefs.defaults, synchronize: { false })
+        }
+        #expect(prefs.defaults.object(forKey: "agent.bookmark.identities.v1") == nil)
+        let first = try #require(BookmarkPreferences.agentRecords(defaults: prefs.defaults).first)
+        #expect(try BookmarkPreferences.agentRecords(defaults: prefs.defaults).first?.id == first.id)
+        #expect(prefs.defaults.data(forKey: "bookmark.Folder") == Data([1]))
+    }
+
     @Test func inventoryUsesTheExistingActionKeysAndForgetKeepsOtherData() throws {
         let suite = "Draftly-BookmarkPreferences-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))

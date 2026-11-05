@@ -38,7 +38,7 @@ import AgentContracts
     }
 
     func commit(_ changes: [String: AgentPreferenceBatch.StoredValue], against expected: Snapshot,
-                authorize: () throws -> Void) throws -> Snapshot {
+                validateCommit: () throws -> Void = {}, authorize: () throws -> Void) throws -> Snapshot {
         guard !committing else { throw AgentErrorCode.busy }
         committing = true; defer { committing = false }
         try authorize()
@@ -55,6 +55,7 @@ import AgentContracts
         guard PropertyListSerialization.propertyList(updated, isValidFor: .binary) else { throw AgentErrorCode.invalidInput }
         let targetVersion = try version(updated)
         try authorize()
+        try validateCommit()
         let replaced: Bool
         do { replaced = try replace(before.values, updated) }
         catch { throw AgentErrorCode.outcomeUnknown }

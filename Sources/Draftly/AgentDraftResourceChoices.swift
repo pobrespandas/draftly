@@ -25,6 +25,7 @@ struct AgentDraftResourceChoices {
 struct AgentLibraryResourceChoices {
     let library: LibraryStore
     var editors: AgentEditorRegistry? = nil
+    var bookmarkDefaults: UserDefaults? = nil
 
     func choices() -> [AgentConnectionsSettingsModel.ResourceChoice] {
         let titles = Dictionary(library.notes.map { ($0.id, $0.title) }, uniquingKeysWith: { first, _ in first })
@@ -39,8 +40,12 @@ struct AgentLibraryResourceChoices {
             return .init(reference: .init(kind: .actionGroup, id: id), title: name)
         } + library.workspaces.map { workspace in
             .init(reference: .init(kind: .workspace, id: workspace.id), title: workspace.name)
+        } + library.themes.map { theme in
+            .init(reference: .init(kind: .theme, id: theme.id), title: theme.name)
         } + library.syntaxes.filter { $0.type != "builtIn" }.map { syntax in
             .init(reference: .init(kind: .syntax, id: syntax.id), title: syntax.name)
+        } + (bookmarkDefaults.flatMap { try? BookmarkPreferences.agentRecords(defaults: $0) } ?? []).map { bookmark in
+            .init(reference: .init(kind: .bookmark, id: bookmark.id), title: bookmark.name)
         } + ((try? editors?.windowSnapshots()) ?? []).map { window in
             let title = window.draftID.flatMap { titles[$0] } ?? "Editor window"
             return .init(reference: .init(kind: .window, id: window.id), title: title)

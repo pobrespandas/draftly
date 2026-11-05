@@ -45,7 +45,7 @@ struct NativeFileAdapter {
                 panel.message = "Choose the folder for \(bookmarkName)."
                 guard panel.runModal() == .OK, let url = panel.url else { throw DraftlyError.message("File export cancelled.") }
                 root = url
-                defaults.set(try BookmarkPreferences.data(for: url), forKey: key)
+                BookmarkPreferences.store(try BookmarkPreferences.data(for: url), named: bookmarkName, defaults: defaults)
             }
             guard let root else { throw DraftlyError.message("The destination folder is unavailable.") }
             _ = root.startAccessingSecurityScopedResource(); scope = root
@@ -127,7 +127,7 @@ struct NativeFileAdapter {
         try Task.checkCancellation()
         let data = try BookmarkPreferences.data(for: root)
         try Task.checkCancellation()
-        defaults.set(data, forKey: key)
+        BookmarkPreferences.store(data, named: name, defaults: defaults)
         return root
     }
 
@@ -165,7 +165,7 @@ struct NativeFileAdapter {
         if let data = defaults.data(forKey: key), let root = try? URL(resolvingBookmarkData: data, options: .withSecurityScope, bookmarkDataIsStale: &stale), !stale { return root }
         let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true; panel.message = "Choose the folder for \(name)."
         guard panel.runModal() == .OK, let root = panel.url else { throw DraftlyError.message("Folder selection cancelled.") }
-        defaults.set(try BookmarkPreferences.data(for: root), forKey: key)
+        BookmarkPreferences.store(try BookmarkPreferences.data(for: root), named: name, defaults: defaults)
         return root
     }
     func fileAPI(_ values: [String: Any]) throws -> Any {

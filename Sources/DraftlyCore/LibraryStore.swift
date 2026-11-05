@@ -221,17 +221,46 @@ public final class LibraryStore: ObservableObject {
         try saveNotes(copies, preserveRevision: false, preserveDates: true)
         return copies
     }
-    public func emptyTrash() throws {
-        let ids = Set(notes.filter { $0.trashedAt != nil }.map(\.id))
+    private func stageTrashedNoteDeletion(_ ids: Set<UUID>) throws {
+        guard !ids.isEmpty, ids.isSubset(of: Set(notes.filter { $0.trashedAt != nil }.map(\.id))) else {
+            throw LibraryMutationReceiptError.invalidReceipt
+        }
         let keys = ids.flatMap { ["note:" + $0.uuidString, "noteAccess:" + $0.uuidString] }
             + revisions.filter { ids.contains($0.noteID) }.map { "revision:" + $0.id.uuidString }
-        guard !keys.isEmpty else { return }
+        let request = NSFetchRequest<NSManagedObject>(entityName: "Record")
+        request.predicate = NSPredicate(format: "key IN %@", keys)
+        for record in try container.viewContext.fetch(request) { container.viewContext.delete(record) }
+    }
+
+    public func emptyTrash() throws {
+        let ids = Set(notes.filter { $0.trashedAt != nil }.map(\.id))
+        guard !ids.isEmpty else { return }
         do {
-            let request = NSFetchRequest<NSManagedObject>(entityName: "Record")
-            request.predicate = NSPredicate(format: "key IN %@", keys)
-            for record in try container.viewContext.fetch(request) { container.viewContext.delete(record) }
+            try stageTrashedNoteDeletion(ids)
             try beforeBatchCommit?()
             try commit()
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
+    // The caller checks the reviewed target set, editor state and authority.
+    package func commitTrashedNoteDeletion(_ resources: [LibraryMutationReceipt.Resource],
+                                           mutation: LibraryMutationIdentity, at now: Date,
+                                           validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        let ids = Set(resources.map(\.id))
+        guard !resources.isEmpty, ids.count == resources.count else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard previous.resources == resources else { throw LibraryMutationReceiptError.requestConflict }
+            return previous
+        }
+        do {
+            try stageTrashedNoteDeletion(ids)
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: resources)
+            try receipt.validate()
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
 
@@ -499,6 +528,53 @@ public final class LibraryStore: ObservableObject {
             container.viewContext.rollback(); try? reload(); throw error
         }
     }
+    package func commitWorkspaceDeletion(_ id: UUID, mutation: LibraryMutationIdentity, at now: Date,
+                                         resource: LibraryMutationReceipt.Resource,
+                                         validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        try commitRecordDeletion(id, kind: "workspace", mutation: mutation, at: now,
+            resource: resource, validateCommit: validateCommit)
+    }
+
+    package func commitActionDeletion(_ id: UUID, mutation: LibraryMutationIdentity, at now: Date,
+                                     resource: LibraryMutationReceipt.Resource,
+                                     validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        try commitRecordDeletion(id, kind: "action", mutation: mutation, at: now,
+            resource: resource, validateCommit: validateCommit)
+    }
+
+    package func commitThemeDeletion(_ id: UUID, mutation: LibraryMutationIdentity, at now: Date,
+                                    resource: LibraryMutationReceipt.Resource,
+                                    validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        try commitRecordDeletion(id, kind: "theme", mutation: mutation, at: now,
+            resource: resource, validateCommit: validateCommit)
+    }
+
+    private func commitRecordDeletion(_ id: UUID, kind: String, mutation: LibraryMutationIdentity, at now: Date,
+                                      resource: LibraryMutationReceipt.Resource,
+                                      validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        guard resource.id == id else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard previous.resources.count == 1, previous.resources.first?.id == id else {
+                throw LibraryMutationReceiptError.requestConflict
+            }
+            return previous
+        }
+        do {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "Record")
+            request.predicate = NSPredicate(format: "key == %@", kind + ":" + id.uuidString)
+            let records = try container.viewContext.fetch(request)
+            guard records.count == 1 else { throw LibraryMutationReceiptError.invalidReceipt }
+            container.viewContext.delete(records[0])
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: [resource])
+            try receipt.validate()
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
     private var actionCatalog: ActionCatalog {
         ActionCatalog(actions: actions, groups: actionGroups)
     }
@@ -549,14 +625,47 @@ public final class LibraryStore: ObservableObject {
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+    private func stageActionGroupRemoval(_ name: String, movingActionsTo destination: String) throws {
+        guard name != destination, !destination.isEmpty else { throw DraftlyError.message("Choose another destination group.") }
+        for var action in actions where action.group == name {
+            action.group = destination; try persist(action, id: action.id, kind: "action")
+        }
+        if let group = actionGroups.first(where: { $0.name == name }),
+           let record = persistence.record(for: "actionGroup:" + group.id.uuidString) { container.viewContext.delete(record) }
+    }
+
     public func removeActionGroup(_ name: String, movingActionsTo destination: String) throws {
         guard name != destination, !destination.isEmpty else { throw DraftlyError.message("Choose another destination group.") }
         do {
-            for var action in actions where action.group == name { action.group = destination; try persist(action, id: action.id, kind: "action") }
-            if let group = actionGroups.first(where: { $0.name == name }), let record = persistence.record(for: "actionGroup:" + group.id.uuidString) { container.viewContext.delete(record) }
+            try stageActionGroupRemoval(name, movingActionsTo: destination)
             try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+
+    package func commitActionGroupDeletion(_ group: ActionGroupRecord, movingActionsTo destination: String,
+                                          mutation: LibraryMutationIdentity, at now: Date,
+                                          resource: LibraryMutationReceipt.Resource,
+                                          validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        guard resource.id == group.id else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard previous.resources.count == 1, previous.resources.first?.id == group.id else {
+                throw LibraryMutationReceiptError.requestConflict
+            }
+            return previous
+        }
+        guard actionGroupIdentifiers[group.name] == group.id else { throw LibraryMutationReceiptError.invalidReceipt }
+        do {
+            try stageActionGroupRemoval(group.name, movingActionsTo: destination)
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: [resource])
+            try receipt.validate()
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
     public func log(_ run: ActionRun) { do { try persist(run, id: run.id, kind: "run"); try commit() } catch { self.error = error.localizedDescription } }
     public func deleteAction(_ id: UUID) throws { try delete(id, kind: "action") }
     public func deleteWorkspace(_ id: UUID) throws { try delete(id, kind: "workspace") }
@@ -611,6 +720,30 @@ public final class LibraryStore: ObservableObject {
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+    package func commitTheme(_ value: EditorThemeDefinition, mutation: LibraryMutationIdentity, at now: Date,
+                             validateCommit: () throws -> Void,
+                             makeResource: (EditorThemeDefinition) throws -> LibraryMutationReceipt.Resource) throws -> LibraryMutationReceipt {
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard previous.resources.count == 1, previous.resources.first?.id == value.id else {
+                throw LibraryMutationReceiptError.requestConflict
+            }
+            return previous
+        }
+        try validateThemes([value])
+        do {
+            try persist(value, id: value.id, kind: "theme")
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now,
+                resources: [try makeResource(value)])
+            try receipt.validate()
+            guard receipt.resources.first?.id == value.id else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
     public func deleteTheme(_ id: UUID) throws { try delete(id, kind: "theme") }
     public func hasThemeMigration(_ migrationID: String) throws -> Bool {
         try persistence.decode("themeMigration", ThemeMigration.self).contains(where: { $0.name == migrationID })

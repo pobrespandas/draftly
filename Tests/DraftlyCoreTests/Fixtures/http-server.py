@@ -34,6 +34,17 @@ class Handler(BaseHTTPRequestHandler):
         if target.path == "/disconnect":
             self.close_connection = True
             return
+        if target.path == "/not-modified":
+            self.send_response(304)
+            self.send_header("Content-Length", "1000000")
+            self.end_headers()
+            return
+        if target.path == "/redirect-other-origin":
+            self.send_response(302)
+            self.send_header("Location", "http://localhost:" + str(self.server.server_port) + "/json")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if target.path in ("/redirect", "/redirect-permanent"):
             self.send_response(301 if target.path == "/redirect-permanent" else 302)
             self.send_header("Location", "/json")

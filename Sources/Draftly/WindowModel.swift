@@ -7,6 +7,7 @@ final class WindowModel: ObservableObject {
     let library: LibraryStore
     let editor = EditorSession()
     let host: NativeActionHost
+    let chatConsole: ChatConsoleModel
     let runner: ActionRunner
     @Published var folder: NoteFolder = .inbox {
         didSet {
@@ -43,6 +44,9 @@ final class WindowModel: ObservableObject {
     var recoverDictation: (String) -> Void
     @Published var showActionBar = true
     @Published var showActions = false
+    @Published var showChatConsole = false {
+        didSet { if oldValue && !showChatConsole { chatConsole.close() } }
+    }
     @Published var darkTheme: Bool?
     @Published var showTags = true
     var prefersAdvancedFind: () -> Bool
@@ -124,7 +128,9 @@ final class WindowModel: ObservableObject {
 
     init(library: LibraryStore, dependencies: WindowDependencies = WindowDependencies(), saveDraft: ((Note) throws -> Void)? = nil, onAccessDraft: @escaping (UUID) -> Void = { _ in }) {
         self.library = library
-        self.host = dependencies.makeActionHost()
+        let host = dependencies.makeActionHost()
+        self.host = host
+        self.chatConsole = ChatConsoleModel(models: NativeModelAPI())
         self.dependencies = dependencies
         self.listOptions = dependencies.preferences.listOptions
         self.recoverDictation = dependencies.recoverDictation
@@ -203,6 +209,8 @@ final class WindowModel: ObservableObject {
     func toggleFilters() { setFiltersVisible(!showFilters) }
     func toggleDraftList() { setDraftListVisible(!showDraftList) }
 
+    func toggleChatConsole() { showChatConsole.toggle() }
+
     func actionUIOperation(_ values: [String: Any]) throws -> Any? {
         try WindowActionAdapter(model: self).perform(values)
     }
@@ -273,14 +281,32 @@ final class WindowModel: ObservableObject {
         folder = .inbox; clearFilters()
         return true
     }
+    // A committed deletion must not flush the removed draft back into storage.
+    func discardDeletedDraft(_ id: UUID) {
+        guard editor.noteID == id, !library.notes.contains(where: { $0.id == id }) else { return }
+        saveTask?.cancel(); saveTask = nil; pendingSaveConflict = nil
+        cancelActionForUserEdit()
+        if lastNoteID == id { lastNoteID = nil }
+        let note = Note()
+        scratchNote = note; showPreview = false; previewHTML = nil
+        editor.load(note, focusEditor: false)
+        tagsText = ""; status = ""; hasUnsavedChanges = false
+        editor.synchronizeScriptEdit?()
+    }
+
     func select(_ id: UUID?, focusEditor: Bool = true, fromAction: Bool = false) {
-        guard id != editor.noteID else { return }
+        do { _ = try selectAuthorized(id, focusEditor: focusEditor, fromAction: fromAction, authorize: {}) }
+        catch { library.error = error.localizedDescription }
+    }
+    @discardableResult func selectAuthorized(_ id: UUID?, focusEditor: Bool = true, fromAction: Bool = false,
+                                             authorize: () throws -> Void) throws -> Bool {
+        guard id != editor.noteID else { return true }
+        try authorize()
         if !fromAction { cancelActionForUserEdit() }
-        guard flush() else { return }
-        if let id, library.notes.contains(where: { $0.id == id }) {
-            do { try library.recordAccess(id) }
-            catch { library.error = error.localizedDescription; return }
-        }
+        guard flush() else { return false }
+        try authorize()
+        if let id, library.notes.contains(where: { $0.id == id }) { try library.recordAccess(id) }
+        try authorize()
         if let current = editor.noteID, library.notes.contains(where: { $0.id == current }) { lastNoteID = current }
         status = ""; previewHTML = nil
         scratchNote = nil
@@ -288,6 +314,8 @@ final class WindowModel: ObservableObject {
             editor.load(note, focusEditor: focusEditor); tagsText = note.tags.joined(separator: ", "); onAccessDraft(note.id)
         }
         else { editor.noteID = nil; editor.content = ""; tagsText = "" }
+        try authorize()
+        return true
     }
     func selectFromList(_ id: UUID?) {
         guard let id, id != editor.noteID else { return }
@@ -394,8 +422,10 @@ final class WindowModel: ObservableObject {
         return resolved
     }
 
-    func applyScriptWorkspace(_ workspace: Workspace) throws {
-        applyResolvedWorkspace(try prepareWorkspace(workspace))
+    func applyScriptWorkspace(_ workspace: Workspace, authorize: () throws -> Void = {}) throws {
+        let resolved = try prepareWorkspace(workspace)
+        try authorize()
+        applyResolvedWorkspace(resolved)
     }
 
     func saveAndApplyWorkspace(_ workspace: Workspace) throws {
@@ -541,7 +571,10 @@ final class WindowModel: ObservableObject {
     func preview() {
         if let actionPreview { actionPreview.finish(false); return }
         guard flush() else { return }
-        previewHTML = nil; showPreview.toggle()
+        setEditorPreviewVisible(!showPreview)
+    }
+    func setEditorPreviewVisible(_ visible: Bool) {
+        previewHTML = nil; showPreview = visible
         if showPreview { window?.makeFirstResponder(nil) }
         else { editor.focusToken = UUID() }
     }
@@ -549,11 +582,15 @@ final class WindowModel: ObservableObject {
         guard currentNote != nil else { return }
         run(DraftAction(name: "Edit Text", steps: [ActionStep("script", ["script": script])]))
     }
-    func navigate(_ offset: Int) {
+    func navigationDestination(_ offset: Int) -> UUID? {
         let notes = visibleNotes
-        guard !notes.isEmpty else { return }
+        guard !notes.isEmpty else { return nil }
         let index = notes.firstIndex { $0.id == editor.noteID }.map { min(max(0, $0 + offset), notes.count - 1) } ?? 0
-        select(notes[index].id)
+        return notes[index].id
+    }
+    func navigate(_ offset: Int) {
+        guard let id = navigationDestination(offset) else { return }
+        select(id)
     }
     func toggleFloat() { isFloating.toggle(); window?.level = isFloating ? .floating : .normal }
     var activeTagFilters: [String] {

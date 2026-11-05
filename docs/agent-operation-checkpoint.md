@@ -1,3 +1,99 @@
+# Typed results for reviewed operations — 3 November 2026
+
+The operation registry now has an app-owned path for typed results outside
+`actions.run`. It binds the operation name to the durable reservation, checks
+that operation's capabilities, validates successful result fields, and retains
+the same request identity through restart. An interrupted reservation becomes
+`outcome_unknown`; it does not run again. Old Action reservations without the
+new optional name remain readable as `actions.run`.
+
+The registry does not grant effect approval. Each app handler must obtain the
+required native review before it performs its effect. No new transport handler
+or permission was enabled by this change. The absent-handler count stays 80.
+The new path has a 120-second cancellation deadline. Unconfirmed cancellation
+after work starts remains uncertain. Completed effect records remain visible.
+
+The service, host, registry, and journal integration run passed 162 tests.
+After adding stricter saved-result validation, the final registry/journal run
+passed 24 tests. Cases cover typed results, restart without replay, recovery of
+an interrupted reservation, queued and active cancellation, revocation, missing
+permissions, operation-name binding, malformed results, and legacy records.
+The final native QA build passed. Installed native-effect review and active
+effect cancellation remain pending; mocked work is not their acceptance.
+
+# Bounded replace-all mutations — 3 November 2026
+
+`editor.replaceAll` now uses `EditorFindQuery` with literal or regex replacement.
+It preserves the current selection with the same length clamping as native
+find. It uses one native history change, current scope and version checks,
+mutation preparation, and the existing host-lifetime receipt. Replaying a
+completed request after user Undo does not repeat the replacement.
+
+The shared query has an additive package-only bounded replacement method.
+It limits the output to 8,388,608 UTF-16 units for agent calls. It checks a
+250 ms deadline and cancellation at Foundation match/progress callbacks.
+It checks a conservative single-template expansion bound before allocation.
+A budget failure occurs before a mutation receipt or editor effect. No partial
+replacement reaches the editor. Regex compilation has no hard timeout in this
+change. These checks do not establish active-operation Stop Work acceptance.
+
+The final focused run passed 105 service/editor tests and eight query tests.
+Cases covered literal dollar signs, case-insensitive matching, regex captures,
+zero-length matches, empty queries, output limits, interrupted matching,
+read-only denial, selection preservation, Undo, and receipt replay. The final
+native QA build passed. Full CI passed for preceding task commit `2181892`
+(run `41640505392`). The new source needs full CI and installed-client QA.
+The handler sets now contain 57 names; 80 direct contracts remain absent.
+
+# Syntax task mutations — 3 November 2026
+
+`editor.tasks` now uses `SyntaxDefinition.taskChange` for complete, reset, and
+advance. It uses the same native range replacement and receipts as other editor
+mutations. It does not add separate Markdown task rules. Editor version tokens
+now include the syntax name, source, and feature state. Changing syntax rejects
+a prepared mutation before it changes text.
+
+The final focused run passed 104 tests in the command-service and editor
+mutation suites. Task cases checked all three operations, Unicode labels,
+wrong state rejection, a syntax change after preparation, native Undo, and
+receipt replay after user Undo. The native QA build passed. These are local
+integration checks, not installed-client acceptance. There are now 56 names in
+the handler sets and 81 required direct handlers still absent. All other gates
+in [current readiness](agents-ai-readiness.md) remain open.
+
+# Editor Undo and Redo — 3 November 2026
+
+`editor.undo` and `editor.redo` now use the registered native editor history.
+They require draft and editor write access, the current window version, an
+available native history adapter, and mutation preparation. The existing
+host-lifetime receipt returns a completed result without replaying the effect.
+The app retains library and editor ownership. No separate agent undo stack was
+added.
+
+The final focused run passed 102 tests in the command-service and editor
+mutation suites. It checked native Undo/Redo, Unicode text, duplicate receipts,
+read-only rejection, stale editor state, missing history, and authorization
+before history changes. This is integration evidence in native test fixtures.
+Installed CLI/MCP acceptance, restart recovery, and active-operation Stop Work
+remain pending. The required manifest still has 137 contracts; the current
+handler sets include 55 names, with 82 direct named handlers still absent.
+
+# Current local agents status — 3 November 2026
+
+Read [agents and AI readiness](agents-ai-readiness.md) for the current closure
+map. Historical sections below retain their source and acceptance limits.
+
+The latest signed QA verified real ChatGPT reads through native consent,
+app/helper Keychain sharing, an installed MCP read session, and revocation for
+both a new CLI request and the existing MCP session. Idle Stop Work removed
+the endpoint. Account and conversation survived full process exit; access stayed
+off. The app is closed and original shared preferences are restored.
+
+This is not acceptance for active-session Stop Work, real expiry, forbidden
+writes, other-draft denial, normal screen lock, all handlers, or distribution.
+The user excludes external MCP servers and inbound remote access. Preserve the
+full local operation, editor, effect, recovery, CLI, and signed-release scope.
+
 # Local agent operation checkpoint
 
 ## Syntax reads — 2 November 2026

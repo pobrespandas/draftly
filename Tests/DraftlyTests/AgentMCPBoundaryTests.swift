@@ -22,6 +22,35 @@ struct AgentMCPBoundaryTests {
         return error["code"]
     }
 
+    @Test func codexExperimentalCapabilityDoesNotBreakSDKInitialization() async throws {
+        let (transport, client) = try connected()
+        let bridge = AgentMCPServer(backend: { _ in throw AgentErrorCode.unavailable })
+        let server = await bridge.makeServer()
+        try await server.start(transport: transport)
+        do {
+            let initialize = #"{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"experimental":{"codex/auth-change":{}},"elicitation":{"form":{},"url":{}}},"clientInfo":{"name":"codex-mcp-client","title":"Codex","version":"0.166.0"}}}"#
+            try await client.writeLine(Data(initialize.utf8))
+            let data = try #require(await client.readLine(timeout: 3))
+            guard case .object(let reply) = try JSONDecoder().decode(AgentJSONValue.self, from: data),
+                  case .object(let result) = reply["result"],
+                  case .object(let capabilities) = result["capabilities"] else {
+                Issue.record("SDK initialization did not return a result")
+                await server.stop(); client.close(); return
+            }
+            #expect(reply["id"] == .integer(0))
+            #expect(result["protocolVersion"] == .string("2025-06-18"))
+            #expect(capabilities["experimental"] == nil)
+            try await client.writeLine(Data(#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.utf8))
+            try await client.writeLine(Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8))
+            let pong = try #require(await client.readLine(timeout: 3))
+            guard case .object(let reply) = try JSONDecoder().decode(AgentJSONValue.self, from: pong) else {
+                throw AgentErrorCode.invalidInput
+            }
+            #expect(reply["id"] == .integer(1) && reply["error"] == nil)
+            await server.stop(); client.close()
+        } catch { await server.stop(); client.close(); throw error }
+    }
+
     @Test func decimalRoundingIsRejectedBeforeSDKDispatchAndExactJSONPassesUnchanged() async throws {
         let (server, client) = try connected()
         try await server.connect()

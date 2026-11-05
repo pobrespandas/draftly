@@ -5,6 +5,25 @@ Entries describe source changes. Public downloads are listed on [GitHub Releases
 Historical entries were imported from public GitHub release notes. Unpublished historical candidates were excluded.
 
 
+## [0.2.0]
+
+Draftly 0.2.0
+
+Use the Chat Console with ChatGPT or Apple Intelligence On-Device. Connect
+Draftly tools to give the chat temporary read or edit access to the open
+draft and editor.
+
+Connect local clients such as Codex and Claude Code through Draftly's MCP
+helper. In Settings, open Agents and enable local access. Review the client's
+connection request and choose which resources it can use. Local access starts
+off. You can revoke access or stop work in Settings.
+
+During catalog stabilization, this update restores the default actions and
+groups. It replaces custom and edited actions and groups. It preserves drafts.
+
+Requires macOS 26 or later. Apple Intelligence On-Device requires a compatible
+Mac with Apple Intelligence enabled.
+
 ## [0.1.10]
 
 Draftly 0.1.10

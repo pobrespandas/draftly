@@ -1,9 +1,47 @@
 import Foundation
+import Darwin
 import Testing
 @testable import DraftlyCore
 
 @Suite("HTTP loopback contracts")
 struct ScriptHTTPLocalServerTests {
+    @Test(arguments: ["HEAD", "GET"])
+    func boundedTransportAcceptsBodylessRepresentationLengths(method: String) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let path = method == "HEAD" ? "/json" : "/not-modified"
+        let payload = String(decoding: try JSONSerialization.data(withJSONObject: ["url": server.url(path), "method": method, "headersJSON": "{}"]), as: UTF8.self)
+        let response = try await BoundedHTTP.request(payload, maximumBytes: 1)
+        #expect(response.data.isEmpty && response.statusCode == (method == "HEAD" ? 200 : 304))
+        #expect(try server.event()["method"] as? String == method)
+    }
+
+    @Test(arguments: [false, true])
+    func boundedTransportFollowsOnlyReviewedOriginRedirects(follow: Bool) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let payload = String(decoding: try JSONSerialization.data(withJSONObject: ["url": server.url("/redirect"), "headersJSON": "{}", "followRedirects": follow]), as: UTF8.self)
+        let result = try await BoundedHTTP.request(payload, maximumBytes: 1024)
+        #expect(result.statusCode == (follow ? 200 : 302))
+        #expect(try server.event()["path"] as? String == "/redirect")
+        if follow { #expect(try server.event()["path"] as? String == "/json") }
+        let other = String(decoding: try JSONSerialization.data(withJSONObject: ["url": server.url("/redirect-other-origin"), "headersJSON": "{}", "followRedirects": true]), as: UTF8.self)
+        #expect(try await BoundedHTTP.request(other, maximumBytes: 1024).statusCode == 302)
+        #expect(try server.event()["path"] as? String == "/redirect-other-origin")
+        let probe = String(decoding: try JSONSerialization.data(withJSONObject: ["url": server.url("/json"), "method": "POST", "headersJSON": "{}"]), as: UTF8.self)
+        _ = try await BoundedHTTP.request(probe, maximumBytes: 1024)
+        #expect(try server.event()["method"] as? String == "POST")
+    }
+
+    @Test func boundedTransportCancellationClosesTheActualConnection() async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let payload = String(decoding: try JSONSerialization.data(withJSONObject: ["url": server.url("/wait"), "timeout": 5, "headersJSON": "{}"]), as: UTF8.self)
+        let task = Task { try await BoundedHTTP.request(payload, maximumBytes: 1024) }
+        defer { task.cancel() }
+        #expect(try server.event()["path"] as? String == "/wait")
+        task.cancel()
+        await #expect(throws: (any Error).self) { try await task.value }
+        #expect(try server.event()["disconnected"] as? Bool == true)
+    }
+
     @Test(arguments: [false, true]) @MainActor
     func xmlRPCSerializesUint8ArraysAsBinary(worker: Bool) async throws {
         let server = try LoopbackHTTPServer(); defer { server.stop() }
@@ -339,7 +377,15 @@ private final class LoopbackHTTPServer {
 
     private static func readLine(_ file: FileHandle) throws -> Data {
         var line = Data()
-        while let byte = try file.read(upToCount: 1), !byte.isEmpty {
+        let deadline = ProcessInfo.processInfo.systemUptime + 10
+        while true {
+            let remaining = deadline - ProcessInfo.processInfo.systemUptime
+            guard remaining > 0 else { throw DraftlyError.message("The HTTP fixture event timed out.") }
+            var descriptor = pollfd(fd: file.fileDescriptor, events: Int16(POLLIN), revents: 0)
+            let ready = poll(&descriptor, 1, Int32(max(1, remaining * 1000)))
+            if ready < 0 && errno == EINTR { continue }
+            guard ready > 0 else { throw DraftlyError.message("The HTTP fixture event timed out.") }
+            guard let byte = try file.read(upToCount: 1), !byte.isEmpty else { break }
             if byte == Data([10]) { break }
             line.append(byte)
         }

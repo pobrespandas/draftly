@@ -13,7 +13,7 @@ struct AgentToolInputTests {
             "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks",
             "actions.list", "actions.get", "actions.stepSchemas", "actions.validateShortcut",
             "actions.groups", "actionGroups.get", "workspaces.list", "workspaces.get", "workspaces.query", "activity.list",
-            "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn", "syntaxes.exportBuiltIn"
+            "bookmarks.list", "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn", "syntaxes.exportBuiltIn"
         ]))
     }
     @Test(arguments: ["preferences.get", "preferences.schema"])

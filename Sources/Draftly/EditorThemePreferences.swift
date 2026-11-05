@@ -38,11 +38,20 @@ import DraftlyCore
     }
 
     func set(reference: [String: Any], dark: Bool, themes: [EditorTheme]) throws {
+        let data = try selectionData(reference: reference, dark: dark, themes: themes, validateFile: {
+            _ = try ThemeFileAccess.read($0, defaults: defaults)
+        })
+        defaults.set(data, forKey: Self.key)
+        ThemeCatalog.advanceLocalRevision(defaults: defaults)
+    }
+
+    func selectionData(reference: [String: Any], dark: Bool, themes: [EditorTheme],
+                       validateFile: (EditorTheme) throws -> Void) throws -> Data {
         let resolved = try ThemeReferenceResolver.resolve(reference, themes: themes)
         if resolved["type"] as? String == "file",
            let id = (resolved["uuid"] as? String).flatMap(UUID.init(uuidString:)),
            let theme = themes.first(where: { $0.id == id }) {
-            _ = try ThemeFileAccess.read(theme, defaults: defaults)
+            try validateFile(theme)
         }
         var values = try storedFields()
         for legacyDark in [false, true] {
@@ -53,8 +62,6 @@ import DraftlyCore
         guard JSONSerialization.isValidJSONObject(values) else {
             throw DraftlyError.message("The theme reference contains unsupported values.")
         }
-        let data = try JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])
-        defaults.set(data, forKey: Self.key)
-        ThemeCatalog.advanceLocalRevision(defaults: defaults)
+        return try JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])
     }
 }

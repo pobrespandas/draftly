@@ -19,6 +19,12 @@ struct AgentConnectionsSettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Text("Each connection needs your approval. Permissions stay on this Mac and are not included in backups.")
                     .font(.caption).foregroundStyle(.secondary)
+                #if DRAFTLY_AGENT_QA
+                if AgentQAConfiguration.isActive {
+                    Text(AgentApplicationSession.qaAdmissionDiagnostics)
+                        .font(.caption).textSelection(.enabled)
+                }
+                #endif
                 if let command = model.pairingCommand {
                     Button("Copy connection command") {
                         NSPasteboard.general.clearContents()
@@ -139,10 +145,27 @@ private struct AgentOperationReviewSheet: View {
     @State private var showTechnicalDetails = false
 
     private var nativeTitle: String? {
+        if review.effects.snapshot["sourceImport"] == .bool(true) {
+            return ["themes.install": "Download and Install Theme", "themes.replace": "Download and Replace Theme",
+                "backups.validate": "Download Backup for Validation", "backups.previewRestore": "Download Backup for Preview"][review.operation] ?? "Download Input"
+        }
+        if review.operation == "themes.delete" { return "Delete Theme" }
+        if review.operation == "workspaces.delete" { return "Delete Workspace" }
+        if review.operation == "actions.delete" { return "Delete Action" }
+        if review.operation == "actionGroups.delete" { return "Remove Action Group" }
         guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
         switch operation {
+        case "http": return "Make an HTTP request"
         case "clipboard": return "Copy text to the clipboard"
         case "getClipboard": return "Read the current clipboard"
+        case "htmlToMarkdown": return "Convert HTML to Markdown"
+        case "speak": return "Read text aloud"
+        case "dictate": return "Record dictation"
+        case "transcribe": return "Transcribe a selected audio file"
+        case "location": return "Read the current location"
+        case "shellScript": return "Run a Shell script"
+        case "appleScript": return "Run AppleScript"
+        case "shortcut": return "Run a Shortcut"
         case "htmlToClipboard": return "Copy formatted text to the clipboard"
         case "share": return "Share text"
         case "shareFile": return "Share a text file"
@@ -153,14 +176,47 @@ private struct AgentOperationReviewSheet: View {
     }
 
     private var nativeFields: [(String, String)] {
+        if review.operation == "themes.delete", case .string(let name) = review.effects.snapshot["themeName"] {
+            return [("Theme", name), ("Effect", "Delete the installed theme and its saved file permission. Keep drafts and the source file.")]
+        }
+        if review.operation == "workspaces.delete",
+           case .string(let name) = review.effects.snapshot["workspaceName"] {
+            return [("Workspace", name), ("Effect", "Delete the saved Workspace. Keep all drafts.")]
+        }
+        if review.operation == "actionGroups.delete", case .string(let name) = review.effects.snapshot["groupName"],
+           case .string(let destination) = review.effects.snapshot["destination"],
+           case .array(let actions) = review.effects.snapshot["actions"] {
+            let names = actions.compactMap { item -> String? in
+                guard case .object(let fields) = item, case .string(let name) = fields["name"] else { return nil }
+                return name
+            }
+            return [("Group", name), ("Move actions to", destination), ("Actions", names.isEmpty ? "None" : names.joined(separator: "\n")),
+                ("Effect", "Remove this group. Keep its actions, all drafts and action history.")]
+        }
+        if review.operation == "actions.delete", case .string(let name) = review.effects.snapshot["actionName"] {
+            return [("Action", name), ("Effect", "Permanently delete this action. Keep all drafts and action history.")]
+        }
+        if review.operation == "drafts.purge", case .array(let drafts) = review.effects.snapshot["drafts"] {
+            let names = drafts.compactMap { value -> String? in
+                guard case .object(let fields) = value, case .string(let title) = fields["title"] else { return nil }
+                return title
+            }
+            return [("Drafts", names.joined(separator: "\n")),
+                ("Effect", "Permanently delete these trashed drafts and their versions. Keep action history. This cannot be undone.")]
+        }
         guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
-        return fields.keys.sorted().map { key in
+        let rows = fields.keys.sorted().map { key in
             let value = fields[key]!
-            let label = ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL"][key] ?? key
+            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion", "method": "Method", "headersJSON": "Headers", "bodyText": "Body", "bodyBase64": "Body (Base64)", "timeout": "Timeout (seconds)", "followRedirects": "Follow redirects on this origin", "maximumBytes": "Maximum download bytes", "purpose": "Purpose"][key] ?? key
             if case .string(let text) = value { return (label, text) }
             let data = try? JSONEncoder().encode(value)
             return (label, data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unavailable")
         }
+        if case .string(let operation) = review.effects.snapshot["nativeOperation"],
+           ["shellScript", "shell", "appleScript", "shortcut"].contains(operation) {
+            return [("Access", "Uses your macOS permissions and full library access.")] + rows
+        }
+        return rows
     }
 
     private var details: String? {
@@ -218,14 +274,24 @@ private struct AgentOperationReviewSheet: View {
             if let error = model.lastError { Text(error.connectionMessage).foregroundStyle(.red) }
             HStack {
                 Button("Close") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Stop work", role: .destructive) {
+                    if (try? model.stopWork()) != nil { dismiss() }
+                }.disabled(!model.readable || !model.accessEnabled)
                 Spacer()
                 Button("Deny", role: .destructive) {
                     if (try? model.decideOperation(review, approved: false)) != nil { dismiss() }
                 }
-                Button("Allow once") {
-                    if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
-                }.keyboardShortcut(.defaultAction)
-                    .disabled(details == nil || !model.pendingOperationReviews.contains { $0.id == review.id && $0.fingerprint == review.fingerprint })
+                Group {
+                    if ["workspaces.delete", "actions.delete", "actionGroups.delete", "themes.delete"].contains(review.operation) {
+                        Button(review.operation == "themes.delete" ? "Delete Theme" : review.operation == "actions.delete" ? "Delete Action" : review.operation == "actionGroups.delete" ? "Remove Group" : "Delete Workspace", role: .destructive) {
+                            if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
+                        }
+                    } else {
+                        Button("Allow once") {
+                            if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
+                        }.keyboardShortcut(.defaultAction)
+                    }
+                }.disabled(details == nil || !model.pendingOperationReviews.contains { $0.id == review.id && $0.fingerprint == review.fingerprint })
             }
         }
         .padding(20).frame(minWidth: 520, minHeight: 400)

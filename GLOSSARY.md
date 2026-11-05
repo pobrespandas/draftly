@@ -234,6 +234,10 @@ A saved copy of drafts, revisions, workspaces, actions, action groups, syntax de
 
 **Backup import**:
 A merge of a full backup into the library. When a draft with the same identity has different content or metadata, both copies are kept.
+
+**Backup restore preview**:
+A report of the additions and updates that a backup import would make to the
+current library. It does not change data or approve the import.
 _Avoid_: Library replacement
 
 ### Action resources
@@ -248,13 +252,54 @@ The local folder for files read or written by action scripts. It is separate fro
 A folder chosen by the user and recalled by name for file exports on this Mac.
 
 
-### Planned agent access
+### Agent access
 
-These terms describe the proposed agent interface, not a shipped capability.
+These terms distinguish agent authority, connections, and work.
 
 **Draftly agent connection**:
-A user-approved connection through which an external agent requests work in
-Draftly. It can be disabled independently of other connections.
+A user-approved relationship through which an agent or Chat Console requests
+work in Draftly.
+_Avoid_: Model provider account, agent grant
+
+**Chat Console**:
+A conversation space where a person works with a chosen model provider and can
+approve access to Draftly tools.
+
+**Model provider account**:
+The person's identity with a model service. It is separate from a Draftly agent
+connection and its local authority.
+_Avoid_: MCP login (when referring to model-service sign-in)
+
+**Draftly MCP server**:
+The Draftly interface through which an MCP client requests authorized work on a
+library.
+
+**External MCP server**:
+An MCP server supplied by another service or app that Chat Console could use.
+It is distinct from an agent client that uses Draftly's own MCP server.
+_Avoid_: External client (when referring to the server)
+
+**Agent session**:
+An active period of use of a Draftly agent connection under its current grant.
+Ending a session does not by itself revoke that grant.
+
+**Chat access consent**:
+The person's decision to let Chat Console use specified Draftly resources with
+the chosen model provider. It is distinct from approval of one operation's effects.
+
+**Stop Work**:
+The person's command to suspend agent access and request cancellation of active
+and pending work. It does not revoke a saved connection or undo completed changes.
+
+**Agent cancellation request**:
+A request to stop one agent operation before its remaining work completes.
+The request alone does not confirm that the operation stopped or undo completed changes.
+_Avoid_: Rollback, Undo
+
+**Unknown agent outcome**:
+An agent operation whose full effects cannot be confirmed, even when its work
+has stopped. It is distinct from a confirmed failure or cancellation.
+_Avoid_: Cancelled (when completion is unconfirmed)
 
 **Agent pairing challenge**:
 A short-lived request to connect an agent to Draftly. The person compares its
@@ -265,6 +310,10 @@ library work and does not contain the connection credential.
 The user's authorization for a Draftly agent connection to perform specified
 work on specified library resources for a limited time. A replacement grant is
 a new authorization, even when it allows the same work.
+
+**Agent bookmark identity**:
+The resource identity for one saved folder permission in an agent grant.
+Replacing that permission or forgetting and recreating it requires a new identity.
 
 **Agent library binding**:
 A device-local identity that connects agent authorization to one local copy of
@@ -280,13 +329,23 @@ A request for work in Draftly with an identifiable outcome and the grant under
 which it was accepted.
 
 **Agent version token**:
-An opaque reference to a resource's stored editable state and pending editor
-changes. It is used to detect a stale view of that state. It does not grant access
-and is distinct from a saved revision.
+An opaque reference to the editable state of one resource or an exact set of
+drafts, including pending editor changes. It detects a stale view, grants no
+access, and is distinct from a saved revision.
 
 **Agent retry key**:
 A signed, time-limited reference to one normalized request and its authorization
 context. It identifies retries. It does not grant access or approve effects.
+
+**Agent operation journal**:
+The device-local durable store of accepted request identities and recoverable
+operation state. It prevents replay across transport closure and app restart.
+It does not grant access or retain private native output.
+
+**Agent result cache**:
+The bounded in-memory state and output of accepted operations. A terminal durable
+entry can leave this cache while the operation journal keeps its request identity.
+Cache eviction does not authorize a new execution.
 
 **Agent mutation receipt**:
 The durable result of a library change associated with one request and connection.
@@ -304,3 +363,20 @@ it applies. It identifies one setting within the agent interface.
 **Agent read snapshot**:
 The fixed membership and order of resources for one paged query under one grant.
 Each page reads current values; the snapshot does not freeze resource content.
+
+**Agent transfer**:
+A temporary exchange of file content between an agent connection and Draftly.
+It does not install imported content, save an export to disk, or grant access
+to other resources.
+
+**Agent native operation**:
+An agent request to use a system service or platform tool directly. It has its
+own input and approval, independent of a saved Action.
+
+**Unrestricted automation**:
+Code execution or application automation that uses the person's macOS permissions.
+It can act beyond selected Draftly resources.
+
+**Agent transient result**:
+A result whose content is not saved. Its completion can remain known after
+its content is no longer available.

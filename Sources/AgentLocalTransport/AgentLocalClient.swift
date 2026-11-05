@@ -24,6 +24,13 @@ package actor AgentLocalClient {
 
     package func close() { channel.close() }
 
+    package static func responseTimeout(for request: AgentRequest) -> TimeInterval {
+        guard request.operation == "operations.wait",
+              let parameters = try? AgentOperationSchemas.validatedParameters(for: request),
+              case .integer(let seconds) = parameters["timeoutSeconds"] else { return 30 }
+        return max(30, Double(seconds) + 5)
+    }
+
     package func request(_ data: Data) async throws -> Data {
         guard !inFlight else { throw AgentErrorCode.busy }
         let parsed = try AgentRequest.decode(data)
@@ -32,7 +39,7 @@ package actor AgentLocalClient {
         inFlight = true; defer { inFlight = false }
         do {
             try await channel.writeFrame(JSONEncoder().encode(bound))
-            let result = try await channel.readFrame()
+            let result = try await channel.readFrame(timeout: Self.responseTimeout(for: bound))
             let response: AgentResponse
             do { response = try JSONDecoder().decode(AgentResponse.self, from: result) }
             catch { throw AgentErrorCode.invalidInput }

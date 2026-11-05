@@ -1,24 +1,19 @@
 # Agent operation inventory
 
-Status: eight read handlers exist in the internal application service. No endpoint
-is enabled. The installed app has no agent client access yet.
+Current handler and acceptance reconciliation is in
+[agents and AI readiness](../agents-ai-readiness.md#operation-coverage).
+This inventory records required contracts, including contracts without a current
+handler. It is not a list of delivered tools.
 
-Snapshot date: 31 October 2026. Read-handler update: 1 November 2026.
-The table records the required inventory, not implementation completion.
+The table records all required contracts. It does not claim that each contract
+has a connected handler. Current source coverage, test evidence and installed
+acceptance are recorded in the readiness report linked above.
 
 The authoritative operation names, permission families, resource target rules,
 and expected-version/approval requirements are in
 [AgentOperationCatalog](../../Sources/AgentContracts/AgentOperationCatalog.swift).
-The first contract tests validate message safety and baseline grants. Operation
-parameter/result schemas, native destination grants, and per-member handler tests
-remain required before execution. This inventory is not evidence of functionality.
-
-AgentCommandService implements server.status, server.capabilities, server.schemas,
-library.summary, drafts.list, drafts.search, drafts.get and drafts.versions. Its
-runtime handler set determines availability. The contract catalog cannot claim
-execution availability. All other operations return an explicit unavailable or
-authorization error. See [architecture](../architecture.md#authenticated-agent-reads)
-for scope, paging, output limits and the pending transport/UI acceptance.
+The configured service advertises only its connected and permitted handlers.
+Contract presence alone does not make an operation available.
 
 | Operation | Existing owner or planned boundary | Capability names in code | Targets | Additional requirements |
 | --- | --- | --- | --- | --- |
@@ -131,7 +126,7 @@ for scope, paging, output limits and the pending transport/UI acceptance.
 | transfers.appendChunk | AgentTransferStore | filesRead | operation | none |
 | transfers.finishImport | AgentTransferStore | filesRead | operation | none |
 | transfers.readChunk | AgentTransferStore | filesWrite | operation | none |
-| transfers.cancel | AgentTransferStore | filesWrite | operation | none |
+| transfers.cancel | AgentTransferStore | filesRead or filesWrite | operation | none |
 | activity.list | AgentActivityStore | connection only | none | none |
 | activity.changes | AgentActivityStore | connection only | none | none |
 | native.http | NativeActionHost | nativeUse | none | human |
@@ -543,3 +538,53 @@ bookmark does not grant the connection file authority. Forget replies bind the
 requested identity. The existing name-based store still needs a stable local ID
 adapter and scope filtering before these routes can run. No folder, preference,
 service registration, native permission or grant was changed by these tests.
+
+
+### Scoped file transfers
+
+A transfer is a temporary byte exchange, not a library import or a saved file.
+Transfers retain their authorized connection, exact grant and source resource
+scope. A new CLI transport can resume a transfer under that same authorization.
+A changed grant, expiry, connection invalidation or Stop Work prevents access. Transfer IDs are operation-kind handles, but do not identify
+work in `operations.get`.
+
+Uploads declare a byte count and SHA-256 digest. Chunks use byte offsets and
+canonical Base64. Finish requires the complete bytes and a matching digest.
+A repeated identical chunk is safe; an overlapping change is a conflict.
+Finish does not install any content. Existing import handlers must validate
+and apply the prepared content separately. Those handlers remain unavailable.
+
+Exports freeze the selected drafts, including pending editor content. The
+`draftly` format uses the existing backup format with only selected drafts and
+optional selected-draft versions. The `text` format requires exactly one draft
+and excludes versions. Neither route flushes editors or writes a destination
+file. The owning session reads exported bytes through `transfers.readChunk`.
+
+Transfers expire after five minutes or at grant expiry, whichever occurs first.
+The monotonic deadline also prevents clock rollback from extending access.
+Each transfer holds at most 32 MiB. Each host reserves at most 64 MiB across
+16 transfers. Chunks hold at most 64 KiB. Buffer cleanup checks ownership and either `files.read` or `files.write`.
+Cancelling an upload does not require export permission. Plain draft readers
+do not receive the cancellation tool.
+It returns no content and changes no library resource.
+
+
+### Backup readers
+
+Backup export uses the existing backup model and projects pending text in saved drafts
+without saving the editor. It requires whole-library scope, every declared
+export capability, and connected editor tracking. The serialized backup uses
+an owned export transfer and its existing byte and lifetime limits.
+
+Backup validation applies incoming bytes to a disposable empty library. Restore
+preview also applies them to a disposable copy of current storage. Both use
+`LibraryStore.restore`; neither changes live storage. Preview rejects pending
+editor byte changes. Its version token binds incoming bytes and stored library
+state. Reports contain counts, not existing record content.
+
+Inline and completed owned-transfer sources work. Bookmark and HTTPS inputs
+need native effect review; the current handler returns `interaction_required`
+without reading or fetching them. Those routes remain unfinished. Backup
+installation links are not supported input. The actual restore handler remains
+unavailable. It still needs native approval, source/version binding, editor
+coordination, cancellation and a durable receipt.

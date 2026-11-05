@@ -27,11 +27,7 @@ import DraftlyCore
         sessions.removeAll(); backend?.clear()
     }
     func perform(_ operation: String, _ values: [String: Any]) throws -> Any {
-        var modes: [String] = []
-        if FoundationModels.SystemLanguageModel.default.isAvailable { modes.append("onDevice") }
-        #if compiler(>=6.4)
-        if #available(macOS 27, *), PrivateCloudComputeLanguageModel().isAvailable { modes.append("pcc") }
-        #endif
+        let modes = AppleModelAccess.modes()
         if operation == "modelModes" { return modes }
         let mode = values["mode"] as? String ?? "onDevice"
         guard modes.contains(mode) else { throw DraftlyError.message("The selected Apple Intelligence model is unavailable on this Mac.") }
@@ -82,21 +78,39 @@ import DraftlyCore
                     return try self.performTool(operation, json: json, sessionID: id)
                 })
             }
-            if mode == "pcc" {
-                #if compiler(>=6.4)
-                if #available(macOS 27, *) { session = LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions) }
-                else { throw DraftlyError.message("Private Cloud Compute requires macOS 27.") }
-                #else
-                throw DraftlyError.message("Private Cloud Compute is unavailable in this build.")
-                #endif
-            } else { session = LanguageModelSession(model: FoundationModels.SystemLanguageModel.default, tools: tools, instructions: instructions) }
+            session = try languageSession(mode: mode, tools: tools, instructions: instructions)
             toolLifetimes[id] = lifetime
             sessions[id] = session
         }
         return session
     }
 
-    private func discardSession(_ id: String) {
+    private func languageSession(mode: String, tools: [any Tool], instructions: String) throws -> LanguageModelSession {
+        if mode == "pcc" {
+            #if compiler(>=6.4)
+            if #available(macOS 27, *) { return LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions) }
+            #endif
+            throw DraftlyError.message("Private Cloud Compute is unavailable in this build.")
+        }
+        return LanguageModelSession(model: SystemLanguageModel.default, tools: tools, instructions: instructions)
+    }
+
+    func respondAuthorized(prompt: String, mode: String, tools: [any Tool]) async throws -> String {
+        guard availableModes().contains(mode) else { throw DraftlyError.message("The selected Apple Intelligence model is unavailable on this Mac.") }
+        let id = UUID().uuidString
+        defer { discardSession(id) }
+        sessions[id] = try languageSession(mode: mode, tools: tools,
+            instructions: "For draft text, call draftly_read_draft and draftly_edit_draft directly. These two tools do not need schema lookup. For other tasks, use draftly_tools to inspect authorized operation schemas. To execute, call draftly_call: put the exact catalog tool name (such as draftly_drafts_get) in name and resource references in targets. For other writes, use draftly_mutations_prepare first. Give the prepare call its own top-level requestID. Put the planned write in the request object inside parametersJSON, with a different requestID. Execute the write with that planned requestID and the returned retryKey. Omit parametersJSON for a simple draft read. Never claim a change without a successful result. Never replay unknown outcomes.")
+        let bytes = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id])
+        let raw = try await performAsync("modelRespond", payload: String(decoding: bytes, as: UTF8.self))
+        guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
+              let result = frame["value"] as? [String: Any], let response = result["response"] as? String else {
+            throw ChatConsoleError.invalidModelResponse
+        }
+        return response
+    }
+
+    func discardSession(_ id: String) {
         toolLifetimes.removeValue(forKey: id)?.valid = false
         sessions.removeValue(forKey: id)
         backend?.discard(id)
@@ -112,12 +126,7 @@ import DraftlyCore
 
     private func availableModes() -> [String] {
         if let backend { return backend.modes() }
-        var modes: [String] = []
-        if FoundationModels.SystemLanguageModel.default.isAvailable { modes.append("onDevice") }
-        #if compiler(>=6.4)
-        if #available(macOS 27, *), PrivateCloudComputeLanguageModel().isAvailable { modes.append("pcc") }
-        #endif
-        return modes
+        return AppleModelAccess.modes()
     }
 
     func performAsync(_ operation: String, payload: String) async throws -> String {

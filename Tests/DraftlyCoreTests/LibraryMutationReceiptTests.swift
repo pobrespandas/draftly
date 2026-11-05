@@ -14,6 +14,193 @@ struct LibraryMutationReceiptTests {
         notes.map { .init(id: $0.id, versionToken: "opaque-neutral-version") }
     }
 
+    @Test func themeMutationAndReceiptRollBackTogetherAndRecoverAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let original = EditorThemeDefinition(name: "Original café 🐼")
+        try library.saveTheme(original)
+        var changed = original; changed.foreground = "ABCDEF"
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitTheme(changed, mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority ended") },
+                makeResource: { .init(id: $0.id, versionToken: "v1") })
+        }
+        #expect(library.themes == [original])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitTheme(changed, mutation: mutation, at: now, validateCommit: {},
+            makeResource: { .init(id: $0.id, versionToken: "v1") })
+        var later = changed; later.background = "112233"; try library.saveTheme(later)
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(try reopened.commitTheme(changed, mutation: mutation, at: now,
+            validateCommit: { Issue.record("Completed theme write must not run again") },
+            makeResource: { _ in throw LibraryMutationReceiptError.invalidReceipt }) == receipt)
+        #expect(reopened.themes == [later])
+    }
+
+    @Test func targetedTrashDeletionIsAtomicAndRecoversAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        var first = try library.createNote(content: "Delete café 🐼")
+        var second = try library.createNote(content: "Other trash")
+        let retained = try library.createNote(content: "Keep")
+        first.trashedAt = now; second.trashedAt = now
+        try library.saveNotes([first, second], preserveDates: true)
+        try library.recordAccess(first.id, at: now)
+        let revisions = library.revisions
+        let resources = Self.resources([first]), mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitTrashedNoteDeletion(resources, mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority ended") })
+        }
+        #expect(Set(library.notes.map(\.id)) == [first.id, second.id, retained.id])
+        #expect(library.revisions == revisions)
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitTrashedNoteDeletion(resources, mutation: mutation, at: now, validateCommit: {})
+        #expect(Set(library.notes.map(\.id)) == [second.id, retained.id])
+        #expect(!library.revisions.contains { $0.noteID == first.id })
+        #expect(library.revisions.filter { $0.noteID != first.id } == revisions.filter { $0.noteID != first.id })
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(try reopened.commitTrashedNoteDeletion(resources, mutation: mutation, at: now,
+            validateCommit: { Issue.record("Completed purge must not execute again") }) == receipt)
+        #expect(Set(reopened.notes.map(\.id)) == [second.id, retained.id])
+        let fetch = NSFetchRequest<NSManagedObject>(entityName: "Record")
+        fetch.predicate = NSPredicate(format: "key == %@", "noteAccess:" + first.id.uuidString)
+        #expect(try reopened.container.viewContext.fetch(fetch).isEmpty)
+    }
+
+    @Test func targetedTrashDeletionRejectsLiveMissingAndDuplicateTargets() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var trash = try library.createNote(content: "Trash")
+        let live = try library.createNote(content: "Live")
+        trash.trashedAt = now; try library.saveNote(trash)
+        for resources in [Self.resources([trash, live]), Self.resources([Note(content: "Missing")]),
+                          Self.resources([trash, trash])] {
+            let mutation = identity()
+            #expect(throws: LibraryMutationReceiptError.invalidReceipt) {
+                try library.commitTrashedNoteDeletion(resources, mutation: mutation, at: now, validateCommit: {})
+            }
+            #expect(Set(library.notes.map(\.id)) == [trash.id, live.id])
+            #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        }
+    }
+
+    @Test func workspaceDeletionAndReceiptCommitTogetherAndRecoverAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let workspace = Workspace(name: "Delete café 🐼"), retained = Workspace(name: "Keep")
+        let note = try library.createNote(content: "Preserve café 🐼")
+        try library.saveWorkspaces([workspace, retained])
+        let mutation = identity(), resource = LibraryMutationReceipt.Resource(id: workspace.id, versionToken: "deleted-version")
+        #expect(throws: (any Error).self) {
+            try library.commitWorkspaceDeletion(workspace.id, mutation: mutation, at: now, resource: resource,
+                validateCommit: { throw DraftlyError.message("Authority changed") })
+        }
+        #expect(Set(library.workspaces.map(\.id)) == [workspace.id, retained.id])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitWorkspaceDeletion(workspace.id, mutation: mutation, at: now, resource: resource, validateCommit: {})
+        #expect(library.workspaces == [retained] && library.notes == [note])
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(try reopened.commitWorkspaceDeletion(workspace.id, mutation: mutation, at: now, resource: resource,
+            validateCommit: { Issue.record("Completed deletion must not execute again") }) == receipt)
+        #expect(reopened.workspaces == [retained] && reopened.notes == [note])
+    }
+
+    @Test func actionDeletionAndReceiptCommitTogetherAndRecoverAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let action = DraftAction(name: "Delete café 🐼", steps: []), retained = DraftAction(name: "Keep", steps: [])
+        let note = try library.createNote(content: "Preserve café 🐼")
+        try library.saveAction(action)
+        try library.saveAction(retained)
+        let mutation = identity(), resource = LibraryMutationReceipt.Resource(id: action.id, versionToken: "deleted-version")
+        #expect(throws: (any Error).self) {
+            try library.commitActionDeletion(action.id, mutation: mutation, at: now, resource: resource,
+                validateCommit: { throw DraftlyError.message("Authority changed") })
+        }
+        #expect(Set(library.actions.map(\.id)) == [action.id, retained.id])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitActionDeletion(action.id, mutation: mutation, at: now, resource: resource, validateCommit: {})
+        #expect(library.actions == [retained] && library.notes == [note])
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(try reopened.commitActionDeletion(action.id, mutation: mutation, at: now, resource: resource,
+            validateCommit: { Issue.record("Completed deletion must not execute again") }) == receipt)
+        #expect(reopened.actions == [retained] && reopened.notes == [note])
+    }
+
+    @Test func themeDeletionAndReceiptCommitTogetherAndRecoverAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let theme = EditorThemeDefinition(name: "Delete café 🐼"), retained = EditorThemeDefinition(name: "Keep")
+        let note = try library.createNote(content: "Preserve café 🐼")
+        try library.saveTheme(theme); try library.saveTheme(retained)
+        let mutation = identity(), resource = LibraryMutationReceipt.Resource(id: theme.id, versionToken: "deleted-version")
+        #expect(throws: (any Error).self) {
+            try library.commitThemeDeletion(theme.id, mutation: mutation, at: now, resource: resource,
+                validateCommit: { throw DraftlyError.message("Authority changed") })
+        }
+        #expect(Set(library.themes.map(\.id)) == [theme.id, retained.id])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitThemeDeletion(theme.id, mutation: mutation, at: now, resource: resource, validateCommit: {})
+        #expect(library.themes == [retained] && library.notes == [note])
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(try reopened.commitThemeDeletion(theme.id, mutation: mutation, at: now, resource: resource,
+            validateCommit: { Issue.record("Completed deletion must not execute again") }) == receipt)
+        #expect(reopened.themes == [retained] && reopened.notes == [note])
+    }
+
+    @Test(arguments: ["General", "Projects"])
+    func groupDeletionMovesMembersAndReceiptCommitsAtomically(name: String) throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let group = ActionGroupRecord(name: name), destination = name == "General" ? "Imported" : "General"
+        try library.saveActionGroup(group)
+        var action = DraftAction(name: "Keep café 🐼", steps: []); action.group = name
+        try library.saveAction(action)
+        let note = try library.createNote(content: "Preserve draft")
+        let mutation = identity(), resource = LibraryMutationReceipt.Resource(id: group.id, versionToken: "group-version")
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroupDeletion(group, movingActionsTo: destination, mutation: mutation,
+                at: now, resource: resource, validateCommit: { throw DraftlyError.message("Authority changed") })
+        }
+        #expect(library.actions == [action] && library.actionGroups == [group])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitActionGroupDeletion(group, movingActionsTo: destination, mutation: mutation,
+            at: now, resource: resource, validateCommit: {})
+        let reopened = try LibraryStore(directory: root, seed: false)
+        var moved = action; moved.group = destination
+        #expect(reopened.actions == [moved] && reopened.actionGroups.isEmpty && reopened.notes == [note])
+        try reopened.saveActionGroup(group); try reopened.saveAction(action)
+        let recreatedGroups = reopened.actionGroups
+        #expect(recreatedGroups.contains { $0.id == group.id && $0.name == group.name })
+        #expect(try reopened.commitActionGroupDeletion(group, movingActionsTo: destination, mutation: mutation,
+            at: now, resource: resource, validateCommit: { Issue.record("Recovery must not move members again") }) == receipt)
+        #expect(reopened.actions == [action] && reopened.actionGroups == recreatedGroups)
+    }
+
+    @Test func workspaceDeletionRejectsWrongResourcesAndMissingTargets() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let workspace = Workspace(name: "Keep"), mutation = identity()
+        try library.saveWorkspace(workspace)
+        #expect(throws: LibraryMutationReceiptError.invalidReceipt) {
+            try library.commitWorkspaceDeletion(workspace.id, mutation: mutation, at: now,
+                resource: .init(id: UUID(), versionToken: "v1"), validateCommit: {})
+        }
+        let missing = UUID()
+        #expect(throws: LibraryMutationReceiptError.invalidReceipt) {
+            try library.commitWorkspaceDeletion(missing, mutation: mutation, at: now,
+                resource: .init(id: missing, versionToken: "v1"), validateCommit: {})
+        }
+        #expect(library.workspaces == [workspace])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+    }
+
     @Test func workspaceMutationRollsBackAndReplaysAfterReopen() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

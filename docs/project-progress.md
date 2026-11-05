@@ -1,7 +1,863 @@
 # Project progress
 
-Updated: 1 November 2026. This is the maintained continuation summary.
+Updated: 5 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
+
+## Installed lock and sleep acceptance — 5 November
+
+A one-theme read-only MCP session lost access on real user-confirmed lock and did
+not resume on unlock. Explicit native enable restored reads within the original
+grant. Real sleep cut access again. A short repeat woke before expiry; access stayed
+paused until explicit enable restored reads in the same MCP process. The
+connections were revoked and access stayed off. See
+[transition evidence](agent-lock-sleep-installed-acceptance.md).
+
+## Installed HTTPS acceptance — 5 November
+
+Protected data became available without changing admission rules. Signed isolated
+QA installed one public HTTPS theme after native review. CLI and MCP recovered
+the original result after restart. A second request stayed cancelled. HTTPS backup
+validation passed without restoration. The connection was revoked, access turned
+off, a fresh CLI request denied and discovery empty. Replacement, restore preview,
+lock/sleep, production startup and distribution acceptance remain open. See
+[installed input evidence](agent-https-input-acceptance.md).
+
+## Reviewed HTTPS input — 4 November
+
+Connected app-owned download review for theme installation and replacement, and
+backup validation and preview. Downloads require `native.use`, retain the parent
+request identity and do not replay after recovery. Source tests use an injected
+fetch function. Strict 2,713 tests and native Debug passed. Coverage stays at
+115/137. Real TLS and signed installed acceptance remain open. See
+[HTTPS input evidence](agent-https-input-acceptance.md).
+
+## Reviewed bounded HTTP — 4 November
+
+Connected `native.http` to app-owned review and a private asynchronous session.
+Explicit text/binary bodies and response bodies are limited to 64 KiB. Redirects
+stay on the reviewed origin. Response data is transient; recovery does not send
+again. Real loopback checks cover redirects, bodyless representation sizes and
+connection closure on cancellation. Strict 2,711 tests and native Debug passed.
+Coverage is 115/137 connected or conditional names; 22 lack direct handlers.
+Signed installed HTTP and distribution remain open. Reviewed HTTPS inputs are
+now connected; see [input evidence](agent-https-input-acceptance.md). See
+[HTTP evidence](agent-native-http-acceptance.md).
+
+## File-theme permission versions — 4 November
+
+File-theme versions now bind the saved permission as well as the definition.
+Same-content retargets invalidate stale replacement, reload, selection and reviewed
+deletion. Installation returns the token for its new permission. Raw permission
+bytes and their hash remain private. Focused 19, strict 2,702 tests and native
+Debug passed. Source coverage stays 114/137. Installed retarget behavior, HTTPS
+and distribution remain open. See
+[installation evidence](agent-theme-installation-review.md).
+
+## Local theme installation and replacement — 4 November
+
+Connected `themes.install` and `themes.replace` for inline JSON, owned transfers,
+scoped directory files and installation links. File mode captures a checked narrow
+permission. Stored tokens allow replacement of a missing original file. Optional
+selection uses its separate appearance token. Cross-store failures stay uncertain;
+recovery does not resolve or install again. Strict 2,701 tests and native Debug
+passed. Source coverage is 114/137 connected or conditional names; 23 lack direct
+handlers. HTTPS, permission-retarget concurrency, installed QA and distribution
+remain open. See [installation evidence](agent-theme-installation-review.md).
+
+## Theme installation and replacement preparation — 4 November
+
+Added a non-saving plan for resolved custom, file and built-in inputs. It binds
+library, capability, resource, identity, name and optional selection preconditions.
+Replacement keeps the explicit target identity and type. The plan does not fetch,
+install or select. All 11 focused tests and native Debug passed. Source resolution,
+durable commit/recovery and installed acceptance remain open. The handlers are
+not advertised; coverage remains 112/137. See
+[installation review](agent-theme-installation-review.md).
+
+## Import root identity check — 4 November
+
+The input reader now checks root device and inode across canonicalization and
+open. A directory swap fails before traversal. Expanded local tests cover 12
+cases, including changed bookmark bytes and the final symbolic link. All four
+focused tests and native Debug passed. The complete 2,694-test result is from the
+preceding source. Installed acceptance and current CI remain open. Coverage
+remains 112/137. See [local input evidence](agent-local-import-reading.md).
+
+## Scoped local import input — 4 November
+
+Added bounded inline, transfer and saved-directory input resolution. Bookmark
+reads require capability and resource scope, reject symbolic-link descendants,
+validate file metadata and recheck authority. Backup validation and preview now
+read authorized saved files without changing the library. HTTPS still requires
+its effect route. Strict 2,694 tests and native Debug passed. Source coverage
+remains 112/137. Installed file access and theme installation remain open. See
+[local input evidence](agent-local-import-reading.md).
+
+## Bounded theme input decoder — 4 November
+
+Unified native and Drafts JSON decoding for theme files and future installation
+inputs. The decoder applies the caller's byte limit, validates UTF-8 and the theme,
+and preserves unknown fields. It does not resolve sources or save definitions.
+Focused 23, all 826 Core tests, 10 affected app tests and native Debug passed.
+Installation and replacement still lack handlers. Coverage remains 112/137.
+See [installation review](agent-theme-installation-review.md) for the input,
+authority and cross-store integration still required.
+
+## Direct reviewed theme deletion — 4 November
+
+Connected `themes.delete` with app-owned destructive review and the stored token
+from `themes.list`. Source files and drafts remain. The durable record receipt
+prevents deletion of a replacement on recovery. Saved-bookmark cleanup follows
+the library commit; these stores are not one transaction. Strict 2,692 tests and
+native Debug passed. Coverage is 112/137 connected or conditional names; 25 lack
+direct handlers. Installed review and current-source CI remain open. See
+[deletion evidence](agent-theme-deletion-review.md).
+
+## Theme deletion transaction foundation — 4 November
+
+Added an atomic theme-record deletion with its mutation receipt. All 24 focused
+receipt tests passed, including rollback and recovery after reopening. The direct
+handler remains unavailable. Human review and saved-bookmark cleanup still need
+integration. Coverage remains 111/137. See
+[deletion review](agent-theme-deletion-review.md).
+
+## Direct file-theme reload — 4 November
+
+Connected `themes.reload` to the native presentation revision. It checks the
+current authorized file token and preserves selection references and library
+definitions. Recovery does not reload again. Tests verify window cache refresh,
+stale file rejection, denied access and invalid or renamed files. Strict 2,688
+tests and native Debug passed. Source coverage is 111/137 connected or conditional
+names; 26 lack direct handlers. Installed acceptance and CI remain open. See
+[reload validation](agent-theme-reload-acceptance.md).
+
+## Direct theme selection — 4 November
+
+Connected installed and built-in theme selection with separate selection/theme
+version checks. File themes need explicit file-read permission. The compared
+preference-domain commit writes reference data and revision together, preserves
+the opposite appearance and unknown fields, and rechecks authority before write.
+The durable registry prevents replay after uncertainty or manual selection changes.
+The 177 focal tests, 2,685 strict Swift tests and native Debug build passed.
+Source coverage is 110/137 connected or conditional names; 27 lack direct handlers.
+See [selection validation](agent-theme-selection-acceptance.md) for installed and
+CI checks. Prior source `cee030e` passed full CI
+[41877332833](https://github.com/pobrespandas/draftly/actions/runs/41877332833).
+
+## Direct editor opening — 4 November
+
+Connected both explicit-window and new-window forms of `editor.open`. Existing
+replacement binds the window version and requires source/window/target scope.
+Pending saves require draft-write permission. New scenes use the authorized
+adapter and never broaden grants to their returned window identifier. Recovery
+does not save, focus or open again. Source coverage is 108 connected/conditional
+names of 137; 29 have no direct handler. The strict 2,678 tests, 174 focal tests
+and native Debug build passed. See
+[opening validation](agent-editor-opening-acceptance.md) for installed and CI gates.
+
+## Authorized new-window adapter — 4 November
+
+The app has a new scene-opening adapter with live authorization, strict empty
+editor admission and safe cancellation cleanup. It returns the actual window
+model. Changed or unrelated editors are neither saved nor replaced. This is a
+foundation for `editor.open`; the CLI/MCP handler is not advertised yet. Source
+coverage stays at 107/137 connected or conditional names, with 30 still missing.
+See [new-window validation](agent-authorized-window-opening.md) for evidence and
+remaining explicit-window/new-window integration.
+
+## Direct editor navigation — 4 November
+
+Connected `editor.navigate` to visible-list order and app-owned selection.
+The request binds the editor and stored content version. Both affected drafts
+must be in scope. Saving pending text also needs draft-write permission; native
+conflict and version rules still apply. Authority checks separate saving,
+recording access and loading. Uncertain results never trigger another navigation.
+Source coverage is 107 connected/conditional names of 137; 30 lack direct handlers.
+The focused 172 tests passed. See
+[navigation validation](agent-editor-navigation-acceptance.md) for final checks.
+
+## Direct editor preview — 4 November
+
+Connected `editor.preview` to app-owned presentation and the durable registry.
+It sets visibility without flushing pending text or changing native Undo history.
+Window and current-draft scope are required. Stale editors, active Actions,
+custom previews and composition block presentation. Recovered requests report
+the original outcome without changing the view again. Source coverage is
+106 connected/conditional names of 137; 31 names have no direct handler.
+The 49 focal tests and native Debug build passed. Complete validation and
+installed presentation are tracked in
+[preview validation](agent-editor-preview-acceptance.md).
+
+## Indexed operation journal — 4 November
+
+Individual request records and operation indexes remove the permanent global
+128-record limit. The bounded live cache still controls admission. Old request
+identities and uncertain outcomes remain recoverable without replay. Migration
+keeps the original array and publishes a format marker that older apps reject.
+New work starts only after both record writes are durable. Disk use grows with
+history; no automatic pruning is implemented. See
+[retention validation](agent-operation-retention-review.md) and the
+[storage decision](adr/0006-agent-indexed-operation-journal.md).
+Full local validation and installed migration acceptance are tracked separately.
+
+## Direct native requests — 4 November
+
+Connected thirteen typed native requests. The latest six add dictation,
+transcription, location, Shell, AppleScript and Shortcuts. Each needs native
+review. The host is created only after approval and a current authority check.
+Code and application automation require unrestricted capability and library scope.
+Private capture and automation results stay in memory. Journal recovery reports
+missing output and does not repeat an effect. See
+[direct native validation](agent-direct-native-acceptance.md).
+
+Accepted work now survives closure of its submitting CLI transport (`224fa8c`).
+Revocation and Stop Work still invalidate its authority. Request identity now
+uses canonical encoded bytes (`eae3c1b`), so different Unicode bytes cannot reuse
+a request identifier. Regression tests failed before both fixes and passed after.
+
+Source coverage is 105 connected/conditional names of 137; 32 names have no direct
+handler. Strict validation verified 1 consumer, 193 contract, 824 Core and
+1,634 app tests (2,652 total). Native Debug build and two project checks passed.
+Real Shell tests checked Unicode arguments, exit status and parent/child cleanup
+before terminal cancellation. Other new effects use test adapters. Signed
+installed acceptance and CI for this increment remain open. The earlier source
+`18a6e14` passed [full CI](https://github.com/pobrespandas/draftly/actions/runs/41849728024).
+
+The indexed journal described above removes the former permanent count limit.
+Installed migration and signed-update checks remain open. No journal reset or
+automatic replay is an accepted workaround.
+
+## Reviewed action-group removal — 4 November
+
+Connected `actionGroups.delete` with the native rule: move members to General,
+or to Imported when removing General. Keep actions, drafts and history.
+Scoped grants must cover all members and the existing destination. A missing
+destination needs library scope. Empty and implicit groups are supported.
+Native review binds names, destination and member versions. Atomic storage
+receipts prevent a replay from moving members or removing a recreated group.
+
+The focal run passed 55 app tests in five suites and one Core test. It includes
+scope denial, review changes, cancellation, rollback and recovery after reopen.
+Source coverage is 92 connected/conditional names of 137; 45 names have no
+direct handler. Strict validation verified 1 consumer, 184 contract, 824 Core
+and 1,621 app tests (2,630 total). The native package-name Debug build and two
+project checks passed. The first full attempt failed in an existing Shell
+startup fixture. That fixture now controls its timeout after process startup;
+the serial Intent suite and complete final run passed. See
+[fixture validation](intent-shell-interruption-validation.md). Full CI
+[41845487513](https://github.com/pobrespandas/draftly/actions/runs/41845487513)
+passed for `b5985f1`. Installed group-removal acceptance remains open.
+
+## Reviewed action deletion — 4 November
+
+Connected `actions.delete` through app-owned review, prepared intent, version
+checks and atomic storage receipts. Native review names the action and states
+that drafts and history remain. The action deletion uses the same storage
+boundary as Workspace deletion. Recovery cannot delete a recreated action with
+the same ID. Service cases cover approval, denial, cancellation and stale
+sessions; storage tests check rollback and recovery after reopen.
+Source coverage is 91 connected/conditional names of 137; 46 names have no
+direct handler. Strict validation verified 1 consumer, 184 contract, 823 Core
+and 1,618 app tests (2,626 total). The native package-name Debug build and two
+project checks passed. CI and installed acceptance remain pending.
+
+## Bounded operation waiting — 4 November
+
+Connected `operations.wait` through the asynchronous socket and Chat Console
+service paths. A wait observes only an owned operation. It returns on terminal
+state, human attention or a 1–30 second observer deadline. It does not replay
+or cancel the underlying work. Live session/grant checks run while waiting and
+before delivery. The registry bounds concurrent observers at 16. The helper
+reserves transport margin for a maximum-length wait.
+
+The focal run passed 199 tests in seven suites. It includes service concurrency,
+cross-connection denial and revocation before delivery. The normal package-name
+native build and two project checks passed. The strict recheck verified 1 consumer, 183 contract, 822 Core and 1,616 app
+tests (2,622 total). The first complete attempt exited during an existing Intent
+test without a results report; its isolated suite and the full recheck passed.
+See [wait validation](agent-operation-waiting-acceptance.md). Full CI
+[41829611557](https://github.com/pobrespandas/draftly/actions/runs/41829611557)
+passed for `0f2b863`. Source coverage is now 90 connected or
+conditional names out of 137; 47 have no direct handler. These counts are not
+installed acceptance.
+
+## Real Codex and Claude Code sessions — 4 November
+
+Signed isolated source `fdc05d2` passed a real MCP session with Codex CLI
+0.166.0 and Claude Code 2.1.316. After the user unlocked the Mac, native
+admission showed all three inputs true. The user-approved grant covered only
+one neutral draft and its editor, with four read/write capabilities and no
+renewal. Each client read those resources, received `not_found` for the other
+draft, prepared one version-checked append and verified the resulting text.
+Native UI showed both lines. Neither client retried a write.
+
+The connection was revoked before its deadline. A new signed CLI request then
+returned `permission_denied`. Access was disabled, QA was closed and the
+original preferences were restored. These checks do not accept all operations,
+normal lifecycle behavior or post-update compatibility. Read
+[client acceptance](agent-codex-claude-acceptance.md).
+
+## Bookmark catalog and CLI paging — 4 November
+
+Connected `bookmarks.list` with scope filtering, alias-only replies and local
+permission-bound IDs. Native Settings and Actions share the identity store.
+New generations persist before publication. Changed permission bytes or
+forgetting/recreation cannot inherit the old identity. The native picker and
+resolver use the service's preference domain. Tests use isolated defaults.
+Bookmark add/forget handlers and file-source review routes remain open.
+
+CLI paging now resumes under the same connection and grant after a command
+closes its transport. Other connections and changed grants stay excluded.
+Invalidation clears cursors even with no remaining transport. Membership,
+query/target binding, expiry and clock rollback checks remain effective.
+
+The complete strict run verified 1 consumer, 183 contract, 822 Core and 1,608
+app tests (2,614 total). The native Debug build and two project checks passed.
+The zero-transport invalidation regression passed separately. Full CI
+[41818926971](https://github.com/pobrespandas/draftly/actions/runs/41818926971)
+passed for earlier source `6ec09f6`. Full CI
+[41823966856](https://github.com/pobrespandas/draftly/actions/runs/41823966856)
+passed for `b667fe1`. Installed acceptance for the new handlers remains open. Source coverage is 89 connected/conditional names of 137; 48 names
+have no direct handler. Partial backup sources and reviewed restore remain open.
+
+## Theme grant choices — 4 November
+
+Stored themes now appear in the native grant resource choices. The resolver
+keeps the theme identity through renaming and rejects it after deletion. This
+closes a selector gap for the already connected scoped theme handlers. Five
+resource-choice tests passed. Installed grant-picker acceptance remains open.
+
+## Transfer discovery and CLI lifetimes — 4 November
+
+Full CI [41815621541](https://github.com/pobrespandas/draftly/actions/runs/41815621541)
+failed on `2e28255`. Three SDK assertions found cancellation exposed to a plain
+draft-reader grant. Discovery and permission policy now share a predicate that
+requires file read or file write for cancellation. Read-only hints remain strict.
+
+Review also found that CLI commands close each transport after one request.
+Transfer buffers now retain the authorized connection and exact grant, not that
+short-lived transport. New commands can resume the same grant's bytes. Other
+connections and replacement grants cannot. Invalidation, Stop Work and existing
+size/expiry limits remain effective. The SDK test covers separate one-shot CLI
+requests and MCP reading the same export. The combined source passed the complete
+strict Swift run: 1 consumer, 183 contract, 822 Core and 1,599 app tests (2,605).
+The normal native Debug build and two project checks passed. New full CI and
+installed acceptance remain open.
+
+## Backup readers — 4 November
+
+Three backup handlers now connect: export, validation and restore preview.
+Export includes pending text in saved drafts without saving it. Validation and
+preview use the existing restore engine in disposable libraries. Preview reports counts,
+rejects pending editor byte changes, and binds its token to the incoming bytes
+and stored library. No live library data changes. Complete owned transfers and
+inline sources work. Bookmark/HTTPS review paths remain open and return
+`interaction_required` without file or network access. Actual restore remains
+unavailable pending human review, version checks and durable recovery.
+
+Source coverage is 88 connected or conditional names out of 137; 49 names have
+no direct handler. The partial backup source routes above remain open as well.
+The combined source passed the complete strict Swift run and native build
+recorded above. Installed acceptance and full CI remain open.
+
+## Scoped transfers and draft exports — 4 November
+
+The service now connects the five transfer contracts and `exports.drafts`.
+Uploads prepare bounded bytes and verify their digest. They do not apply imports.
+Exports freeze only selected authorized drafts and optional versions. Pending
+editor content is included without flushing the editor. Text export accepts one
+draft; the native format uses the existing backup model. No destination file is
+written. Ownership binds the exact session, grant and source scope. Buffers have
+size, count and expiry limits, including a monotonic deadline. Cancelling owned
+bytes returns no content and does not require export permission.
+
+Coverage is 85 connected or conditional names of 137. The remaining 52 names
+still need direct handlers. Validation passed: 142 app tests across three suites,
+180 contract tests across 26 suites, one consumer test, two project checks and
+the normal native Debug build. Installed acceptance and full CI remain open.
+Full CI for the earlier admission diagnostics, `fdc05d2`,
+passed in [41813362305](https://github.com/pobrespandas/draftly/actions/runs/41813362305).
+The retained installed QA is still that source, with access off and no new grant.
+
+## Installed syntax export — 4 November
+
+`syntaxes.export` now returns source text or a `draftly://syntax` installation
+URL for the exact granted resource. Export preserves source data and supports
+UTF-16 chunks. File exports require `files.read`, read the current bookmarked
+file, and reject oversized files and non-regular files. A missing file returns
+`unavailable`. Export does not change the library or select a syntax.
+
+The source inventory now connects 79 of the 137 required names. The remaining
+58 names still need direct handlers. The final focused run passed 134 app tests
+across two suites, 30 Core syntax tests and 13 appearance contract tests. The native
+Debug build passed. Installed acceptance for this handler remains open.
+
+## Installed client preparation — 4 November
+
+Full CI [41808994708](https://github.com/pobrespandas/draftly/actions/runs/41808994708)
+passed for `abd4e2d`. This includes the routine inventory correction. A Developer
+ID app and helper were built from that source, signed, verified and installed
+in the retained isolated QA. The normal library was not opened. Cloud and
+updates remain disabled. A fresh shared-preference backup is retained.
+
+Startup showed access off. Signed helper discovery returned no endpoints.
+Codex CLI 0.166.0 and Claude Code 2.1.316 both returned `QA_READY` through their
+own existing logins, with no Draftly tools attached. The temporary client
+workspace does not change global MCP configuration. Claude's bare mode skips
+OAuth and Keychain reads; the successful probe instead used restricted mode
+with memory, hooks and unrelated MCP servers excluded.
+
+The user approved a new 15-minute connection for reading and editing only the
+neutral draft and its editor. Enabling access failed before pairing or
+credential creation. The host stayed off. The standalone AppKit sample showed
+protected data unavailable, but an unlaunched CLI sample does not establish the
+GUI app state. Read-only admission diagnostics were added only to the isolated
+QA build. They do not bypass or change the gate. Both the normal native build
+and the QA-flag native build passed. Signed source `fdc05d2` shows
+`console=true`, `login=true` and `protectedData=false` in the GUI. Its full CI
+passed in 41813362305. Full client calls still need the native unlock gate to
+open. No new grant has started.
+
+## Durable theme mutations — 4 November
+
+Connected theme creation, custom-theme update and duplication. A theme definition
+and its receipt save in one storage transaction. Creation and duplication need
+library scope. Scoped custom-theme updates need the exact resource and current
+version. File duplication reads the current bounded file with `files.read` and
+creates a portable custom definition. Native file themes use Reload or targeted
+replacement; direct update returns an interaction requirement. These operations
+do not change the configured theme selection.
+
+The commit rechecks the active session, grant, retry key, source version and
+cancellation after source resolution. Recreating the service can prepare the
+same intent and recover its original receipt without another write or replacing
+later user changes. Imported fields use the native theme validator and Drafts
+color updates. Duplicate identities and names fail before save.
+
+A late-cancellation regression first reproduced the wrong `storage_error` result
+with unchanged data. The handler now reports `cancelled`, keeps the old theme,
+and permits a clean retry. The final focused run passed 163 app tests across
+six suites, 26 Core tests across two suites and 16 contract tests across two
+suites. The normal native build and two project-generator checks passed.
+
+Source coverage is 78 connected or conditional names out of 137; 59 direct
+handlers remain missing. Six theme mutation contracts remain. Installed theme
+mutation acceptance and full CI remain open. Next, let the complete CI validate
+the inventory fix and this source. Keep full installed Codex/Claude Code,
+lifecycle, provider and distribution acceptance in scope before publication.
+
+## Live Apple probe inventory — 4 November
+
+CI [41804761088](https://github.com/pobrespandas/draftly/actions/runs/41804761088)
+ran all 1,575 app tests with a successful process exit. The revised Apple schema
+assertion passed. Strict verification then rejected the XML: the runtime-disabled
+live probe appeared as a skipped case, and its suite count excluded that case.
+The verifier correctly rejects selected tests that do not pass.
+
+The live probe now requires the `DRAFTLY_APPLE_LIVE_QA` compile flag. Routine
+builds do not register it in their inventory. Explicit QA still requires an
+available model and an actual authorized fixture read. No verifier check was
+relaxed and no live success was substituted. Eight routine Apple tests passed.
+The existing strict verifier accepted their XML against the discovered inventory
+and confirmed that the live probe was absent. Full CI remains pending.
+
+## Apple schema CI check — 4 November
+
+Full CI [41802527118](https://github.com/pobrespandas/draftly/actions/runs/41802527118)
+failed for `4585453`. Its app test log reports one failure in the native Apple
+tool-schema assertion. That assertion required a direct `enum` field in encoded
+`GenerationSchema`. The test now reads equivalent finite string choices through
+local definitions, constant alternatives and nullable alternatives. It rejects
+unconstrained string alternatives and reference cycles. It compares the exact
+name set with the authorized catalog. An unsupported encoding reports its
+neutral schema for diagnosis. No production permission check was removed.
+
+The local Apple and Chat Console run passed 19 tests in two suites. The opt-in
+live inference probe was disabled. Full CI on the failing runner remains
+required; local success does not prove that compatibility gate.
+
+## Theme read contracts — 4 November
+
+Connected the five theme read contracts: list, get, export, selection and
+built-in export. Catalog pages filter by theme scope and reuse opaque cursors.
+Selection hides an installed reference outside the grant. Definitions and
+exports use version tokens. Native and installation exports preserve portable
+custom definitions. Drafts export retains imported fields and applies current
+editor colors before encoding. Built-in exports use the app installation URL.
+
+File-backed definitions require `files.read` in addition to appearance access
+and the exact theme scope. The app resolves its existing bookmark; a request
+cannot supply a path. The agent read is bounded to the wire-size limit and
+accepts only a regular opened file. It does not return a cached definition when
+file permission, access, parsing or size checks fail. Native callers keep their
+existing read behavior unless they request a byte limit.
+
+The final focused run passed 150 app tests across five suites, 26 Core tests
+across five suites and three shared-tool contract tests. Native and imported
+exports round-trip. File reads detect current content, enforce the exact byte
+limit and deny missing file authority. The normal native build and two project
+generator checks passed. Source coverage is 75 connected or conditional names
+out of 137; 62 direct handlers remain missing.
+
+The nine theme mutation contracts remain unconnected. Installed read acceptance
+and full CI for this increment remain open. Broader readiness is unchanged.
+
+## Reviewed draft purge handler — 4 November
+
+Connected `drafts.purge` to native review, prepared mutations, editor coordination
+and atomic storage receipts. The handler is available only with all required
+components. It requires destructive authority for the exact targets and version
+set. It never expands a scoped deletion to all Trash. Native review explains
+that versions are removed, action history remains and Undo is not available.
+Denial, cancellation, an ended session and changed stored or pending content
+prevent commit. A completed retry returns its result. A matching storage receipt
+can resolve an uncertain journal after service restart without another effect.
+The recovery path also retains its existing Workspace deletion checks.
+
+The final focused run passed 256 tests across ten app suites and three tests
+in one contract suite. It includes six reviewed purge outcomes, all availability
+component combinations, durable recovery, Workspace regressions, MCP and host
+checks. The normal native build passed.
+
+Source coverage is 70 connected or conditional names out of 137, with 67 direct
+handlers still missing. Installed purge acceptance and full CI for this
+increment remain open. All broader client, lifecycle, provider and distribution
+gates remain open.
+
+## Deleted-draft editor coordination — 4 November
+
+The editor registry can coordinate a reviewed deletion with its storage commit.
+It checks current draft generations, conflicting pending text, running actions
+and native editor interaction. The caller receives a validation callback for
+the transaction boundary. A failed commit leaves pending editor text in place.
+After commit, every matching tracked window cancels autosave and switches to a
+new empty scratch draft without flushing the deleted text. Its native Undo
+history is cleared by the draft transition. Cleanup remains synchronous if a
+storage publication ends authority. Unrelated drafts stay open.
+
+The first deletion test exposed an Undo fixture exception: the native draft
+transition clears groups, so the fixture must not close a removed group. The
+fixture now checks the group level before closing it. This change does not
+alter the production Undo path. The handler still needs native review, exact
+version binding, durable operation reconciliation and installed acceptance.
+`drafts.purge` remains unavailable. Coverage remains 69 connected or conditional
+operations and 68 missing direct handlers.
+
+The final focused run passed 46 tests across five suites: editor mutation,
+draft writing, native Trash, script Undo and range Undo. The normal native build
+passed. These are source-level checks; installed deletion acceptance is open.
+
+## Targeted Trash transaction — 4 November
+
+A package-only storage operation can delete an exact nonempty set of trashed
+drafts and save its mutation receipt in the same transaction. It removes the
+selected drafts, their revisions and access records. It preserves unrelated
+Trash, active drafts and action history. Empty Trash uses the same staging rule.
+A completed request returns its receipt without another delete, including after
+reopening the store. Live, missing and duplicate targets fail before commit.
+This is storage groundwork for `drafts.purge`, not a connected agent handler.
+Native review, editor coordination and installed acceptance remain open. The
+operation coverage count stays at 69 connected or conditional and 68 missing.
+
+The focused run passed 20 receipt tests and three native Trash-command tests.
+A follow-up passed seven Draft operations tests and four resource-choice tests.
+The normal native build passed. Full CI for this increment remains pending.
+
+Before connecting the handler, bind review to the exact draft versions and
+pending editor generations. Recheck scope, expiry and the active session at
+commit. Detach deleted drafts from all tracked editors so later autosave cannot
+recreate them. Record the submitted effect before commit. Reconcile an uncertain
+journal only with its matching storage receipt. Verify denial, cancellation,
+concurrent changes and service restart through the shared CLI/MCP route.
+
+## Apple chat through authorized tools — 4 November
+
+Apple chat modes now attach the same authenticated local tool session as ChatGPT.
+The native adapter discovers only the current grant's tool names. It generates
+common request fields natively and carries operation parameters as exact JSON
+text. The app service still validates each complete request. Legacy script-model
+callbacks are not connected to this chat path. Each response has a bounded tool
+budget and a monotonic deadline. Cancellation or response completion closes its
+callbacks. Checks also run across asynchronous catalog reads.
+
+The permission dialog and activity connection name identify the selected
+provider and data destination. A provider or Apple mode change disconnects the old tools. Apple
+chat needs no ChatGPT account. Cloud choices require the real signed PCC
+entitlement and runtime availability; no entitlement was added to this project.
+
+Real on-device inference read the neutral allowed draft through the gateway.
+The opt-in test passed in 7.384 seconds on macOS 27.2. It required an actual
+`drafts.get` call and the expected Unicode content. It used only an isolated
+in-memory library. No installed QA grant or user-library access was created.
+Early probes exposed a wrong catalog name and an 8,192-token context limit.
+Constrained tool names and native request fields resolved the successful probe.
+
+The routine run reported 222 tests across nine app suites and three tests in
+one contract suite. Its opt-in live test was disabled; the live result above
+came from a separate explicit run. Tests cover scoped reads, typed native-tool
+write preparation, receipt recovery, later editor text, cancellation during
+catalog lookup, late callbacks, budgets, and model changes. Two generator checks
+and the normal native build passed. The prior full CI for `1378c36` passed in
+[41793052970](https://github.com/pobrespandas/draftly/actions/runs/41793052970).
+Full CI for this increment is pending.
+
+Installed Apple read/write, real-model edit decisions, and live inference
+cancellation remain open. Cloud eligibility, compatible distribution, and Cloud
+inference are not accepted. The 69 connected or conditional operation names and
+68 missing direct handlers are unchanged. All broader readiness gates remain.
+
+## Atomic draft merge — 4 November
+
+Connected `drafts.merge`. It requires library scope, all source draft versions,
+and an explicit order that names every target once. The native merge engine
+builds the new Inbox draft. The handler commits it with the source changes and
+one receipt. Archive, Trash, and Keep use the app's destination rules. Pending
+source text is saved with revision protection. Existing editors keep their
+current draft. Unrelated drafts remain unchanged.
+
+Tests cover all destinations and separator modes, pending Unicode text, tags,
+syntax, source revisions, scope denial, and failed commits. Storage failure,
+changed sources, lost grants, ended sessions, and new editor text leave no
+partial merge. A recreated command service returns the stored result without
+another merge or overwriting a later user edit. This does not establish a
+process-restart or installed-client acceptance result.
+
+The final run passed 270 tests across 13 suites. The normal native build passed.
+This run also validates the new-draft receipt version correction below.
+Source-set coverage is 69 connected or conditional names out of 137, with 68
+missing direct handlers. Full CI and installed acceptance remain pending.
+Keep the broader lifecycle, provider, client, and distribution gates open.
+
+## New draft receipt versions — 4 November
+
+A regression test showed that Create and Duplicate returned a version token
+that changed on the first read of the new draft. Receipt creation now uses the
+same editor generation as the draft reader. The new token matches that first
+read. Both failing cases now pass, and all 25 draft-writing tests passed.
+This fixes the receipt path that Merge also uses. The Merge increment above
+supplies integration and native build evidence. Installed acceptance remains
+pending.
+
+## Draft creation scope — 4 November
+
+Create and Duplicate now require library scope. Their new draft identity cannot
+belong to a grant that names only existing drafts. The Merge contract adopted the same rule before its handler was connected. Editing approved existing drafts
+keeps its resource scope. No grant is expanded by this change.
+
+The shared tool catalog now filters all operations that require library scope
+when the connection has only resource scope. Direct preparation and execution
+still enforce the permission policy. Tests check both routes and the catalog,
+including rejection with an otherwise valid draft-write capability. Library
+scope still permits creation and duplication.
+
+The final run passed 238 tests across ten suites. The normal native build passed.
+Full CI and installed acceptance remain pending. Operation coverage stays at 68
+connected or conditional names, with 69 missing direct handlers. Keep all broader
+client, provider, lifecycle, and distribution gates open.
+
+## Draft request session at commit — 4 November
+
+Draft preparation, storage commits, and receipt responses now check the exact
+active request session as well as its persisted grant. Invalidating a session
+before the storage commit rolls back the change. This closes a gap where the
+grant could remain valid after the original service session had ended.
+
+Seven cases cover creation, update, patch, duplication, version restoration,
+flags, and syntax. They invalidate the service session at the commit boundary,
+check stored drafts and revisions, and retry from a fresh session. The run
+passed 234 tests across ten suites. The normal native build passed. Installed
+lifecycle acceptance and full CI remain separate pending gates. Coverage stays
+at 68 connected or conditional names and 69 missing direct handlers.
+
+## Draft syntax mutation — 4 November
+
+Connected `drafts.syntax` through the atomic metadata path. Built-in syntax names
+need no installed-resource read. An installed name or ID requires
+`appearance.read` and access to that syntax resource. Name lookup follows the
+app's Unicode comparison rules. Before the storage commit, the handler checks
+the selected stored definition's name, source, type, and identity again.
+A completed receipt remains recoverable after a later definition rename.
+
+The run passed 265 tests across 13 suites. Tests cover scoped installed lookup,
+built-in batches, Unicode names, changes during commit, rollback, and retries.
+The normal native build passed. Source-set coverage is 68 connected or
+conditional names out of 137, with 69 missing direct handlers. Installed syntax
+acceptance and full CI remain pending. The active-session increment above
+adds a check at the draft storage boundary. Keep PR #105 in draft.
+
+## Atomic draft metadata batches — 4 November
+
+Connected `drafts.archive`, `drafts.trash`, `drafts.restore`, `drafts.flag`, and
+`drafts.tags`. Requests support all authorized targets in one atomic transaction.
+They use current per-draft state, including pending editor text, and durable
+receipts. Shared editor synchronization now reserves every affected draft before
+the storage commit. Failed grants, stale drafts, conflicting editors, and storage
+errors leave no partial metadata batch. A recovered receipt does not repeat an
+edit over later changes.
+
+Nonempty draft list, search, and Workspace query pages provide `batchVersion`
+for exactly their returned IDs. A subset or changed target set cannot use that
+token. Single drafts keep their existing version tokens. The public combination
+rule and an independent SHA-256 test vector are in the local development guide.
+Trash and restore preserve archive state. Archive clears trash state. Tags use
+the native normalization rules.
+
+The final run passed 266 tests across 16 suites. It includes service, scope,
+editor, storage-failure, receipt, MCP, and contract checks. The normal native
+build passed. Source-set coverage is 67 connected or conditional operation names
+out of 137, with 70 missing direct handlers. Full CI for this increment and
+installed batch acceptance remain pending. Keep PR #105 in draft and preserve
+all broader readiness gates.
+
+## Workspace deletion service and recovery — 4 November
+
+Connected `workspaces.delete` through explicit reviewed-mutation host wiring.
+Normal startup connects the handler but keeps access off by default. Hosts that
+do not connect both review and operation control do not advertise deletion.
+The service returns `accepted` only for nonterminal work. Repeated completed
+requests return the typed result or the recorded error. No editor permission
+or library-wide scope is required for one authorized Workspace.
+
+An atomic storage receipt can resolve an interrupted deletion journal entry.
+Recovery checks the original request, connection, grant, target, and canonical
+request hash. It records the completed result without deleting again. Ordinary
+terminal journal results remain immutable. Missing storage proof leaves an
+unknown result. The result contract rejects empty, foreign, duplicate, or extra
+Workspace IDs. Stop Work removes the pending review and preserves the Workspace.
+
+The final run passed 258 tests across 12 suites, including service, host, MCP,
+review, journal, and Workspace contracts. The normal native build passed.
+Source-set coverage is 62 connected or conditional names out of 137, with 75
+missing direct handlers. Full CI for this increment and installed acceptance
+remain pending. The broader readiness gates remain open. PR #105 stays in draft.
+
+## Reviewed Workspace deletion flow — 4 November
+
+Added the app-owned deletion flow to `AgentWorkspaceAccess`. Preparation binds
+one Workspace, its version, and the current grant to a retry key. Review uses
+a fresh Workspace name and version. The handler waits for an app decision,
+checks the active session again, and records submission at the storage commit
+boundary. A completed storage receipt can return without another deletion.
+The review sheet names the Workspace, states that drafts remain, and uses a
+destructive button without the default Return shortcut.
+
+Tests cover approval, denial, cancellation, a changed Workspace, a lost session,
+a revoked grant, storage rollback, and receipt recovery after reopening the
+library. The combined run passed 160 tests in five suites. The normal native
+build passed. This flow is not connected to service admission or host feature
+availability yet. Reconciliation between a committed storage receipt and an
+unknown operation journal still needs implementation and tests before exposure.
+The missing-handler count stays at 76. Installed review acceptance is pending.
+
+## Review cancellation groundwork — 4 November
+
+Added an internal failure path for app-owned handlers that have not submitted
+an effect. The operation registry records a known failure only when its effect
+list is empty. If an effect was submitted, the same report remains
+`outcome_unknown`. Ordinary cancellation after work starts keeps its existing
+conservative result. All nine operation-lifetime tests passed, including both
+new cases and request identity checks. The reviewed Workspace deletion handler
+is not connected yet.
+
+## Workspace deletion storage — 4 November
+
+Added an app-owned storage transaction that deletes one saved Workspace and
+stores its mutation receipt in the same commit. Failed final authorization
+rolls back both records. A repeat after reopening returns the saved receipt
+without another delete. Other Workspaces and drafts remain unchanged. Invalid
+resource IDs and missing targets do not store a receipt. All 18 mutation-receipt
+tests passed. This is storage groundwork only. It does not advertise or enable
+`workspaces.delete`; review, service admission, and installed acceptance remain
+pending. The missing-handler count remains 76.
+
+## Agent Workspace window application — 4 November
+
+Connected `workspaces.apply` through the native window route. It checks the
+specific active session, grant, Workspace version, and live window before the
+first view effect. Both resource references and presentation permission are
+required. Tests preserve pending editor state and stored library data. They do
+not grant implicit draft or editor reads. Empty windows are supported. Running
+Actions are not cancelled. Stale or closed targets fail.
+
+Presentation errors before submission can retry. Results use host-lifetime
+receipts. Successful retries do not replace a later view change. Losing the
+session or window after submission leaves an unknown result that reconnection
+does not replay. The effect gate does not bypass required human approval.
+
+The final run passed 243 tests. The normal native build and two project-generator
+checks passed. Source-set coverage is now 61 connected or conditional names out
+of 137, with 76 missing direct handlers. Full CI passed for the prior `01635d5`
+order increment. Full CI for window application passed in
+[41784775217](https://github.com/pobrespandas/draftly/actions/runs/41784775217)
+for `f32f9d9`. Installed acceptance remains pending. Direct Workspace deletion
+still needs its review handler.
+
+## Agent Workspace order snapshots — 4 November
+
+Connected `workspaces.reorder`. Library-scoped list pages carry an opaque order
+snapshot. Selected-resource pages do not disclose it. Reorder requires every
+current Workspace and rejects stale metadata, changed membership, and partial
+resource sets. Atomic commit and durable receipts preserve the old order on
+failure and prevent another reorder after a lost reply or service restart.
+
+The focused run passed 146 tests. The normal native build passed without the
+QA flag. Source-set coverage is now 60 connected or conditional names out of
+137, with 77 direct handlers missing. Full CI [41781501330](https://github.com/pobrespandas/draftly/actions/runs/41781501330)
+passed for `01635d5`. Installed acceptance remains pending. Later increments
+below their own headings record additional handlers.
+
+## Agent Workspace creation and duplication — 4 November
+
+Connected `workspaces.create` and `workspaces.duplicate` through a shared
+Workspace access component. Creation inherits app defaults and accepts explicit
+overrides. Duplication preserves metadata. Both require library scope and use
+prepared mutations, current authority checks, and durable receipts. Repeating
+a completed request or recovering after service restart does not create another
+copy. Existing selected-resource updates keep their prior behavior.
+
+The focused run passed 130 tests. These include source conflicts, storage
+failure, scope denial, and revocation, expiry, and lock before commit. The normal
+native build passed without the QA flag. Project-generator tests passed two
+checks. Source-set coverage is now 59 connected or conditional names out of
+137, with 78 direct handlers still missing. Installed acceptance and full CI for
+this change remain pending. Read [readiness](agents-ai-readiness.md) for limits.
+
+## Normal agent startup follow-up — 4 November
+
+Builds with the bundled helper now construct an idle host at normal startup.
+Isolated QA uses the same path. Missing or inactive console sessions and
+unavailable protected data deny admission. Suspension notifications invalidate
+access synchronously. Host construction never restores listening access.
+The final focused run passed 54 application-host and local-host tests. The
+native QA build passed. Installed startup and real lock/sleep acceptance remain
+pending. Public session properties do not prove graphical unlock. Read
+[readiness](agents-ai-readiness.md#normal-startup-follow-up) for the limits.
+
+## Agents and AI development — 4 November
+
+[PR #105](https://github.com/pobrespandas/draftly/pull/105) stays in draft. The
+bounded installed editing and Stop Work QA block is complete. Read
+[agents and AI readiness](agents-ai-readiness.md) for the broader remaining work
+and [installed editing acceptance](agent-editing-acceptance.md) for source-specific
+evidence and limits.
+
+Signed isolated QA checked scoped CLI/MCP edits, native Undo/Redo, replay
+protection, manual conflicts, grant replacement, actual expiry, and unexpired
+revocation. A missing Stop Work control in native review was added and accepted.
+Interrupting a submitted Share effect retained an unknown result across restart;
+CLI and MCP did not replay it. No share destination was selected.
+
+Signed `13c3b1e` completed a real GPT-6.1-Sol editor change after fixing finalized
+stream-item handling. The editor preserved the prior Unicode text and appended
+one exact test line. Activity showed one write followed by a verification read.
+Full CI [41765000703](https://github.com/pobrespandas/draftly/actions/runs/41765000703)
+passed for that source. The QA is closed, test grants are revoked, local access
+is off, and the original shared preferences are restored.
+
+Normal host startup, real screen-lock/sleep handling, remaining contracts,
+provider renewal and other model paths, named-client acceptance, and final
+signed/notarized distribution remain open. No agents feature was published.
+Older release and test sections below retain their original scope.
 
 ## Signed helper smoke check — 2 November
 
@@ -1778,3 +2634,35 @@ PR #9 retains the separate first-staging recovery proposal. Its workflow
 conditions need review against the new preflight before integration. PR #11
 is now closed. Its source-link purpose is retained by the website follow-up.
 Old cancelled checks do not establish acceptance. Preserve both branches.
+
+The [operation retention review](agent-operation-retention-review.md) records
+the global-capacity reproduction and the requirements for a safe replacement.
+
+Live admission now releases terminal durable cache entries and resolves retries
+from the journal before applying capacity limits. Active jobs keep their slots.
+The later indexed journal removes the persistent count limit. See the operation
+retention review for current scope and remaining acceptance checks.
+
+The live-cache correction passed the strict complete inventory: 1 consumer,
+193 contract, 824 Core and 1,637 app tests (2,655 total). Native Debug build passed.
+Full CI and installed acceptance of this correction remain open.
+
+Indexed journal validation passed the strict inventory: 1 consumer, 193 contract,
+824 Core and 1,640 app tests (2,658 total). After the final missing-marker guard,
+39 focal tests and the final native Debug build passed. Full CI of the final
+source and installed migration/update acceptance remain open. See the retention
+review for exact validation scope and logs.
+
+Direct editor preview passed strict complete Swift validation: 1 consumer,
+193 contract, 824 Core and 1,645 app tests (2,663 total). The 49 focal tests and
+native Debug build passed. Full CI and signed installed presentation remain open.
+
+Direct navigation passed strict complete Swift validation: 1 consumer, 193 contract,
+824 Core and 1,649 app tests (2,667 total). The focused 172 tests and final native
+Debug build passed. Full CI, installed focus/navigation and signed-update client
+acceptance remain open. See the navigation report for scope and logs.
+
+The authorized scene adapter passed strict complete validation: 1 consumer,
+193 contract, 824 Core and 1,654 app tests (2,672 total). The earlier focused
+19 opening tests and final native Debug build passed. `editor.open` service
+integration and installed acceptance remain open; operation coverage is unchanged.

@@ -17,9 +17,11 @@ import DraftlyCore
         coordinator.textView = text
         text.manager.groupsByEvent = false
         session.synchronizeScriptEdit = {
+            let previousLevel = text.manager.groupingLevel
             text.manager.beginUndoGrouping()
             coordinator.synchronizeScriptEdit()
-            text.manager.endUndoGrouping()
+            // Changing the draft clears all groups with its native Undo history.
+            if text.manager.groupingLevel > previousLevel { text.manager.endUndoGrouping() }
         }
         session.performUndo = { redo in
             if redo { text.manager.redo() } else { text.manager.undo() }

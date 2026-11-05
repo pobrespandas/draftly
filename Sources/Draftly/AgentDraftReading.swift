@@ -38,17 +38,29 @@ import AgentContracts
                 }
                 workspace = saved
             } else { workspace = try query(parameters) }
-            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            var result = try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: {
                     try workspace.filter(library.notes.filter { permitted($0.id) }.map { try snapshot($0).note }).map(\.id)
                 }, value: { id in
                     guard permitted(id), let note = library.notes.first(where: { $0.id == id }) else { return nil }
                     return .object(try summary(snapshot(note), query: request.operation == "drafts.search" ? workspace.query : ""))
                 })
+            if case .array(let items) = result["items"], !items.isEmpty {
+                var versions: [UUID: String] = [:]
+                for item in items {
+                    guard case .object(let fields) = item, case .string(let rawID) = fields["id"],
+                          let id = UUID(uuidString: rawID), case .string(let version) = fields["versionToken"] else {
+                        throw AgentErrorCode.storageError
+                    }
+                    versions[id] = version
+                }
+                result["batchVersion"] = .string(try AgentDraftSchemas.expectedVersion(for: versions))
+            }
+            return result
         case "drafts.versions":
             let parent = request.targets[0].id
             guard permitted(parent), library.notes.contains(where: { $0.id == parent }) else { throw AgentErrorCode.notFound }
-            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+            return try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: {
                     library.revisions.filter { $0.noteID == parent }.sorted {
                         $0.date == $1.date ? $0.id.uuidString < $1.id.uuidString : $0.date > $1.date
@@ -64,6 +76,38 @@ import AgentContracts
         }
     }
 
+    func export(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant) throws -> Data {
+        let ids = request.targets.map(\.id)
+        let notes = try ids.map { id -> Note in
+            guard grant.scope.permits(.init(kind: .draft, id: id)), let stored = library.notes.first(where: { $0.id == id }) else {
+                throw AgentErrorCode.notFound
+            }
+            return try snapshot(stored).note
+        }
+        if parameters["format"] == .string("text") {
+            guard notes.count == 1, let note = notes.first else { throw AgentErrorCode.invalidInput }
+            return Data(note.content.utf8)
+        }
+        let versions = parameters["includeVersions"] == .bool(true) ? library.revisions.filter { ids.contains($0.noteID) } : []
+        let backup = Backup(notes: notes, revisions: versions, workspaces: [], actions: [])
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        return try encoder.encode(backup)
+    }
+
+    func backupSnapshot() throws -> Data {
+        var backup = try JSONDecoder().decode(Backup.self, from: library.backupData())
+        backup.notes = try library.notes.map { try snapshot($0).note }
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        return try encoder.encode(backup)
+    }
+
+    func requireStoredDraftsForRestorePreview() throws {
+        for stored in library.notes {
+            let state = try snapshot(stored)
+            guard Data(state.note.content.utf8) == Data(stored.content.utf8) else { throw AgentErrorCode.editorConflict }
+        }
+    }
+
     // This checks draft state, not authority. It does not reserve the state across an await.
     func checkedSnapshot(for id: UUID, expectedVersion: String) throws -> AgentEditorRegistry.Snapshot {
         guard !expectedVersion.isEmpty, expectedVersion.utf8.count <= 4096 else { throw AgentErrorCode.invalidInput }
@@ -71,6 +115,32 @@ import AgentContracts
         let state = try snapshot(note)
         guard try versionToken(state) == expectedVersion else { throw AgentErrorCode.versionConflict }
         return state
+    }
+
+    func checkedSnapshots(for ids: [UUID], expectedVersion: String) throws -> [UUID: AgentEditorRegistry.Snapshot] {
+        guard !ids.isEmpty, Set(ids).count == ids.count else { throw AgentErrorCode.invalidInput }
+        var result: [UUID: AgentEditorRegistry.Snapshot] = [:]
+        var versions: [UUID: String] = [:]
+        for id in ids {
+            guard let note = library.notes.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+            let state = try snapshot(note)
+            result[id] = state; versions[id] = try versionToken(state)
+        }
+        guard try AgentDraftSchemas.expectedVersion(for: versions) == expectedVersion else { throw AgentErrorCode.versionConflict }
+        return result
+    }
+
+    func validateMutationSnapshots(_ initial: [UUID: AgentEditorRegistry.Snapshot], expectedVersion: String,
+                                   reservedGenerations: [UUID: String]) throws {
+        guard let editors else { throw AgentErrorCode.unavailable }
+        var versions: [UUID: String] = [:]
+        for (id, state) in initial {
+            guard let generation = reservedGenerations[id] else { throw AgentErrorCode.storageError }
+            try editors.validateMutationGeneration(for: id, expected: generation)
+            guard let stored = library.notes.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+            versions[id] = try versionToken(.init(note: state.note, storedNote: stored, generation: state.generation))
+        }
+        guard try AgentDraftSchemas.expectedVersion(for: versions) == expectedVersion else { throw AgentErrorCode.versionConflict }
     }
 
     func isBound(to library: LibraryStore, editors: AgentEditorRegistry) -> Bool {
@@ -96,10 +166,8 @@ import AgentContracts
     }
 
     func mutationResource(for note: Note) throws -> LibraryMutationReceipt.Resource {
-        let key = versionKey
-        return .init(id: note.id,
-            versionToken: try Self.version(note: note, stored: note, generation: "",
-                                           external: pendingEditorGeneration(note.id), key: key))
+        let state = try snapshot(note)
+        return .init(id: note.id, versionToken: try versionToken(state))
     }
 
     private func snapshot(_ note: Note) throws -> AgentEditorRegistry.Snapshot {

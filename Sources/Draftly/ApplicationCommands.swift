@@ -128,6 +128,7 @@ private struct WindowCommands: Commands {
             Button(model.showFilters ? "Hide Filters" : "Show Filters") { model.toggleFilters() }.commandShortcut("Filters")
             Button(model.showDraftList ? "Hide Draft List" : "Show Draft List") { model.toggleDraftList() }.commandShortcut("Draft List")
             Button("Toggle Actions") { model.showActions.toggle() }.commandShortcut("Actions")
+            Button(model.showChatConsole ? "Hide Chat Console" : "Show Chat Console") { model.toggleChatConsole() }.commandShortcut("Chat Console")
             Button("Command Palette…") { controller.showCommandPalette() }.commandShortcut("Command Palette")
             Button("Quick Search…") { controller.showQuickSearch() }.commandShortcut("Quick Search")
             Button("Markdown Preview") { model.preview() }.commandShortcut("Markdown Preview")

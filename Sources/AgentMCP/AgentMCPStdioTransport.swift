@@ -73,11 +73,24 @@ package actor AgentMCPStdioTransport: Transport {
                 active[key] = data.count
             }
         }
-        switch continuation.yield(data) {
+        switch continuation.yield(try Self.sdkMessage(data, parsed: parsed)) {
         case .enqueued: return
         case .dropped, .terminated: throw AgentErrorCode.busy
         @unknown default: throw AgentErrorCode.unavailable
         }
+    }
+
+    private static func sdkMessage(_ data: Data, parsed: AgentJSONValue?) throws -> Data {
+        guard case .object(var root) = parsed, root["method"] == .string("initialize"),
+              case .object(var parameters) = root["params"],
+              case .object(var capabilities) = parameters["capabilities"],
+              case .object = capabilities["experimental"] else { return data }
+        // SDK 0.12.1 decodes experimental values as String. Draftly does not
+        // negotiate these extensions. Ignore their object before SDK decoding.
+        capabilities.removeValue(forKey: "experimental")
+        parameters["capabilities"] = .object(capabilities)
+        root["params"] = .object(parameters)
+        return try JSONEncoder().encode(AgentJSONValue.object(root))
     }
 
     private static func validID(_ value: AgentJSONValue) -> Bool {

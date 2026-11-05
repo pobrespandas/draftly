@@ -27,6 +27,25 @@ struct ThemeFileAccessTests {
          "future": ["values": [false, "café 🐼"] as [Any]]]
     }
 
+    @Test func boundedReadAcceptsTheExactSizeAndRejectsOversizeWithoutChangingTheSnapshot() throws {
+        try withFiles { directory, defaults, _ in
+            let url = directory.appendingPathComponent("bounded.json")
+            let source = EditorThemeDefinition(name: "Bounded café 🐼")
+            let bytes = try JSONEncoder().encode(source)
+            try bytes.write(to: url)
+            let prepared = try ThemeFileAccess.prepare(url)
+            defaults.set(prepared.bookmark, forKey: ThemeFileAccess.bookmarkKey(for: prepared.definition.id))
+            #expect(try ThemeFileAccess.read(prepared.definition, defaults: defaults, maximumBytes: bytes.count) == prepared.definition)
+            #expect(throws: (any Error).self) {
+                try ThemeFileAccess.read(prepared.definition, defaults: defaults, maximumBytes: bytes.count - 1)
+            }
+            #expect(throws: (any Error).self) {
+                try ThemeFileAccess.read(prepared.definition, defaults: defaults, maximumBytes: 0)
+            }
+            #expect(try Data(contentsOf: url) == bytes)
+        }
+    }
+
     @Test func storedTypeDefaultsToCustomAndFileSnapshotsKeepUnknownFields() throws {
         let custom = EditorThemeDefinition(name: "Older custom", unknownFields: ["future": .object(["keep": .bool(true)])])
         let encoded = try JSONEncoder().encode(custom)

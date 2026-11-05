@@ -78,7 +78,7 @@ struct BookmarkSettingsView: View {
                 names = BookmarkPreferences.names()
                 return
             }
-            UserDefaults.standard.set(data, forKey: "bookmark." + name)
+            BookmarkPreferences.store(data, named: name)
             names = BookmarkPreferences.names()
             adding = false
         } catch {

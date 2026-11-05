@@ -94,7 +94,7 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
         return envelope
     }
 
-    private static func responseText(_ data: Data, response: HTTPURLResponse?) -> String {
+    static func responseText(_ data: Data, response: HTTPURLResponse?) -> String {
         if let charset = response?.textEncodingName {
             let encoding = CFStringConvertIANACharSetNameToEncoding(charset as CFString)
             if encoding != kCFStringEncodingInvalidId {

@@ -123,6 +123,16 @@ import AgentContracts
         return record.grant
     }
 
+    func forgetRevokedFromUserInterface(_ id: UUID) throws {
+        let old = try snapshot()
+        guard let record = old.configuration.connections.first(where: { $0.id == id }) else { return }
+        guard record.revoked else { throw AgentErrorCode.permissionDenied }
+        try credentials.remove(id)
+        var updated = old.configuration
+        updated.connections.removeAll { $0.id == id }
+        try commit(updated.encoded(), expected: old.data)
+    }
+
     func revokeFromUserInterface(_ id: UUID) throws -> Revocation {
         let old = try snapshot()
         guard let index = old.configuration.connections.firstIndex(where: { $0.id == id }) else { throw AgentErrorCode.notFound }

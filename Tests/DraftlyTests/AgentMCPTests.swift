@@ -33,7 +33,7 @@ struct AgentMCPTests {
         var server: MCP.Server!
         let client = MCP.Client(name: "Neutral QA", version: "1", configuration: .strict)
 
-        init(count: Int, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false, activityAccess: Bool = false) throws {
+        init(count: Int, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false, activityAccess: Bool = false, fileAccess: Bool = false) throws {
             library = try LibraryStore(inMemory: true, seed: false)
             notes = (0..<count).map { Note(content: "Neutral \($0)\ne\u{301} 🐼") }
             hidden = Note(content: "Hidden private title")
@@ -72,6 +72,7 @@ struct AgentMCPTests {
             var capabilities: Set<AgentCapability> = writeAccess ? [.draftsRead, .draftsWrite] : [.draftsRead]
             if editorAccess { capabilities.insert(.editorRead) }
             if actionAccess { capabilities.insert(.actionsRead) }
+            if fileAccess { capabilities.formUnion([.filesRead, .filesWrite]) }
             record = try registry.connectFromUserInterface(name: "SDK QA", libraryID: libraryID,
                 capabilities: capabilities, scope: .resources(Set(resources)))
             let activityReader: ((UUID, UUID) throws -> [AgentActivityStore.Entry])?
@@ -100,6 +101,17 @@ struct AgentMCPTests {
             return try await AgentLocalClient.connect(path: broker.path, connectionID: record.id,
                 credential: secret, validateServer: { _ in })
         }
+        func oneShotCall(_ operation: String, arguments: [String: AgentJSONValue]) async throws -> AgentResponse {
+            let client = try await localClient()
+            do {
+                var values = arguments; values["requestID"] = .string(UUID().uuidString)
+                let input = try JSONEncoder().encode(AgentJSONValue.object(values))
+                let request = try AgentCLIRequest.make(mode: "call", operationName: operation, readInput: { input })
+                let bytes = try await client.request(JSONEncoder().encode(request))
+                await client.close()
+                return try JSONDecoder().decode(AgentResponse.self, from: bytes)
+            } catch { await client.close(); throw error }
+        }
         func start() async throws {
             let connection = try #require(helper)
             let bridge = AgentMCPServer(backend: { try await connection.request($0) })
@@ -120,8 +132,8 @@ struct AgentMCPTests {
             if let activityRoot { try? FileManager.default.removeItem(at: activityRoot) }
         }
     }
-    private func run(count: Int = 1, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false, activityAccess: Bool = false, _ body: @MainActor (Runtime) async throws -> Void) async throws {
-        let runtime = try Runtime(count: count, writeAccess: writeAccess, revisionAccess: revisionAccess, editorAccess: editorAccess, actionAccess: actionAccess, activityAccess: activityAccess)
+    private func run(count: Int = 1, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false, activityAccess: Bool = false, fileAccess: Bool = false, _ body: @MainActor (Runtime) async throws -> Void) async throws {
+        let runtime = try Runtime(count: count, writeAccess: writeAccess, revisionAccess: revisionAccess, editorAccess: editorAccess, actionAccess: actionAccess, activityAccess: activityAccess, fileAccess: fileAccess)
         do { try await runtime.start(); try await body(runtime); await runtime.close() }
         catch { await runtime.close(); throw error }
     }
@@ -140,6 +152,59 @@ struct AgentMCPTests {
             #expect(try response(reply.content).outcome == .result(.object(["draftCount": .integer(1)])))
             let denied = try await r.client.callTool(name: "draftly_actions_run")
             #expect(denied.isError == true)
+        }
+    }
+
+    @Test func oneShotCLICommandsCanReadTheNextPageWithoutReadingHiddenDrafts() async throws {
+        try await run(count: 2) { r in
+            let first = try await r.oneShotCall("drafts.list", arguments: ["parameters": .object([
+                "limit": .integer(1), "sort": .string("title"), "ascending": .bool(true)])])
+            guard case .result(.object(let page)) = first.outcome,
+                  case .string(let cursor) = page["nextCursor"], case .array(let initial) = page["items"],
+                  case .object(let item) = initial.first else { throw AgentErrorCode.storageError }
+            let next = try await r.oneShotCall("drafts.list", arguments: ["parameters": .object([
+                "limit": .integer(1), "sort": .string("title"), "ascending": .bool(true), "cursor": .string(cursor)])])
+            guard case .result(.object(let last)) = next.outcome, case .array(let items) = last["items"],
+                  case .object(let second) = items.first else { throw AgentErrorCode.storageError }
+            #expect(initial.count == 1 && items.count == 1 && last["nextCursor"] == .null)
+            let returned = [item["id"], second["id"]].compactMap { value -> String? in
+                guard case .string(let id) = value else { return nil }; return id
+            }
+            #expect(Set(returned) == Set(r.notes.map { $0.id.uuidString }))
+            #expect(second["id"] != .string(r.hidden.id.uuidString))
+        }
+    }
+
+    @Test func oneShotCLIExportSurvivesTransportClosureAndIsReadableThroughMCP() async throws {
+        try await run(fileAccess: true) { r in
+            let note = try #require(r.notes.first), before = try r.library.backupData()
+            let targets: AgentJSONValue = .array([.object(["kind": .string("draft"), "id": .string(note.id.uuidString)])])
+            let export = try await r.oneShotCall("exports.drafts", arguments: ["targets": targets,
+                "parameters": .object(["format": .string("text")])])
+            guard case .result(.object(let fields)) = export.outcome,
+                  case .object(let metadata) = fields["transfer"], case .string(let id) = metadata["transferID"] else {
+                Issue.record("Missing CLI export transfer"); return
+            }
+            let transfer: AgentJSONValue = .array([.object(["kind": .string("operation"), "id": .string(id)])])
+            let read = try await r.oneShotCall("transfers.readChunk", arguments: ["targets": transfer,
+                "parameters": .object(["offset": .integer(0)])])
+            guard case .result(.object(let chunk)) = read.outcome, case .string(let text) = chunk["data"] else {
+                Issue.record("Missing resumed CLI bytes"); return
+            }
+            #expect(Data(base64Encoded: text) == Data(note.content.utf8))
+            let mcp = try await r.client.callTool(name: "draftly_transfers_readChunk", arguments: [
+                "requestID": .string(UUID().uuidString), "targets": .array([.object(["kind": .string("operation"), "id": .string(id)])]),
+                "parameters": .object(["offset": .int(0)])])
+            #expect(try response(mcp.content).outcome == read.outcome)
+            let cancelled = try await r.oneShotCall("transfers.cancel", arguments: ["targets": transfer])
+            #expect(cancelled.outcome == .result(.object(["transferID": .string(id), "cancelled": .bool(true)])))
+            let missing = try await r.oneShotCall("transfers.readChunk", arguments: ["targets": transfer,
+                "parameters": .object(["offset": .integer(0)])])
+            #expect(missing.outcome == .error(.notFound))
+            let denied = try await r.oneShotCall("exports.drafts", arguments: ["targets": .array([
+                .object(["kind": .string("draft"), "id": .string(r.hidden.id.uuidString)])])])
+            let after = try r.library.backupData()
+            #expect(denied.outcome == .error(.notFound) && after == before)
         }
     }
 

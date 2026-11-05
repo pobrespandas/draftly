@@ -1,9 +1,10 @@
 import Foundation
 import AgentContracts
+import DraftlyCore
 
 // Editor receipts belong to this host lifetime. Old keys cannot select a new window.
 @MainActor final class AgentEditorWriting {
-    static let operationNames: Set<String> = ["editor.setSelection", "editor.replaceRange"]
+    static let operationNames: Set<String> = ["editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll"]
     struct Context {
         let snapshot: AgentEditorRegistry.WindowSnapshot
         let version: String
@@ -52,7 +53,7 @@ import AgentContracts
         let ticket = try keys.verify(key, request: request, connectionID: connectionID)
         if let result = try previous(ticket, requestID: request.requestID, connectionID: connectionID) { return result }
         guard receipts.count < 128 else { throw AgentErrorCode.busy }
-        let (context, range) = try checked(request, connectionID: connectionID)
+        let (context, range, replacementText) = try checked(request, connectionID: connectionID)
         _ = try keys.verify(key, request: request, connectionID: connectionID)
         guard let originalGrant = try currentGrant(connectionID) else { throw AgentErrorCode.permissionDenied }
         let identity = ticket.connectionHash + "/" + request.requestID.uuidString
@@ -68,6 +69,17 @@ import AgentContracts
                 guard case .string(let text) = request.parameters["text"] else { throw AgentErrorCode.invalidInput }
                 try registry.replaceRange(context.snapshot, range: range, text: text, authorize: authorize)
                 selection = NSRange(location: range.location + text.utf16.count, length: 0)
+            } else if request.operation == "editor.replaceAll" {
+                guard let text = replacementText else { throw AgentErrorCode.invalidInput }
+                try registry.replaceRange(context.snapshot, range: range, text: text, preservingSelection: true, authorize: authorize)
+                let offset = min(context.snapshot.selection.location, text.utf16.count)
+                selection = NSRange(location: offset, length: min(context.snapshot.selection.length, text.utf16.count - offset))
+            } else if request.operation == "editor.tasks" {
+                guard let text = replacementText else { throw AgentErrorCode.invalidInput }
+                try registry.replaceRange(context.snapshot, range: range, text: text, authorize: authorize)
+                selection = NSRange(location: range.location + text.utf16.count, length: 0)
+            } else if request.operation == "editor.undo" || request.operation == "editor.redo" {
+                selection = try registry.undo(context.snapshot, redo: request.operation == "editor.redo", authorize: authorize)
             } else {
                 try registry.setSelection(context.snapshot, range: range, authorize: authorize)
                 selection = range
@@ -100,7 +112,39 @@ import AgentContracts
         return result
     }
 
-    private func checked(_ request: AgentRequest, connectionID: UUID) throws -> (Context, NSRange) {
+    private func replacement(_ request: AgentRequest, context: Context) throws -> String {
+        guard case .string(let query) = request.parameters["query"],
+              case .string(let replacement) = request.parameters["replacement"] else { throw AgentErrorCode.invalidInput }
+        do {
+            let search = try EditorFindQuery(query, caseSensitive: request.parameters["caseSensitive"] == .bool(true),
+                regularExpression: request.parameters["regularExpression"] == .bool(true))
+            let deadline = ContinuousClock.now.advanced(by: .milliseconds(250))
+            return try search.replacingAll(in: context.snapshot.content, with: replacement,
+                maximumUTF16Length: AgentRequest.maximumBytes, continueMatching: {
+                    ContinuousClock.now < deadline && !Task.isCancelled
+                })
+        } catch EditorFindQuery.ReplacementError.interrupted {
+            throw Task.isCancelled ? AgentErrorCode.cancelled : AgentErrorCode.busy
+        } catch { throw AgentErrorCode.invalidInput }
+    }
+
+    private func taskChange(_ request: AgentRequest, context: Context) throws -> (NSRange, String) {
+        guard case .string(let state) = request.parameters["state"],
+              case .string(let operation) = request.parameters["operation"] else { throw AgentErrorCode.invalidInput }
+        do {
+            let bounds = try AgentTextShapes.bounds(request.parameters["stateRange"],
+                totalLength: Int64(context.snapshot.content.utf16.count))
+            guard let offset = Int(exactly: bounds.offset), let end = Int(exactly: bounds.end) else {
+                throw AgentErrorCode.invalidInput
+            }
+            let syntax = try registry.syntaxDefinition(windowID: context.snapshot.id)
+            return try syntax.taskChange(in: context.snapshot.content,
+                task: ["stateRange": [offset, end - offset], "state": state], operation: operation)
+        } catch let error as AgentErrorCode { throw error }
+        catch { throw AgentErrorCode.invalidInput }
+    }
+
+    private func checked(_ request: AgentRequest, connectionID: UUID) throws -> (Context, NSRange, String?) {
         guard Self.operationNames.contains(request.operation), request.targets.count == 1,
               let target = request.targets.first, target.kind == .window,
               let grant = try currentGrant(connectionID), grant.connectionID == connectionID else {
@@ -112,6 +156,20 @@ import AgentContracts
         let context = try read(target.id, grant)
         guard context.snapshot.draftID != nil else { throw AgentErrorCode.notFound }
         guard context.version == request.expectedVersion else { throw AgentErrorCode.versionConflict }
+        if request.operation == "editor.undo" || request.operation == "editor.redo" {
+            try registry.validateUndo(context.snapshot)
+            return (context, context.snapshot.selection, nil)
+        }
+        if request.operation == "editor.tasks" {
+            let change = try taskChange(request, context: context)
+            try registry.validateReplacement(context.snapshot)
+            return (context, change.0, change.1)
+        }
+        if request.operation == "editor.replaceAll" {
+            let text = try replacement(request, context: context)
+            try registry.validateReplacement(context.snapshot)
+            return (context, NSRange(location: 0, length: context.snapshot.content.utf16.count), text)
+        }
         let text = context.snapshot.content as NSString
         let bounds: (offset: Int64, end: Int64)
         do { bounds = try AgentTextShapes.bounds(parameters["range"], totalLength: Int64(text.length)) }
@@ -122,6 +180,6 @@ import AgentContracts
         }
         if request.operation == "editor.replaceRange" { try registry.validateReplacement(context.snapshot) }
         else { try registry.validateSelection(context.snapshot) }
-        return (context, NSRange(location: start, length: end - start))
+        return (context, NSRange(location: start, length: end - start), nil)
     }
 }

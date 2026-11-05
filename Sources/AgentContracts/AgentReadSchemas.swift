@@ -55,7 +55,7 @@ package enum AgentReadSchemas {
 
     package static let draftPage = AgentObjectShape(fields: [
         "items": required(.array(.object(summary), maximum: 200)),
-        "nextCursor": required(.nullable(token))
+        "nextCursor": required(.nullable(token)), "batchVersion": optional(token)
     ])
 
     private static let schemas: [String: AgentOperationSchema] = {

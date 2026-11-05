@@ -94,6 +94,57 @@ public struct EditorFindQuery {
         return expression.replacementString(for: match, in: text, offset: 0,
             template: usesRegularExpression ? replacement : NSRegularExpression.escapedTemplate(for: replacement))
     }
+    package enum ReplacementError: Error { case limitExceeded, interrupted }
+
+    package func replacingAll(in text: String, with replacement: String, maximumUTF16Length: Int,
+                              continueMatching: () -> Bool) throws -> String {
+        guard maximumUTF16Length > 0, maximumUTF16Length <= Int.max / 2, replacement.utf16.count <= maximumUTF16Length else { throw ReplacementError.limitExceeded }
+        guard continueMatching() else { throw ReplacementError.interrupted }
+        guard let expression else {
+            guard text.utf16.count <= maximumUTF16Length else { throw ReplacementError.limitExceeded }
+            return text
+        }
+        let source = text as NSString
+        let template = usesRegularExpression ? replacement : NSRegularExpression.escapedTemplate(for: replacement)
+        let units = Array(template.utf16)
+        let references = usesRegularExpression ? units.indices.dropLast().filter {
+            units[$0] == 36 && (48...57).contains(units[$0 + 1])
+        }.count : 0
+        let output = NSMutableString(capacity: min(source.length, maximumUTF16Length))
+        var consumed = 0
+        var failure: ReplacementError?
+        expression.enumerateMatches(in: text, options: [.reportProgress, .reportCompletion],
+            range: NSRange(location: 0, length: source.length)) { match, flags, stop in
+            guard continueMatching(), !flags.contains(.internalError) else {
+                failure = .interrupted; stop.pointee = true; return
+            }
+            guard let match else { return }
+            let gap = match.range.location - consumed
+            guard gap >= 0, gap <= maximumUTF16Length - output.length else {
+                failure = .limitExceeded; stop.pointee = true; return
+            }
+            let longest = (0..<match.numberOfRanges).map { match.range(at: $0).length }.max() ?? 0
+            let (captureBound, overflow) = longest.multipliedReportingOverflow(by: references)
+            let (bound, sumOverflow) = captureBound.addingReportingOverflow(units.count)
+            // Bound a single template expansion before Foundation allocates it.
+            guard !overflow, !sumOverflow, bound <= maximumUTF16Length * 2 else {
+                failure = .limitExceeded; stop.pointee = true; return
+            }
+            let value = expression.replacementString(for: match, in: text, offset: 0, template: template)
+            guard value.utf16.count <= maximumUTF16Length - output.length - gap else {
+                failure = .limitExceeded; stop.pointee = true; return
+            }
+            output.append(source.substring(with: NSRange(location: consumed, length: gap)))
+            output.append(value)
+            consumed = NSMaxRange(match.range)
+        }
+        if let failure { throw failure }
+        guard continueMatching() else { throw ReplacementError.interrupted }
+        guard source.length - consumed <= maximumUTF16Length - output.length else { throw ReplacementError.limitExceeded }
+        output.append(source.substring(from: consumed))
+        return output as String
+    }
+
     public func replacingAll(in text: String, with replacement: String) -> String {
         guard let expression else { return text }
         return expression.stringByReplacingMatches(in: text, range: NSRange(location: 0, length: text.utf16.count),

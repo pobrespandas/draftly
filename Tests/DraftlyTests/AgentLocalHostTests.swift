@@ -12,6 +12,7 @@ struct AgentLocalHostTests {
     @MainActor private final class Fixture {
         let root: URL
         let library: LibraryStore
+        let preferences: TestPreferences
         var locked = false
         var applicationError: AgentErrorCode?
         var onApplicationCheck: (() throws -> Void)?
@@ -21,11 +22,13 @@ struct AgentLocalHostTests {
         var connectionAttempts = 0
 
         init() throws {
+            preferences = try TestPreferences(prefix: "Draftly-Local-Host-Preferences-")
             root = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-Local-Host-" + UUID().uuidString)
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
             library = try LibraryStore(directory: root, seed: false)
         }
         func cleanup() {
+            preferences.close()
             library.container.viewContext.reset()
             for store in library.container.persistentStoreCoordinator.persistentStores {
                 try? library.container.persistentStoreCoordinator.remove(store)
@@ -33,11 +36,12 @@ struct AgentLocalHostTests {
             try? FileManager.default.removeItem(at: root)
         }
         func host(editors: AgentEditorRegistry? = nil, enableReviewedActions: Bool = false,
+                  enableReviewedMutations: Bool = false, nativeHost: (@MainActor () -> any ActionHost)? = nil,
                   socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
             try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors,
-                enableReviewedActions: enableReviewedActions, isLocked: { [self] in self.locked },
+                enableReviewedActions: enableReviewedActions, nativeHost: nativeHost, enableReviewedMutations: enableReviewedMutations, preferenceDefaults: preferences.defaults, isLocked: { [self] in self.locked },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { [self] targets in
-                    AgentLibraryResourceChoices(library: self.library, editors: editors).resolve(targets)
+                    AgentLibraryResourceChoices(library: self.library, editors: editors, bookmarkDefaults: self.preferences.defaults).resolve(targets)
                 }, socketParentDirectory: socketParent,
                 credentials: .init(read: { [self] id in self.credentialReads += 1; return self.secrets[id] },
                     create: { [self] id, value in
@@ -77,6 +81,123 @@ struct AgentLocalHostTests {
             let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: operation)
             return try JSONDecoder().decode(AgentResponse.self, from: service.respond(to: JSONEncoder().encode(request), session: session))
         }
+    }
+
+    @Test func nativeReviewAndRecoveryWorkAcrossRealLocalTransports() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let native = AgentNativeServiceTests.DirectNativeHost()
+        let host = try f.host(enableReviewedActions: true, nativeHost: { native }); defer { host.close() }
+        #expect(host.endpoint == nil)
+        try host.setEnabledFromUserInterface(true)
+        let record = try host.connections.connectFromUserInterface(name: "Native transport QA", libraryID: host.libraryID,
+            capabilities: [.nativeUse], scope: .resources([]))
+        let first = try await f.client(host, record: record)
+        let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "native.share",
+            parameters: ["text": .string("Neutral café 🐼")])
+        let data = try JSONEncoder().encode(request)
+        let accepted = try JSONDecoder().decode(AgentResponse.self, from: await first.request(data))
+        guard case .accepted = accepted.outcome else { Issue.record("Missing native operation"); return }
+        for _ in 0..<1000 where host.approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(host.approvals.pendingFromUserInterface().first)
+        #expect(native.calls.isEmpty)
+        await first.close()
+        let polling = try await f.client(host, record: record)
+        try host.approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        var response = accepted
+        for _ in 0..<1000 {
+            response = try JSONDecoder().decode(AgentResponse.self, from: await polling.request(data))
+            if case .result = response.outcome { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(response.outcome == .result(.object(["completed": .bool(true)])) && native.calls.count == 1)
+        await polling.close()
+        let second = try await f.client(host, record: record)
+        let recovered = try JSONDecoder().decode(AgentResponse.self, from: await second.request(data))
+        #expect(recovered == response && native.calls.count == 1)
+        await second.close()
+    }
+
+    @Test func chatGrantRequiresEnabledHostAndClosesWithoutRevokingOtherConnections() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let note = Note(content: "Chat grant café 🐼"), hidden = Note(content: "Hidden")
+        try f.library.saveNotes([note, hidden], preserveRevision: false)
+        let host = try f.host(); defer { host.close() }
+        let targets: Set<AgentResourceReference> = [.init(kind: .draft, id: note.id)]
+        #expect(throws: AgentErrorCode.permissionDenied) {
+            try host.makeChatToolsFromUserInterface(capabilities: [.draftsRead], targets: targets,
+                onRevocationError: { _ in Issue.record("Unexpected cleanup error") })
+        }
+        try host.setEnabledFromUserInterface(true)
+        let other = try f.connect(host)
+        let tools = try host.makeChatToolsFromUserInterface(capabilities: [.draftsRead], targets: targets,
+            onRevocationError: { _ in Issue.record("Unexpected cleanup error") })
+        let configuration = try host.connections.configurationForUserInterface()
+        let record = try #require(configuration.connections.first { $0.id != other.id })
+        #expect(Set(record.resources) == targets)
+        #expect(record.expiresAt.timeIntervalSinceNow > 0 && record.expiresAt.timeIntervalSinceNow <= 900)
+        #expect(try await tools.tools().contains { $0.name == "draftly_drafts_get" })
+        tools.invalidate()
+        let remaining = try host.connections.configurationForUserInterface().connections
+        #expect(!remaining.contains { $0.id == record.id })
+        #expect(remaining.first { $0.id == other.id }?.revoked == false)
+        #expect(f.secrets[record.id] == nil && f.secrets[other.id] != nil)
+        let externallyRevoked = try host.makeChatToolsFromUserInterface(capabilities: [.draftsRead], targets: targets,
+            onRevocationError: { _ in Issue.record("Unexpected cleanup error") })
+        let beforeRevocation = try host.connections.configurationForUserInterface()
+        let revokedID = try #require(beforeRevocation.connections.first { $0.id != other.id }?.id)
+        var revocationNotifications = 0
+        externallyRevoked.onInvalidated = { revocationNotifications += 1 }
+        _ = try host.connections.revokeFromUserInterface(revokedID)
+        #expect(revocationNotifications == 1)
+        #expect(try host.connections.configurationForUserInterface().connections.first { $0.id == revokedID }?.revoked == true)
+        let stopped = try host.makeChatToolsFromUserInterface(capabilities: [.draftsRead], targets: targets,
+            onRevocationError: { _ in Issue.record("Unexpected cleanup error") })
+        var notified = false
+        stopped.onInvalidated = { notified = true }
+        host.suspend()
+        #expect(notified)
+        await #expect(throws: AgentErrorCode.cancelled) { try await stopped.tools() }
+    }
+
+    @Test func reviewedWorkspaceDeletionIsExplicitAndStopWorkCancelsPendingReview() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let workspace = Workspace(name: "Keep until approved")
+        try f.library.saveWorkspace(workspace)
+        let host = try f.host(enableReviewedMutations: true)
+        defer { host.close() }
+        #expect(host.service.availableCapabilities.contains(.destructiveRequest))
+        #expect(!host.service.availableCapabilities.contains(.actionsRun))
+        try host.setEnabledFromUserInterface(true)
+        let record = try host.connections.connectFromUserInterface(name: "Delete review", libraryID: host.libraryID,
+            capabilities: [.workspacesRead, .workspacesManage, .destructiveRequest],
+            scope: .resources([.init(kind: .workspace, id: workspace.id)]))
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func send(_ request: AgentRequest) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id)
+        let read = try send(.init(requestID: UUID(), libraryID: host.libraryID, operation: "workspaces.get", targets: [target]))
+        guard case .result(.object(let values)) = read.outcome, case .string(let version) = values["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "workspaces.delete", targets: [target], expectedVersion: version)
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        let prepared = try send(.init(requestID: UUID(), libraryID: host.libraryID, operation: "mutations.prepare", parameters: ["request": frame]))
+        guard case .result(.object(let ticket)) = prepared.outcome, case .string(let key) = ticket["retryKey"] else {
+            Issue.record("Missing retry key"); return
+        }
+        let accepted = try send(.init(requestID: intent.requestID, libraryID: host.libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: version, retryKey: key))
+        guard case .accepted(let operationID, _) = accepted.outcome else { Issue.record("Missing accepted operation"); return }
+        for _ in 0..<1000 where host.approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        #expect(host.approvals.pendingFromUserInterface().count == 1)
+        try host.setEnabledFromUserInterface(false)
+        for _ in 0..<1000 where !host.approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        #expect(host.approvals.pendingFromUserInterface().isEmpty && f.library.workspaces == [workspace])
+        #expect(try host.connections.configurationForUserInterface().enabled == false)
+        try host.setEnabledFromUserInterface(true)
+        for _ in 0..<1000 where try !host.operations.snapshot(operationID, connectionID: record.id).state.isTerminal { await Task.yield() }
+        #expect(try host.operations.snapshot(operationID, connectionID: record.id).state == .cancelled)
     }
 
     @Test func reviewedActionAdmissionRequiresAnExplicitAuthorizedEditorWindow() async throws {

@@ -2,7 +2,7 @@ import Foundation
 
 package enum AgentOperationSchemas {
     package static var operationNames: Set<String> {
-        AgentReadSchemas.operationNames.union(AgentActivitySchemas.operationNames).union(AgentMutationSchemas.operationNames).union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames).union(AgentPreferenceSchemas.operationNames).union(AgentBookmarkSchemas.operationNames)
+        AgentNativeSchemas.operationNames.union(AgentReadSchemas.operationNames).union(AgentTransferSchemas.operationNames).union(AgentBackupSchemas.operationNames).union(AgentActivitySchemas.operationNames).union(AgentMutationSchemas.operationNames).union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames).union(AgentPreferenceSchemas.operationNames).union(AgentBookmarkSchemas.operationNames)
     }
 
     package static func schema(for operation: String, preferences: AgentPreferenceRegistry? = nil) -> AgentOperationSchema? {
@@ -10,6 +10,9 @@ package enum AgentOperationSchemas {
             guard let preferences else { return nil }
             return AgentPreferenceSchemas.schema(for: operation, registry: preferences)
         }
+        if let native = AgentNativeSchemas.schema(for: operation) { return native }
+        if let backup = AgentBackupSchemas.schema(for: operation) { return backup }
+        if let transfer = AgentTransferSchemas.schema(for: operation) { return transfer }
         return AgentReadSchemas.schema(for: operation) ?? AgentActivitySchemas.schema(for: operation) ?? AgentMutationSchemas.schema(for: operation) ?? AgentActionSchemas.schema(for: operation)
             ?? AgentExecutionSchemas.schema(for: operation) ?? AgentWorkspaceSchemas.schema(for: operation) ?? AgentDraftSchemas.schema(for: operation) ?? AgentEditorSchemas.schema(for: operation) ?? AgentAppearanceSchemas.schema(for: operation) ?? AgentBookmarkSchemas.schema(for: operation)
     }
@@ -24,6 +27,15 @@ package enum AgentOperationSchemas {
         }
         if descriptor.requiresExpectedVersion {
             guard let version = request.expectedVersion, !version.isEmpty else { throw AgentSchemaError.invalidValue }
+        }
+        if AgentNativeSchemas.operationNames.contains(request.operation) {
+            return try AgentNativeSchemas.validatedParameters(for: request)
+        }
+        if AgentBackupSchemas.operationNames.contains(request.operation) {
+            return try AgentBackupSchemas.validatedParameters(for: request)
+        }
+        if AgentTransferSchemas.operationNames.contains(request.operation) {
+            return try AgentTransferSchemas.validatedParameters(for: request)
         }
         if AgentMutationSchemas.operationNames.contains(request.operation) {
             return try AgentMutationSchemas.validatedParameters(for: request)
@@ -55,7 +67,9 @@ package enum AgentOperationSchemas {
     }
 
     package static func validateResult(_ values: [String: AgentJSONValue], for operation: String, preferences: AgentPreferenceRegistry? = nil) throws {
-        if AgentPreferenceSchemas.operationNames.contains(operation) {
+        if AgentNativeSchemas.operationNames.contains(operation) {
+            try AgentNativeSchemas.validateResult(values, for: operation)
+        } else if AgentPreferenceSchemas.operationNames.contains(operation) {
             guard let preferences else { throw AgentErrorCode.unavailable }
             try AgentPreferenceSchemas.validateResult(values, for: operation, registry: preferences)
         } else if AgentBookmarkSchemas.operationNames.contains(operation) {
@@ -78,6 +92,10 @@ package enum AgentOperationSchemas {
         guard let descriptor = AgentOperationCatalog.operation(named: request.operation),
               request.apiVersion == AgentRequest.version, descriptor.acceptsTargets(request.targets) else {
             throw AgentSchemaError.invalidValue
+        }
+        if AgentTransferSchemas.operationNames.contains(request.operation) {
+            try AgentTransferSchemas.validateResult(values, for: request)
+            return
         }
         if AgentMutationSchemas.operationNames.contains(request.operation) {
             try AgentMutationSchemas.validateResult(values, for: request)
@@ -105,6 +123,17 @@ package enum AgentOperationSchemas {
             return
         }
         try validateResult(values, for: request.operation)
+        if ["workspaces.delete", "actions.delete", "actionGroups.delete"].contains(request.operation) {
+            try AgentResourceShapes.validateOrder(values["deletedIDs"], targets: request.targets)
+        }
+        if request.operation == "workspaces.reorder" {
+            guard case .array(let resources) = values["resources"] else { throw AgentSchemaError.invalidValue }
+            let ids = resources.map { resource -> AgentJSONValue in
+                guard case .object(let value) = resource else { return .null }
+                return value["id"] ?? .null
+            }
+            try AgentResourceShapes.validateOrder(.array(ids), targets: request.targets)
+        }
         let binding: (field: String, key: String, kind: AgentResourceKind)?
         switch request.operation {
         case "drafts.get": binding = ("draft", "id", .draft)

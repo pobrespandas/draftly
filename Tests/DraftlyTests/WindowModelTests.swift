@@ -103,8 +103,11 @@ struct WindowModelTests {
         #expect(model.infoDraft?.id == second.id)
         #expect(model.editor.noteID == first.id)
         #expect(model.showInfo)
-        #expect(throws: (any Error).self) { try model.actionUIOperation(["operation":"showChatConsole"]) }
-        #expect(throws: (any Error).self) { try model.actionUIOperation(["operation":"hideChatConsole"]) }
+        _ = try model.actionUIOperation(["operation":"showChatConsole"])
+        #expect(model.showChatConsole)
+        #expect(try model.actionUIOperation(["operation":"get", "key":"isChatConsoleVisible"]) as? Bool == true)
+        _ = try model.actionUIOperation(["operation":"hideChatConsole"])
+        #expect(!model.showChatConsole)
     }
 
     @Test func scriptedWorkspaceMatchesVisibleRowsAndAppliesGroups() throws {

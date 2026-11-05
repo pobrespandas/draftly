@@ -51,6 +51,38 @@ struct AgentDraftResourceChoicesTests {
         #expect(choices.resolve([target]).isEmpty)
     }
 
+    @Test func themeChoicesFollowLiveIdentityAndNeverResolveOtherKinds() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var theme = EditorThemeDefinition(name: "Selected café 🐼")
+        try library.saveTheme(theme)
+        let choices = AgentLibraryResourceChoices(library: library)
+        let target = AgentResourceReference(kind: .theme, id: theme.id)
+        #expect(choices.choices().contains { $0.reference == target && $0.title == theme.name })
+        #expect(choices.resolve([target, .init(kind: .draft, id: theme.id)]) == [target])
+        theme.name = "Renamed theme"; try library.saveTheme(theme)
+        #expect(choices.choices().contains { $0.reference == target && $0.title == theme.name })
+        try library.deleteTheme(theme.id)
+        #expect(choices.resolve([target]).isEmpty)
+    }
+
+    @Test func bookmarkChoicesUseOnlyTheSuppliedPreferenceDomainAndLivePermission() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let prefs = try TestPreferences(prefix: "Draftly-Bookmark-Choices-"); defer { prefs.close() }
+        BookmarkPreferences.store(Data([1]), named: "Selected folder", defaults: prefs.defaults)
+        let first = try #require(BookmarkPreferences.agentRecords(defaults: prefs.defaults).first)
+        let choices = AgentLibraryResourceChoices(library: library, bookmarkDefaults: prefs.defaults)
+        let target = AgentResourceReference(kind: .bookmark, id: first.id)
+        #expect(choices.choices().contains { $0.reference == target && $0.title == first.name })
+        #expect(choices.resolve([target]) == [target])
+        #expect(AgentLibraryResourceChoices(library: library).choices().isEmpty)
+        BookmarkPreferences.store(Data([2]), named: first.name, defaults: prefs.defaults)
+        #expect(choices.resolve([target]).isEmpty)
+        let next = try #require(choices.choices().first?.reference)
+        #expect(next != target && next.kind == .bookmark)
+        BookmarkPreferences.forget(first.name, defaults: prefs.defaults)
+        #expect(choices.resolve([next]).isEmpty)
+    }
+
     @Test func revisionChoicesFollowTheExistingDraftAndRevision() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Draft with version")
