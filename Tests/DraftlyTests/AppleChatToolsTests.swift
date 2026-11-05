@@ -68,7 +68,7 @@ struct AppleChatToolsTests {
         defer { session.invalidate() }
         let bridge = try AppleChatToolBridge(session: session)
         let tools = try await bridge.modelTools()
-        let encoded = try JSONEncoder().encode(tools.map(\.parameters))
+        let encoded = try JSONEncoder().encode(tools.filter { ["draftly_tools", "draftly_call"].contains($0.name) }.map(\.parameters))
         guard case .array(let schemas) = try JSONDecoder().decode(AgentJSONValue.self, from: encoded) else {
             Issue.record("Missing native schemas"); return
         }
@@ -93,6 +93,33 @@ struct AppleChatToolsTests {
         await #expect(throws: AgentErrorCode.permissionDenied) {
             try await call.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
         }
+    }
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["DRAFTLY_APPLE_EDIT_QA"] == "1"))
+    func onDeviceModelEditsTheAuthorizedDraft() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let preferences = try TestPreferences(prefix: "Apple-Tool-Edit-")
+        defer { preferences.close() }
+        var dependencies = WindowDependencies()
+        dependencies.preferences = WindowPreferences(defaults: preferences.defaults)
+        let model = WindowModel(library: runtime.library, dependencies: dependencies)
+        model.editor.load(runtime.allowed, focusEditor: false)
+        let editors = AgentEditorRegistry(library: runtime.library, models: { [model] })
+        defer { editors.invalidate() }
+        runtime.service = try AgentCommandService(library: runtime.library, libraryID: runtime.libraryID, connections: runtime.registry,
+            appVersion: "Apple bridge fixture", validateHost: {}, isLocked: { false }, editors: editors, pendingEditorGeneration: { _ in "" })
+        let record = try runtime.registry.connectFromUserInterface(name: "Apple edit fixture", libraryID: runtime.libraryID,
+            capabilities: [.draftsRead, .draftsWrite], scope: .resources([.init(kind: .draft, id: runtime.allowed.id)]))
+        defer { _ = try? runtime.registry.revokeFromUserInterface(record.id) }
+        runtime.session = try runtime.service.authenticate(connectionID: record.id, credential: #require(runtime.secrets[record.id]))
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        let response = try await AppleChatResponder().respond(
+            prompt: "Call draftly_read_draft directly with draftID " + runtime.allowed.id.uuidString
+                + ". Then call draftly_edit_draft with content set to exactly this single line: Apple QA café 🐼. Use only those two tools.",
+            mode: "onDevice", session: session)
+        #expect(runtime.library.notes.first { $0.id == runtime.allowed.id }?.content == "Apple QA café 🐼", Comment(rawValue: response))
+        #expect(runtime.library.notes.first { $0.id == runtime.hidden.id }?.content == runtime.hidden.content)
     }
 
     @Test func nativeToolArgumentsPrepareEditAndRecoverWithoutOverwritingLaterText() async throws {
@@ -131,6 +158,10 @@ struct AppleChatToolsTests {
         let intent: AgentJSONValue = .object(["apiVersion": .integer(1), "requestID": .string(id.uuidString),
             "operation": .string("drafts.update"), "targets": targets, "expectedVersion": .string(version), "parameters": parameters])
         let prepareJSON = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(["request": intent])), as: UTF8.self)
+        let malformed = try GeneratedContent(json: #"{"name":"draftly_mutations_prepare"}"#)
+        let feedback = try await call.call(arguments: malformed)
+        #expect(feedback.contains("invalid_input") && feedback.contains("requestID"))
+        #expect(model.editor.content == runtime.allowed.content)
         let prepared = try await invoke("draftly_mutations_prepare", ["requestID": .string(UUID().uuidString), "parametersJSON": .string(prepareJSON)])
         guard case .result(.object(let receipt)) = prepared.outcome, case .string(let key) = receipt["retryKey"] else {
             Issue.record("Missing retry key"); return
@@ -165,6 +196,24 @@ struct AppleChatToolsTests {
         await #expect(throws: CancellationError.self) { try await bridge.catalog() }
         #expect(runtime.dispatches == before)
         #expect(try await session.tools().contains { $0.name == "draftly_drafts_get" })
+    }
+
+    @Test func wrappedToolFailureKeepsTheSchemaOutOfTheChat() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        let responder = AppleChatResponder(generate: { _, _, bridge in
+            let tools = try await bridge.modelTools()
+            let tool = try #require(tools.first { $0.name == "draftly_call" })
+            throw LanguageModelSession.ToolCallError(tool: tool, underlyingError: AgentErrorCode.invalidInput)
+        })
+        do {
+            _ = try await responder.respond(prompt: "Edit neutral draft", mode: "onDevice", session: session)
+            Issue.record("Expected the tool call to fail")
+        } catch {
+            #expect(error.localizedDescription ==
+                "Apple Intelligence could not complete the Draftly tool call. Check the draft before trying again.")
+        }
     }
 
     @Test func cancellingInferenceBlocksLateToolsBeforeTheGeneratorReturns() async throws {

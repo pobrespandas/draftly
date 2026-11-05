@@ -100,7 +100,7 @@ import DraftlyCore
         let id = UUID().uuidString
         defer { discardSession(id) }
         sessions[id] = try languageSession(mode: mode, tools: tools,
-            instructions: "Use draftly_tools to inspect authorized operation schemas. To execute, call draftly_call: put the target operation in name, resource references in targets, and only operation-specific parameters in parametersJSON. Omit parametersJSON for a simple draft read. Never claim a change without a successful result. Never replay unknown outcomes.")
+            instructions: "For draft text, call draftly_read_draft and draftly_edit_draft directly. These two tools do not need schema lookup. For other tasks, use draftly_tools to inspect authorized operation schemas. To execute, call draftly_call: put the exact catalog tool name (such as draftly_drafts_get) in name and resource references in targets. For other writes, use draftly_mutations_prepare first. Give the prepare call its own top-level requestID. Put the planned write in the request object inside parametersJSON, with a different requestID. Execute the write with that planned requestID and the returned retryKey. Omit parametersJSON for a simple draft read. Never claim a change without a successful result. Never replay unknown outcomes.")
         let bytes = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id])
         let raw = try await performAsync("modelRespond", payload: String(decoding: bytes, as: UTF8.self))
         guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],

@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModels
+import OSLog
 import Security
 import AgentContracts
 
@@ -87,13 +88,94 @@ final class AppleChatToolLifetime: @unchecked Sendable {
         let names = try await session.tools(validateExecution: lifetime.requireActive).map(\.name)
         try lifetime.requireActive()
         guard !names.isEmpty else { throw AgentErrorCode.unavailable }
-        return [try AppleCatalogTool(names: names, callback: { [weak self] name in
+        var tools: [any Tool] = [try AppleCatalogTool(names: names, callback: { [weak self] name in
             guard let self else { throw CancellationError() }
             return try await self.catalog(name: name)
         }), try AppleCallTool(names: names, callback: { [weak self] name, arguments in
             guard let self else { throw CancellationError() }
             return try await self.execute(name: name, argumentsJSON: arguments)
         })]
+        if names.contains("draftly_drafts_get") {
+            tools.append(AppleReadDraftTool(bridge: self))
+        }
+        if ["draftly_drafts_get", "draftly_drafts_update", "draftly_mutations_prepare"].allSatisfy(names.contains) {
+            tools.append(AppleEditDraftTool(bridge: self))
+        }
+        return tools
+    }
+
+    private var readVersions: [UUID: String] = [:]
+
+    func readDraft(id: UUID) async throws -> String {
+        let targets: AgentJSONValue = .array([.object(["kind": .string("draft"), "id": .string(id.uuidString)])])
+        let bytes = try JSONEncoder().encode(AgentJSONValue.object(["targets": targets]))
+        readVersions.removeValue(forKey: id)
+        let result = try await execute(name: "draftly_drafts_get", argumentsJSON: String(decoding: bytes, as: UTF8.self))
+        let response = try JSONDecoder().decode(AgentResponse.self, from: Data(result.utf8))
+        if case .result(.object(let values)) = response.outcome,
+           case .object(let draft) = values["draft"], case .string(let version) = draft["versionToken"] {
+            readVersions[id] = version
+        }
+        return result
+    }
+
+    func editDraft(id: UUID, content: String) async throws -> String {
+        guard let version = readVersions.removeValue(forKey: id) else {
+            return #"{"error":"read_required","hint":"Read this draft with draftly_read_draft before editing."}"#
+        }
+        func invoke(_ name: String, _ fields: [String: AgentJSONValue]) async throws -> String {
+            let bytes = try JSONEncoder().encode(AgentJSONValue.object(fields))
+            return try await execute(name: name, argumentsJSON: String(decoding: bytes, as: UTF8.self))
+        }
+        let targets: AgentJSONValue = .array([.object(["kind": .string("draft"), "id": .string(id.uuidString)])])
+        let requestID = AgentJSONValue.string(UUID().uuidString)
+        let parameters: AgentJSONValue = .object(["changes": .object(["content": .string(content)])])
+        let intent: AgentJSONValue = .object(["apiVersion": .integer(1), "requestID": requestID,
+            "operation": .string("drafts.update"), "targets": targets, "expectedVersion": .string(version),
+            "parameters": parameters])
+        let prepared = try await invoke("draftly_mutations_prepare", [
+            "requestID": .string(UUID().uuidString), "parameters": .object(["request": intent])])
+        let reply = try JSONDecoder().decode(AgentResponse.self, from: Data(prepared.utf8))
+        guard case .result(.object(let values)) = reply.outcome,
+              case .string(let key) = values["retryKey"] else { return prepared }
+        return try await invoke("draftly_drafts_update", ["requestID": requestID, "targets": targets,
+            "expectedVersion": .string(version), "retryKey": .string(key), "parameters": parameters])
+    }
+}
+
+private struct AppleReadDraftTool: Tool {
+    @Generable struct Arguments {
+        @Guide(description: "Exact UUID of the authorized draft")
+        var draftID: String
+    }
+
+    let name = "draftly_read_draft"
+    let description = "Read the text and version of an authorized draft."
+    weak var bridge: AppleChatToolBridge?
+
+    func call(arguments: Arguments) async throws -> String {
+        guard let bridge else { throw CancellationError() }
+        guard let id = UUID(uuidString: arguments.draftID) else { throw AgentErrorCode.invalidInput }
+        return try await bridge.readDraft(id: id)
+    }
+}
+
+private struct AppleEditDraftTool: Tool {
+    @Generable struct Arguments {
+        @Guide(description: "Exact UUID of the draft read with draftly_read_draft")
+        var draftID: String
+        @Guide(description: "Complete new draft text, including any original text to preserve")
+        var content: String
+    }
+
+    let name = "draftly_edit_draft"
+    let description = "Update the text of an authorized draft after reading it with draftly_read_draft."
+    weak var bridge: AppleChatToolBridge?
+
+    func call(arguments: Arguments) async throws -> String {
+        guard let bridge else { throw CancellationError() }
+        guard let id = UUID(uuidString: arguments.draftID) else { throw AgentErrorCode.invalidInput }
+        return try await bridge.editDraft(id: id, content: arguments.content)
     }
 }
 
@@ -130,7 +212,7 @@ private struct AppleCatalogTool: Tool {
 private struct AppleCallTool: Tool {
     typealias Arguments = GeneratedContent
     let name = "draftly_call"
-    let description = "Call the authorized operation in name. Supply targets and version/retry fields directly. parametersJSON contains only operation-specific parameters, not a request envelope. Inspect draftly_tools for those parameters. Never replay an outcome_unknown effect."
+    let description = "Use the exact tool name from draftly_tools, such as draftly_drafts_get. Supply targets and version/retry fields directly. parametersJSON contains only operation-specific parameters, not a request envelope. Inspect draftly_tools for those parameters. Never replay an outcome_unknown effect."
     let parameters: GenerationSchema
     let callback: @MainActor @Sendable (String, String) async throws -> String
     init(names: [String], callback: @escaping @MainActor @Sendable (String, String) async throws -> String) throws {
@@ -153,7 +235,11 @@ private struct AppleCallTool: Tool {
         guard case .string(let name) = fields.removeValue(forKey: "name") else { throw AgentErrorCode.invalidInput }
         fields = fields.filter { $0.value != .null }
         let json = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(fields)), as: UTF8.self)
-        return try await callback(name, json)
+        do {
+            return try await callback(name, json)
+        } catch AgentErrorCode.invalidInput {
+            return #"{"error":"invalid_input","hint":"Check the exact tool schema with draftly_tools. Supply a top-level requestID for every write and for mutations.prepare."}"#
+        }
     }
 }
 
@@ -174,9 +260,24 @@ private struct AppleCallTool: Tool {
         let bridge = try AppleChatToolBridge(session: session, timeout: timeout)
         defer { bridge.lifetime.invalidate() }
         return try await withTaskCancellationHandler {
-            let result = try await generate(prompt, mode, bridge)
-            try bridge.lifetime.requireActive()
-            return result
+            do {
+                let result = try await generate(prompt, mode, bridge)
+                try bridge.lifetime.requireActive()
+                return result
+            } catch let error as LanguageModelSession.ToolCallError {
+                try Task.checkCancellation()
+                if error.underlyingError is CancellationError { throw CancellationError() }
+                let underlying = error.underlyingError as NSError
+                Logger(subsystem: "com.pobrespandas.draftly", category: "AppleChat")
+                    .error("Apple tool invocation failed: \(underlying.domain, privacy: .public) (\(underlying.code))")
+                throw AppleChatToolInvocationError()
+            }
         } onCancel: { [lifetime = bridge.lifetime] in lifetime.invalidate() }
+    }
+}
+
+private struct AppleChatToolInvocationError: LocalizedError {
+    var errorDescription: String? {
+        "Apple Intelligence could not complete the Draftly tool call. Check the draft before trying again."
     }
 }
