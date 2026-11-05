@@ -1,6 +1,7 @@
 import Foundation
 import FoundationModels
 import DraftlyCore
+import AgentContracts
 
 @MainActor final class NativeModelAPI {
     var onTool: (@MainActor @Sendable (String, String) throws -> String)?
@@ -95,12 +96,20 @@ import DraftlyCore
         return LanguageModelSession(model: SystemLanguageModel.default, tools: tools, instructions: instructions)
     }
 
-    func respondAuthorized(prompt: String, mode: String, tools: [any Tool]) async throws -> String {
+    func respondAuthorized(prompt: String, mode: String, tools: [any Tool], hasOpenDraft: Bool) async throws -> String {
         guard availableModes().contains(mode) else { throw DraftlyError.message("The selected Apple Intelligence model is unavailable on this Mac.") }
         let id = UUID().uuidString
         defer { discardSession(id) }
+        let draftContext = hasOpenDraft
+            ? "For a request about the open draft, call draftly_read_draft with no arguments. To save changes, call draftly_edit_draft with the full updated content."
+            : "Find approved draft IDs with draftly_server_capabilities. Read a draft before editing it."
         sessions[id] = try languageSession(mode: mode, tools: tools,
-            instructions: "For draft text, call draftly_read_draft and draftly_edit_draft directly. These two tools do not need schema lookup. For other tasks, use draftly_tools to inspect authorized operation schemas. To execute, call draftly_call: put the exact catalog tool name (such as draftly_drafts_get) in name and resource references in targets. For other writes, use draftly_mutations_prepare first. Give the prepare call its own top-level requestID. Put the planned write in the request object inside parametersJSON, with a different requestID. Execute the write with that planned requestID and the returned retryKey. Omit parametersJSON for a simple draft read. Never claim a change without a successful result. Never replay unknown outcomes.")
+            instructions: """
+                \(draftContext)
+                For unsaved text or a selection, discover editor tools with draftly_tools.
+                For other operations, get the exact tool name and schema with draftly_tools. Call it through draftly_call. For editor edits or other writes that require a retryKey, inspect draftly_mutations_prepare and use its returned retryKey.
+                \(AgentModelInstructions.results)
+                """)
         let bytes = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id])
         let raw = try await performAsync("modelRespond", payload: String(decoding: bytes, as: UTF8.self))
         guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],

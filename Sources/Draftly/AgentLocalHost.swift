@@ -199,7 +199,9 @@ import AgentLocalSecurity
         do {
             guard let credential = try readCredential(record.id) else { throw AgentErrorCode.permissionDenied }
             let authenticated = try service.authenticate(connectionID: record.id, credential: credential, expectedLibraryID: libraryID)
-            let tools = AgentChatToolSession(service: service, session: authenticated, onDisconnect: { [weak self] in
+            let drafts = targets.filter { $0.kind == .draft }
+            let tools = AgentChatToolSession(service: service, session: authenticated,
+                currentDraftID: drafts.count == 1 ? drafts.first?.id : nil, onDisconnect: { [weak self] in
                 guard let self else { return }
                 do {
                     _ = try self.connections.revokeFromUserInterface(record.id)

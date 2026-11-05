@@ -30,6 +30,7 @@ struct ChatGPTLocalToolTests {
             let body = try #require(decoded as? [String: Any])
             #expect(body["store"] as? Bool == false && body["stream"] as? Bool == true)
             let definitions = try #require(body["tools"] as? [[String: Any]])
+            #expect(body["instructions"] as? String == ChatConsoleInstructions.toolsOn)
             #expect(definitions.first?["type"] as? String == "namespace")
             #expect(definitions.first?["name"] as? String == "draftly")
             if requests == 1 {

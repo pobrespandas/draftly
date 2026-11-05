@@ -47,6 +47,7 @@ final class AppleChatToolLifetime: @unchecked Sendable {
 @MainActor final class AppleChatToolBridge {
     let lifetime: AppleChatToolLifetime
     private let session: AgentChatToolSession
+    var currentDraftID: UUID? { session.currentDraftID }
     private let maximumCalls: Int
     private var calls = 0
     init(session: AgentChatToolSession, timeout: TimeInterval = 120, maximumCalls: Int = 32) throws {
@@ -96,10 +97,18 @@ final class AppleChatToolLifetime: @unchecked Sendable {
             return try await self.execute(name: name, argumentsJSON: arguments)
         })]
         if names.contains("draftly_drafts_get") {
-            tools.append(AppleReadDraftTool(bridge: self))
+            if let currentDraftID {
+                tools.append(AppleReadOpenDraftTool(draftID: currentDraftID, bridge: self))
+            } else {
+                tools.append(AppleReadDraftTool(bridge: self))
+            }
         }
         if ["draftly_drafts_get", "draftly_drafts_update", "draftly_mutations_prepare"].allSatisfy(names.contains) {
-            tools.append(AppleEditDraftTool(bridge: self))
+            if let currentDraftID {
+                tools.append(AppleEditOpenDraftTool(draftID: currentDraftID, bridge: self))
+            } else {
+                tools.append(AppleEditDraftTool(bridge: self))
+            }
         }
         return tools
     }
@@ -143,6 +152,37 @@ final class AppleChatToolLifetime: @unchecked Sendable {
     }
 }
 
+private struct AppleReadOpenDraftTool: Tool {
+    @Generable struct Arguments {}
+
+    let name = "draftly_read_draft"
+    let description = "Read the open draft. If hasMore is true, use the catalog to read the remaining text before replacing it."
+    let draftID: UUID
+    weak var bridge: AppleChatToolBridge?
+
+    func call(arguments: Arguments) async throws -> String {
+        guard let bridge else { throw CancellationError() }
+        return try await bridge.readDraft(id: draftID)
+    }
+}
+
+private struct AppleEditOpenDraftTool: Tool {
+    @Generable struct Arguments {
+        @Guide(description: "Complete updated draft text, including original text to keep")
+        var content: String
+    }
+
+    let name = "draftly_edit_draft"
+    let description = "Save the complete updated text of the open draft. Read it with draftly_read_draft first."
+    let draftID: UUID
+    weak var bridge: AppleChatToolBridge?
+
+    func call(arguments: Arguments) async throws -> String {
+        guard let bridge else { throw CancellationError() }
+        return try await bridge.editDraft(id: draftID, content: arguments.content)
+    }
+}
+
 private struct AppleReadDraftTool: Tool {
     @Generable struct Arguments {
         @Guide(description: "Exact UUID of the authorized draft")
@@ -150,7 +190,7 @@ private struct AppleReadDraftTool: Tool {
     }
 
     let name = "draftly_read_draft"
-    let description = "Read the text and version of an authorized draft."
+    let description = "Read a bounded chunk of stored draft text and remember its version for draftly_edit_draft. If hasMore is true, use the catalog draft read to fetch the remaining text before replacing it."
     weak var bridge: AppleChatToolBridge?
 
     func call(arguments: Arguments) async throws -> String {
@@ -169,7 +209,7 @@ private struct AppleEditDraftTool: Tool {
     }
 
     let name = "draftly_edit_draft"
-    let description = "Update the text of an authorized draft after reading it with draftly_read_draft."
+    let description = "Replace the entire stored text of a draft after reading it with draftly_read_draft. Include all text that must stay."
     weak var bridge: AppleChatToolBridge?
 
     func call(arguments: Arguments) async throws -> String {
@@ -189,7 +229,7 @@ private func appleToolFields(_ content: GeneratedContent) throws -> [String: Age
 private struct AppleCatalogTool: Tool {
     typealias Arguments = GeneratedContent
     let name = "draftly_tools"
-    let description = "List authorized Draftly tools when name is omitted. Supply the target tool's name to read its input schema. This catalog's own name is not a target tool."
+    let description = "Omit name to list authorized operations. Pass the exact listed name to inspect that operation’s input schema."
     let parameters: GenerationSchema
     let callback: @MainActor @Sendable (String?) async throws -> String
     init(names: [String], callback: @escaping @MainActor @Sendable (String?) async throws -> String) throws {
@@ -212,7 +252,7 @@ private struct AppleCatalogTool: Tool {
 private struct AppleCallTool: Tool {
     typealias Arguments = GeneratedContent
     let name = "draftly_call"
-    let description = "Use the exact tool name from draftly_tools, such as draftly_drafts_get. Supply targets and version/retry fields directly. parametersJSON contains only operation-specific parameters, not a request envelope. Inspect draftly_tools for those parameters. Never replay an outcome_unknown effect."
+    let description = "Execute an authorized operation by its exact name from draftly_tools. Pass targets, requestID, expectedVersion, and retryKey as separate fields when needed. Encode only the schema’s parameters object in parametersJSON."
     let parameters: GenerationSchema
     let callback: @MainActor @Sendable (String, String) async throws -> String
     init(names: [String], callback: @escaping @MainActor @Sendable (String, String) async throws -> String) throws {
@@ -252,7 +292,8 @@ private struct AppleCallTool: Tool {
         self.generate = generate ?? { prompt, mode, bridge in
             let models = NativeModelAPI()
             models.responseTimeout = timeout
-            return try await models.respondAuthorized(prompt: prompt, mode: mode, tools: try await bridge.modelTools())
+            return try await models.respondAuthorized(prompt: prompt, mode: mode, tools: try await bridge.modelTools(),
+                                                      hasOpenDraft: bridge.currentDraftID != nil)
         }
     }
     func respond(prompt: String, mode: String, session: AgentChatToolSession) async throws -> String {
