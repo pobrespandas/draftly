@@ -95,7 +95,8 @@ struct AppleChatToolsTests {
         }
     }
 
-    @Test(.enabled(if: ProcessInfo.processInfo.environment["DRAFTLY_APPLE_EDIT_QA"] == "1"))
+    #if DRAFTLY_APPLE_LIVE_QA
+    @Test
     func onDeviceModelEditsTheAuthorizedDraft() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let preferences = try TestPreferences(prefix: "Apple-Tool-Edit-")
@@ -121,6 +122,8 @@ struct AppleChatToolsTests {
         #expect(runtime.library.notes.first { $0.id == runtime.allowed.id }?.content == "Apple QA café 🐼", Comment(rawValue: response))
         #expect(runtime.library.notes.first { $0.id == runtime.hidden.id }?.content == runtime.hidden.content)
     }
+
+    #endif
 
     @Test func nativeToolArgumentsPrepareEditAndRecoverWithoutOverwritingLaterText() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
