@@ -4,6 +4,7 @@ import AgentContracts
 /// The backend owns an authenticated local session. Chat input cannot choose it.
 @MainActor final class AgentChatToolSession {
     typealias Backend = @MainActor (AgentRequest) async throws -> AgentResponse
+    let currentDraftID: UUID?
     private let backend: Backend
     private let onClose: @MainActor () -> Void
     private let onDisconnect: @MainActor () -> Void
@@ -13,14 +14,16 @@ import AgentContracts
     private var inFlight = false
     private var usedCalls = Set<String>()
 
-    init(backend: @escaping Backend, onClose: @escaping @MainActor () -> Void = {},
+    init(backend: @escaping Backend, currentDraftID: UUID? = nil, onClose: @escaping @MainActor () -> Void = {},
          onDisconnect: @escaping @MainActor () -> Void = {},
          validateContext: @escaping @MainActor () throws -> Void = {}) {
+        self.currentDraftID = currentDraftID
         self.backend = backend; self.onClose = onClose; self.onDisconnect = onDisconnect
         self.validateContext = validateContext
     }
 
     convenience init(service: AgentCommandService, session: AgentCommandService.Session,
+                     currentDraftID: UUID? = nil,
                      onDisconnect: @escaping @MainActor () -> Void = {},
                      validateContext: @escaping @MainActor () throws -> Void = {}) {
         self.init(backend: { request in
@@ -30,7 +33,7 @@ import AgentContracts
                 targets: request.targets, expectedVersion: request.expectedVersion, retryKey: request.retryKey,
                 parameters: request.parameters)
             return try JSONDecoder().decode(AgentResponse.self, from: await service.respondAsync(to: JSONEncoder().encode(bound), session: session))
-        }, onClose: { service.close(session) }, onDisconnect: onDisconnect, validateContext: validateContext)
+        }, currentDraftID: currentDraftID, onClose: { service.close(session) }, onDisconnect: onDisconnect, validateContext: validateContext)
     }
 
     isolated deinit { invalidate() }

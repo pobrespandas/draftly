@@ -124,6 +124,7 @@ struct AgentMCPTests {
             try await server.start(transport: serverIO)
             let initialized = try await client.connect(transport: clientIO)
             #expect(initialized.protocolVersion == "2025-11-25")
+            #expect(initialized.instructions?.contains(AgentModelInstructions.results) == true)
         }
         func close() async {
             await client.disconnect(); await server?.stop(); await helper?.close(); broker?.stop()

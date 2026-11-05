@@ -113,11 +113,10 @@ struct AppleChatToolsTests {
             capabilities: [.draftsRead, .draftsWrite], scope: .resources([.init(kind: .draft, id: runtime.allowed.id)]))
         defer { _ = try? runtime.registry.revokeFromUserInterface(record.id) }
         runtime.session = try runtime.service.authenticate(connectionID: record.id, credential: #require(runtime.secrets[record.id]))
-        let session = AgentChatToolSession(backend: runtime.backend)
+        let session = AgentChatToolSession(backend: runtime.backend, currentDraftID: runtime.allowed.id)
         defer { session.invalidate() }
         let response = try await AppleChatResponder().respond(
-            prompt: "Call draftly_read_draft directly with draftID " + runtime.allowed.id.uuidString
-                + ". Then call draftly_edit_draft with content set to exactly this single line: Apple QA café 🐼. Use only those two tools.",
+            prompt: "Reemplazá el texto del draft abierto por una sola línea: Apple QA café 🐼. Decime si quedó guardada.",
             mode: "onDevice", session: session)
         #expect(runtime.library.notes.first { $0.id == runtime.allowed.id }?.content == "Apple QA café 🐼", Comment(rawValue: response))
         #expect(runtime.library.notes.first { $0.id == runtime.hidden.id }?.content == runtime.hidden.content)

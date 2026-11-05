@@ -160,13 +160,18 @@ struct AgentConnectionsSettingsTests {
         #expect(f.bytes == before && model.draft != nil)
     }
 
-    @Test func pairingStartsFromTheHumanSelectionAndCancelLeavesNoGrant() throws {
-        let f = Fixture(), q = try f.request(), model = try f.model()
+    @Test func pairingProposesFullAccessAndCanBeNarrowedWithoutGrantingAccess() throws {
+        let f = Fixture(), q = try f.request(), model = try f.model(available: [.draftsRead, .draftsWrite])
         let target = AgentResourceReference(kind: .draft, id: UUID()); f.targets = [target]; f.selected = [target]
         let before = f.bytes
         try model.beginPairing(q.id)
-        #expect(model.draft?.capabilities == [.draftsRead] && model.draft?.targets == [target])
-        #expect(model.draft?.wholeLibrary == false && model.draft?.renewable == false)
+        #expect(model.draft?.capabilities == [.draftsRead, .draftsWrite] && model.draft?.targets == [target])
+        #expect(model.draft?.wholeLibrary == true && model.draft?.renewable == false)
+        try model.preparePairingReview()
+        #expect(model.review?.scope == .library)
+        #expect(f.bytes == before && f.secrets.isEmpty)
+        model.draft?.wholeLibrary = false
+        model.draft?.capabilities = [.draftsRead]
         f.selected = []
         #expect(model.draft?.targets == [target])
         try model.preparePairingReview()
@@ -181,7 +186,7 @@ struct AgentConnectionsSettingsTests {
         try model.beginPairing(q.id); try model.preparePairingReview()
         #expect(throws: AgentErrorCode.interactionRequired) { try model.approvePairing(codesMatch: false) }
         #expect(f.secrets.isEmpty)
-        model.draft?.capabilities.insert(.draftsWrite)
+        model.draft?.capabilities = [.draftsRead, .draftsWrite]
         #expect(model.review == nil)
         #expect(throws: AgentErrorCode.invalidInput) { try model.approvePairing(codesMatch: true) }
         try model.preparePairingReview()

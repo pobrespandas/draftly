@@ -5,6 +5,25 @@ Entries describe source changes. Public downloads are listed on [GitHub Releases
 Historical entries were imported from public GitHub release notes. Unpublished historical candidates were excluded.
 
 
+## [0.3.0]
+
+Draftly 0.3.0
+
+Chat Console shows when draft tools are connected and how to connect them.
+Apple Intelligence On-Device can address the open draft directly.
+ChatGPT and Apple Intelligence use tool results to report whether an edit
+succeeded.
+
+A new MCP connection proposes all available permissions and the entire
+library. Review and narrow the scope before approving. Local agent access
+starts off.
+
+During catalog stabilization, this update restores the default actions and
+groups. It replaces custom and edited actions and groups. It preserves drafts.
+
+Requires macOS 26 or later. Apple Intelligence On-Device requires a compatible
+Mac with Apple Intelligence enabled.
+
 ## [0.2.0]
 
 Draftly 0.2.0

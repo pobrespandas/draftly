@@ -135,6 +135,7 @@ struct LibraryView: View {
     @ViewBuilder private var chatConsole: some View {
         if let settings = hub.agentSettings {
             LocalChatConsolePanel(model: model.chatConsole, settings: settings,
+                hasDraft: library.notes.contains { $0.id == model.editor.noteID },
                 connectTools: { try hub.requestChatToolsFromUserInterface(for: model) })
         } else {
             ChatConsolePanel(model: model.chatConsole)

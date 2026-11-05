@@ -138,7 +138,8 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         }, respond: { prompt, mode in
             let id = UUID().uuidString
             defer { models.discardSession(id) }
-            let data = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id])
+            let data = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id,
+                "instructions": [ChatConsoleInstructions.toolsOff]])
             let raw = try await models.performAsync("modelRespond", payload: String(decoding: data, as: UTF8.self))
             guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
                   let value = frame["value"] as? [String: Any],
@@ -330,4 +331,15 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 enum ChatConsoleError: LocalizedError {
     case invalidModelResponse
     var errorDescription: String? { "The model returned an invalid response." }
+}
+
+
+enum ChatConsoleInstructions {
+    static let toolsOff = """
+        Draftly tools are off for this response. Write suggested text in chat. For a request to access a draft, explain how to open or save it and use the Draft tools control. Report clearly that any suggested text is still in chat.
+        """
+    static let toolsOn = """
+        Use the supplied Draftly tools when the person asks you to read or change a draft. Use the approved draft and editor. If you need their IDs, read draftly_server_capabilities. For selected or unsaved text, read the editor first and edit its buffer. For stored text, read the draft before editing. Prepare the edit with draftly_mutations_prepare and execute it with the returned retryKey. If a required tool or target is unavailable, say what is missing.
+        \(AgentModelInstructions.results)
+        """
 }

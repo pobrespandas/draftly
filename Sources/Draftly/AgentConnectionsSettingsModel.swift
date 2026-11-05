@@ -157,7 +157,10 @@ import AgentContracts
             let selection = initialTargets()
             guard try resolveTargets(selection) == selection else { throw AgentErrorCode.notFound }
             context = .pairing(challenge)
-            draft = AgentGrantEditingCopy(name: challenge.clientName, selectedTargets: selection, now: now())
+            var proposed = AgentGrantEditingCopy(name: challenge.clientName, selectedTargets: selection, now: now())
+            proposed.capabilities = availableCapabilities
+            proposed.wholeLibrary = true
+            draft = proposed
             lastError = nil
         } catch { lastError = code(error); throw error }
     }
