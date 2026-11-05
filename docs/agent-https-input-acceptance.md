@@ -72,3 +72,45 @@ The retained probe source and outputs are in
 `/tmp/draftly-protected-data-probe`. The source input bound above now states the
 actual `AgentRequest.maximumBytes` value. The earlier temporary TLS smoke used a
 separate explicit 1 MiB limit.
+
+## Installed CLI and MCP acceptance — 5 November
+
+The user approved one temporary connection in the isolated QA. Its grant ended
+at 03:24 UTC, had no renewal, and allowed appearance read/manage, approved file
+reads, backup validation permissions and native effects. Draft and editor access,
+Action execution, file writes, unrestricted scripts and permanent deletion stayed
+off. The library had zero drafts. No normal library was opened.
+
+Native approval showed the exact GitHub raw fixture URL, GET, same-origin
+redirects and the 8 MiB limit before theme download. The installed helper returned
+an accepted operation. After approval, its original request returned the installed
+resource. `themes.list` showed exactly one custom theme, `Folder day café 🐼`.
+
+A second request was cancelled while waiting for approval. Cancellation returned
+accepted, then the original request returned `cancelled`. The review disappeared.
+After full app restart, access was off and the same connection was paused. The
+user-authorized session was enabled again within its original deadline. The
+first request returned its original result; the second still returned cancelled.
+Only one theme remained. No repeated approval appeared. These checks establish
+result recovery and no duplicate installation; they do not independently count
+outbound network packets. Live version tokens are process-local and can differ
+from the original recovered result token after restart.
+
+The installed MCP helper initialized with protocol `2025-06-18`. Real
+`tools/call` requests recovered the same installation and listed the single theme.
+MCP then submitted HTTPS backup validation. Native review showed the 32 MiB limit
+and the purpose “Validate the backup without restoring it”. After approval, the
+original request returned `valid=true`, with two themes in the input. The library
+still had only its one installed theme. No backup was restored.
+
+Native UI then confirmed the connection revoked and access off. A new installed
+CLI status call returned exit 3 with `permission_denied`. Discovery returned an
+empty array. No active grant remains. Private request/response evidence is in
+the directory recorded by `/tmp/draftly-https-installed-session-path.txt`.
+Credentials were not placed in commands, logs or this report.
+
+This closes this scoped installed theme-install, backup-validation, cancellation
+and result-recovery flow. Installed theme replacement and backup restore preview,
+real lock/sleep transitions, normal release startup, provider acceptance,
+notarization and signed updates remain open. The previous admission failure no
+longer reproduced; its root cause is not proven. Agents are not ready to publish.

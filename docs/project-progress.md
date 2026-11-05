@@ -1,7 +1,17 @@
 # Project progress
 
-Updated: 4 November 2026. This is the maintained continuation summary.
+Updated: 5 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
+
+## Installed HTTPS acceptance — 5 November
+
+Protected data became available without changing admission rules. Signed isolated
+QA installed one public HTTPS theme after native review. CLI and MCP recovered
+the original result after restart. A second request stayed cancelled. HTTPS backup
+validation passed without restoration. The connection was revoked, access turned
+off, a fresh CLI request denied and discovery empty. Replacement, restore preview,
+lock/sleep, production startup and distribution acceptance remain open. See
+[installed input evidence](agent-https-input-acceptance.md).
 
 ## Reviewed HTTPS input — 4 November
 

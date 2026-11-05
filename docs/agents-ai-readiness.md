@@ -834,3 +834,13 @@ The native effect host now connects `native.http` with app-owned review, bounded
 response reads and a private session. Redirects stay on the reviewed origin.
 Response content is transient and recovery does not send again. Reviewed HTTPS inputs are connected for theme installation and backup validation
 and preview. Installed acceptance remains open. See [HTTP evidence](agent-native-http-acceptance.md).
+
+## Installed HTTPS input acceptance — 5 November
+
+Signed isolated QA now verifies reviewed public theme download and installation,
+CLI/MCP result recovery after restart, cancellation before download approval and
+HTTPS backup validation without restoration. Admission reported protected data
+available; its earlier unavailable state has no established root cause. The test
+ended with connection revoked, access off and a denied fresh CLI request.
+See [scoped installed evidence](agent-https-input-acceptance.md). Coverage remains
+115/137. This does not close the remaining installed or distribution gates.
