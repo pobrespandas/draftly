@@ -431,11 +431,15 @@ private struct AgentConnectionGrantEditor: View {
                 Toggle("The codes match", isOn: $codesMatch)
                 Text("Access expires " + review.grantExpiresAt.formatted(date: .abbreviated, time: .shortened))
                 Text(review.renewable ? "Explicit renewal is allowed." : "Renewal is not allowed.")
+                if case .library = review.scope {
+                    Label("Entire library, including future resources", systemImage: "exclamationmark.shield")
+                        .foregroundStyle(.orange)
+                }
                 Text("Permissions").font(.headline)
                 ForEach(review.capabilities.sorted { $0.rawValue < $1.rawValue }, id: \.rawValue) { Text($0.userTitle) }
                 Text("Resources").font(.headline)
                 switch review.scope {
-                case .library: Text("All resources in this library, including future resources.").foregroundStyle(.orange)
+                case .library: Text("Entire library, including future resources.")
                 case .resources(let targets):
                     if targets.isEmpty { Text("No resource IDs selected.") }
                     ForEach(targets.sorted { ($0.kind.rawValue, $0.id.uuidString) < ($1.kind.rawValue, $1.id.uuidString) }, id: \.self) { target in
