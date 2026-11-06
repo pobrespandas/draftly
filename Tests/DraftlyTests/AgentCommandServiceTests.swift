@@ -205,7 +205,8 @@ struct AgentCommandServiceTests {
             service = try makeService()
             try connections.setEnabledFromUserInterface(true)
         }
-        func makeService(withoutEditors: Bool = false) throws -> AgentCommandService {
+        func makeService(withoutEditors: Bool = false,
+                         bookmarkFolderSelector: @escaping NativeFileSelector = { try await NativeFileSelectionRequest.select($0) }) throws -> AgentCommandService {
             try AgentCommandService(library: library, libraryID: libraryID, connections: connections,
                 appVersion: "QA", preferenceDefaults: try #require(UserDefaults(suiteName: editorDefaultsName)),
                 preferenceStorage: preferenceStorage, nativePreferenceRead: nativePreferenceRead, validateHost: { [unowned self] in
@@ -214,7 +215,8 @@ struct AgentCommandServiceTests {
                 }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
                 uptime: { [unowned self] in self.uptime }, editors: withoutEditors ? nil : editorRegistry, pendingEditorGeneration: { [unowned self] _ in
                     self.onGeneration?(); return self.generation
-                }, operations: operations, deletionApprovals: deletionApprovals, nativeExecution: nativeExecution)
+                }, operations: operations, deletionApprovals: deletionApprovals, nativeExecution: nativeExecution,
+                bookmarkFolderSelector: bookmarkFolderSelector)
         }
         func enablePreferenceWrites() throws {
             let defaults = try #require(UserDefaults(suiteName: editorDefaultsName))
@@ -2832,6 +2834,65 @@ struct AgentCommandServiceTests {
         BookmarkPreferences.store(Data([3]), named: allowed.name, defaults: defaults)
         #expect(try items(f.values("bookmarks.list", session: session)).isEmpty)
         #expect(try f.library.backupData() == before)
+    }
+
+    @Test func bookmarkAddAndForgetRequireReviewAndKeepTheFolder() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall },
+            currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals
+        let name = "Folder café 🐼"
+        var selectionCount = 0
+        f.service = try f.makeService { selection in
+            #expect(selection == .folder(name: name))
+            selectionCount += 1
+            return folder
+        }
+        let capabilities: Set<AgentCapability> = [.preferencesRead, .preferencesWrite]
+        let (record, session) = try f.connect(capabilities: capabilities)
+        func approve(_ request: AgentRequest) async throws -> AgentResponse.Outcome {
+            let reply = try f.send(request, session: session)
+            guard case .accepted(let id, _) = reply.outcome else { return reply.outcome }
+            for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+            let review = try #require(approvals.pendingFromUserInterface().first)
+            #expect(review.effects.snapshot["bookmarkName"] == .string(name))
+            #expect(review.operation == request.operation)
+            if request.operation == "bookmarks.requestAdd" {
+                #expect(selectionCount == 0 && BookmarkPreferences.names(defaults: defaults).isEmpty)
+            } else {
+                #expect(BookmarkPreferences.names(defaults: defaults) == [name])
+            }
+            try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+            for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(1))
+            }
+            return try f.send(request, session: session).outcome
+        }
+        let add = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "bookmarks.requestAdd",
+            parameters: ["name": .string(name), "interactive": .bool(true)])
+        let added = try await approve(add)
+        guard case .result(.object(let result)) = added,
+              case .object(let bookmark) = result["bookmark"], case .string(let raw) = bookmark["id"],
+              let id = UUID(uuidString: raw), case .string(let version) = bookmark["versionToken"] else {
+            Issue.record("Missing bookmark: \(added)"); return
+        }
+        #expect(Set(bookmark.keys) == ["id", "name", "versionToken"])
+        #expect(try f.send(add, session: session).outcome == added && selectionCount == 1)
+        let target = AgentResourceReference(kind: .bookmark, id: id)
+        let forget = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "bookmarks.forget",
+            targets: [target], expectedVersion: version)
+        let (_, excluded) = try f.connect(scope: .resources([]), capabilities: capabilities)
+        #expect(try f.send(forget, session: excluded).outcome == .error(.notFound))
+        #expect(try await approve(forget) == .result(.object(["deletedIDs": .array([.string(raw)])])))
+        #expect(BookmarkPreferences.names(defaults: defaults).isEmpty)
+        #expect(FileManager.default.fileExists(atPath: folder.path))
     }
 
     @Test func bookmarkPagesKeepMembershipAndRejectOtherGrants() throws {

@@ -195,6 +195,8 @@ package extension AgentOperationDescriptor {
         case "workspaces.reorder": "Set the order of saved workspaces."
         case "workspaces.delete": "Request approval in Draftly to delete a workspace."
         case "workspaces.apply": "Apply a saved workspace to an explicit window. Target both the workspace and the window."
+        case "bookmarks.requestAdd": "Ask the user to select a folder and save a bookmark with a new name. Set interactive to true. Only the user can choose the folder."
+        case "bookmarks.forget": "Ask the user to remove a saved folder permission. Use the ID and version from bookmarks.list. The folder and its files are kept."
         case "syntaxes.install": "Install a new syntax definition. A file syntax requires an authorized folder bookmark. Use syntaxes.replace to update an existing definition."
         case "syntaxes.replace": "Replace an installed syntax while keeping its name, type and ID. Read its current version with syntaxes.get first."
         case "syntaxes.delete": "Request approval to delete an installed syntax and its saved file permission. Use the version from syntaxes.get. Drafts must use another syntax before deletion. The source file is kept."

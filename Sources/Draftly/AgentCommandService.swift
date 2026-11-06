@@ -28,7 +28,7 @@ import AgentContracts
         if nativeExecution != nil && operationRegistry != nil { handlers.insert(.nativeExecution) }
         if deletionApprovals != nil && operationRegistry != nil {
             handlers.insert(.workspaceDelete)
-            handlers.insert(.themeDelete)
+            handlers.insert(.appearanceReview)
             handlers.insert(.actionDelete)
             if writes != nil { handlers.insert(.draftPurge) }
         }
@@ -64,6 +64,7 @@ import AgentContracts
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
     private let deletionApprovals: AgentApprovalStore?
+    private let bookmarkFolderSelector: NativeFileSelector
     private let nativeExecution: AgentNativeExecution.Environment?
     private let submitAction: ((AgentRequest, AgentGrant) throws -> UUID)?
     private let activityCursorKey = SymmetricKey(size: .bits256)
@@ -109,7 +110,8 @@ import AgentContracts
          readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])? = nil,
          operations: AgentOperationRegistry? = nil,
          submitAction: ((AgentRequest, AgentGrant) throws -> UUID)? = nil,
-         deletionApprovals: AgentApprovalStore? = nil, nativeExecution: AgentNativeExecution.Environment? = nil) throws {
+         deletionApprovals: AgentApprovalStore? = nil, nativeExecution: AgentNativeExecution.Environment? = nil,
+         bookmarkFolderSelector: @escaping NativeFileSelector = { try await NativeFileSelectionRequest.select($0) }) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.preferenceStorage = preferenceStorage
         self.nativeExecution = nativeExecution
@@ -118,6 +120,7 @@ import AgentContracts
         self.actionLibrary = library
         self.operationRegistry = operations
         self.deletionApprovals = deletionApprovals
+        self.bookmarkFolderSelector = bookmarkFolderSelector
         self.submitAction = submitAction
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
         self.editorRegistry = editors
@@ -300,7 +303,10 @@ import AgentContracts
                 outcome = try submitEditorOpen(request, grant: grant, sessionID: session.id)
             } else if ["editor.preview", "editor.navigate"].contains(request.operation) {
                 outcome = try submitEditorPresentation(request, grant: grant, sessionID: session.id)
-            } else if ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "themes.delete", "syntaxes.delete"].contains(request.operation) {
+            } else if AgentBookmarkReading.reviewedOperations.contains(request.operation) {
+                outcome = try submitBookmarkReview(request, parameters: parameters, grant: grant, sessionID: session.id)
+            } else if ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"].contains(request.operation)
+                        || AgentAppearanceDeletion.operationNames.contains(request.operation) {
                 outcome = try submitDeletion(request, grant: grant, sessionID: session.id)
             } else {
                 let values = try dispatch(request, parameters: parameters, grant: grant, sessionID: session.id)
@@ -351,8 +357,9 @@ import AgentContracts
         case .permitted: break
         case .denied(let error): throw error
         case .needsHumanApproval:
-            guard ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "themes.delete", "syntaxes.delete"].contains(request.operation), deletionApprovals != nil,
-                  operationRegistry != nil else { throw AgentErrorCode.unavailable }
+            let reviewedOperations = AgentAppearanceDeletion.operationNames.union(AgentBookmarkReading.reviewedOperations)
+                .union(["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"])
+            guard reviewedOperations.contains(request.operation), deletionApprovals != nil, operationRegistry != nil else { throw AgentErrorCode.unavailable }
         case .needsEffectAuthorization(_, let humanApproval):
             let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
             let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
@@ -843,6 +850,33 @@ import AgentContracts
             guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
             return try await AgentNativeExecution.run(request, grant: grant, operationID: id, environment: nativeExecution,
                 operations: operationRegistry, validateAuthority: validateOperation)
+        }
+        return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+    }
+
+    private func submitBookmarkReview(_ request: AgentRequest, parameters: [String: AgentJSONValue],
+                                      grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+        guard let operationRegistry, let deletionApprovals else { throw AgentErrorCode.unavailable }
+        try validateSession(sessionID, grant: grant)
+        func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
+            if snapshot.state == .succeeded {
+                guard case .object(let result) = snapshot.result else { throw AgentErrorCode.storageError }
+                try AgentBookmarkSchemas.validateResult(result, for: request)
+                return .result(.object(result))
+            }
+            if snapshot.state.isTerminal { return .error(snapshot.error ?? .outcomeUnknown) }
+            return .accepted(operationID: snapshot.id, state: snapshot.state)
+        }
+        if let id = try operationRegistry.existingRequest(request, grant: grant) {
+            return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+        }
+        guard request.retryKey == nil else { throw AgentErrorCode.invalidInput }
+        let authorize = operationAuthority(for: grant)
+        let bookmarkAccess = bookmarks
+        let select = bookmarkFolderSelector
+        let id = try operationRegistry.startValueRequest(request, grant: grant) { id in
+            try await bookmarkAccess.review(request, parameters: parameters, grant: grant,
+                operationID: id, approvals: deletionApprovals, operations: operationRegistry, authorize: authorize, select: select)
         }
         return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }

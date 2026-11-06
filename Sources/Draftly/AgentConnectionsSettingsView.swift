@@ -147,6 +147,7 @@ private struct AgentOperationReviewSheet: View {
     private var destructiveButtonTitle: String? {
         switch review.operation {
         case "syntaxes.delete": "Delete Syntax"
+        case "bookmarks.forget": "Forget Bookmark"
         case "themes.delete": "Delete Theme"
         case "workspaces.delete": "Delete Workspace"
         case "actions.delete": "Delete Action"
@@ -161,6 +162,7 @@ private struct AgentOperationReviewSheet: View {
                 "backups.validate": "Download Backup for Validation", "backups.previewRestore": "Download Backup for Preview"][review.operation] ?? "Download Input"
         }
         if review.operation == "actionGroups.delete" { return "Remove Action Group" }
+        if review.operation == "bookmarks.requestAdd" { return "Add Folder Bookmark" }
         if let destructiveButtonTitle { return destructiveButtonTitle }
         guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
         switch operation {
@@ -185,6 +187,14 @@ private struct AgentOperationReviewSheet: View {
     }
 
     private var nativeFields: [(String, String)] {
+        if case .string(let name) = review.effects.snapshot["bookmarkName"] {
+            if review.operation == "bookmarks.requestAdd" {
+                return [("Bookmark", name), ("Effect", "Open a folder picker. Save access only if you select a folder.")]
+            }
+            if review.operation == "bookmarks.forget" {
+                return [("Bookmark", name), ("Effect", "Remove the saved folder permission. Keep the folder and its files.")]
+            }
+        }
         if review.operation == "syntaxes.delete", case .string(let name) = review.effects.snapshot["syntaxName"] {
             return [("Syntax", name), ("Effect", "Delete the installed syntax and its saved file permission. Keep drafts and the source file.")]
         }

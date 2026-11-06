@@ -4,7 +4,7 @@ import AgentContracts
 @MainActor struct AgentOperationAvailability {
     enum Handler: CaseIterable {
         case editorRead, editorOpen, draftWrite, editorWrite, preferenceWrite
-        case activityRead, operationControl, actionExecution, workspaceApply, workspaceDelete, draftPurge, themeWrite, themeImport, themeDelete, themePresentation, actionDelete, nativeExecution
+        case activityRead, operationControl, actionExecution, workspaceApply, workspaceDelete, draftPurge, themeWrite, themeImport, appearanceReview, themePresentation, actionDelete, nativeExecution
     }
 
     private struct Rule {
@@ -25,7 +25,7 @@ import AgentContracts
         .init(operations: ["backups.validate"], handlers: []),
         .init(operations: ["backups.export", "backups.previewRestore"], handlers: [.editorRead]),
         .init(operations: AgentThemeReading.operationNames, handlers: []),
-        .init(operations: AgentAppearanceDeletion.operationNames, handlers: [.themeDelete, .operationControl], optionalHostFeature: true),
+        .init(operations: AgentAppearanceDeletion.operationNames.union(AgentBookmarkReading.reviewedOperations), handlers: [.appearanceReview, .operationControl], optionalHostFeature: true),
         .init(operations: AgentThemeInstallation.operationNames, handlers: [.themeImport, .operationControl], optionalHostFeature: true),
         .init(operations: ["syntaxes.install", "syntaxes.replace", "syntaxes.reload"], handlers: [.operationControl], optionalHostFeature: true),
         .init(operations: AgentThemePresentation.operationNames, handlers: [.themePresentation, .operationControl], optionalHostFeature: true),
