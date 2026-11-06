@@ -3,7 +3,7 @@ import Foundation
 // These contracts describe concrete native requests, not arbitrary host payloads.
 package enum AgentNativeSchemas {
     package static let operationNames: Set<String> = Set(schemas.keys)
-    package static let transientTextOperations: Set<String> = ["native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
+    package static let transientTextOperations: Set<String> = ["native.fileRead", "native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
     package static let unrestrictedOperations: Set<String> = ["native.shell", "native.appleScript", "native.shortcut"]
     package static func transientResultField(for operation: String) -> String? {
         if transientTextOperations.contains(operation) { return "text" }
@@ -53,6 +53,12 @@ package enum AgentNativeSchemas {
             "success": r(.boolean), "statusCode": r(.integer(minimum: 100, maximum: 999)),
             "paramsJSON": r(text), "faultCode": .init(shape: .integer()), "error": .init(shape: text)
         ])))), "resultAvailable": r(.boolean)])),
+        "native.fileRead": .init(parameters: .init(fields: [
+            "path": r(.string(minimum: 1, maximum: 4096))
+        ]), result: textResult),
+        "native.fileWrite": .init(parameters: .init(fields: [
+            "path": r(.string(minimum: 1, maximum: 4096)), "text": r(text)
+        ]), result: completed),
         "native.clipboardRead": .init(parameters: .init(fields: [:]), result: textResult),
         "native.clipboardWrite": .init(parameters: .init(fields: ["text": r(text)]), result: completed),
         "native.htmlPreview": .init(parameters: .init(fields: ["html": r(text)]), result: completed),
@@ -80,7 +86,8 @@ package enum AgentNativeSchemas {
     package static func schema(for operation: String) -> AgentOperationSchema? { schemas[operation] }
 
     package static func validatedParameters(for request: AgentRequest) throws -> [String: AgentJSONValue] {
-        guard request.apiVersion == AgentRequest.version, request.targets.isEmpty,
+        guard request.apiVersion == AgentRequest.version,
+              AgentOperationCatalog.operation(named: request.operation)?.acceptsTargets(request.targets) == true,
               let schema = schemas[request.operation], request.retryKey == nil else { throw AgentSchemaError.invalidValue }
         let values = try schema.validatedParameters(request.parameters)
         if request.operation == "native.models", (values["mode"] == nil) != (values["prompt"] == nil) {
@@ -115,6 +122,12 @@ package enum AgentNativeSchemas {
                   }),
                   case .string(let json) = values["paramsJSON"], let params = try boundedJSON(json) as? [Any],
                   params.count <= 128 else { throw AgentSchemaError.invalidValue }
+        }
+        if ["native.fileRead", "native.fileWrite"].contains(request.operation) {
+            guard case .string(let path) = values["path"], AgentImportSource.isRelativePath(path) else {
+                throw AgentSchemaError.invalidValue
+            }
+            if case .string(let content) = values["text"], content.utf8.count > 65_536 { throw AgentSchemaError.invalidValue }
         }
         if request.operation == "native.openURL" {
             guard case .string(let raw) = values["url"], let url = URL(string: raw),

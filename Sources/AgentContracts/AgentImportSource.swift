@@ -23,6 +23,13 @@ package enum AgentImportSource {
         return .object(.init(fields: result))
     }
 
+    package static func isRelativePath(_ path: String) -> Bool {
+        !path.isEmpty && !path.hasPrefix("/") && !path.contains("\\") && !path.contains("\0")
+            && path.split(separator: "/", omittingEmptySubsequences: false).allSatisfy {
+                !$0.isEmpty && $0 != "." && $0 != ".." && $0.utf8.count <= 255
+            }
+    }
+
     package static func validate(_ value: AgentJSONValue?, installationEndpoint: String? = nil) throws -> String {
         guard case .object(let fields) = value else { throw AgentSchemaError.invalidValue }
         try shape.validate(.object(fields))
@@ -30,10 +37,7 @@ package enum AgentImportSource {
         switch kind {
         case "inline", "transfer": break
         case "bookmark":
-            guard case .string(let path) = fields["path"], !path.hasPrefix("/"), !path.contains("\\"), !path.contains("\0"),
-                  path.split(separator: "/", omittingEmptySubsequences: false).allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." }) else {
-                throw AgentSchemaError.invalidValue
-            }
+            guard case .string(let path) = fields["path"], isRelativePath(path) else { throw AgentSchemaError.invalidValue }
         case "installationURL", "https":
             guard case .string(let text) = fields["url"], let url = URLComponents(string: text), url.url != nil,
                   url.user == nil, url.password == nil, url.fragment == nil else { throw AgentSchemaError.invalidValue }

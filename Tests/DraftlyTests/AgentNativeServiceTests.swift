@@ -23,6 +23,58 @@ struct AgentNativeServiceTests {
         func finishAction() { finishes += 1 }
     }
 
+    @Test func nativeFilesRequireAnAuthorizedBookmarkAndNeverOverwrite() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let root = base.appendingPathComponent("folder")
+        let outside = base.appendingPathComponent("outside")
+        for url in [root, outside] { try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true) }
+        defer { try? FileManager.default.removeItem(at: base) }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        BookmarkPreferences.store(try BookmarkPreferences.data(for: root), named: "QA folder", defaults: defaults)
+        let bookmark = try #require(try BookmarkPreferences.agentRecords(defaults: defaults).first)
+        try FileManager.default.createSymbolicLink(at: root.appendingPathComponent("link"), withDestinationURL: outside)
+        let target = AgentResourceReference(kind: .bookmark, id: bookmark.id)
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations
+        f.nativeExecution = .init(makeHost: { DirectNativeHost() }, approvals: approvals)
+        f.service = try f.makeService()
+        let capabilities: Set<AgentCapability> = [.nativeUse, .filesRead, .filesWrite]
+        let (record, session) = try f.connect(scope: .resources([target]), capabilities: capabilities)
+        let (_, excluded) = try f.connect(scope: .resources([]), capabilities: capabilities)
+        func write(_ path: String, text: String) -> AgentRequest {
+            .init(requestID: UUID(), libraryID: f.libraryID, operation: "native.fileWrite", targets: [target],
+                  parameters: ["path": .string(path), "text": .string(text)])
+        }
+        func approve(_ request: AgentRequest) async throws -> AgentResponse.Outcome {
+            let reply = try f.send(request, session: session)
+            guard case .accepted(let id, _) = reply.outcome else { return reply.outcome }
+            for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+            let review = try #require(approvals.pendingFromUserInterface().first)
+            #expect(review.effects.targets == [target])
+            try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+            for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(1))
+            }
+            return try f.send(request, session: session).outcome
+        }
+        let request = write("café.txt", text: "QA café 🐼")
+        #expect(try f.send(request, session: excluded).outcome == .error(.notFound))
+        #expect(try f.send(write("../outside.txt", text: "never"), session: session).outcome == .error(.invalidInput))
+        #expect(try await approve(write("link/outside.txt", text: "never")) == .error(.permissionDenied))
+        #expect(try await approve(request) == .result(.object(["completed": .bool(true)])))
+        #expect(try f.send(request, session: session).outcome == .result(.object(["completed": .bool(true)])))
+        #expect(try await approve(write("café.txt", text: "never replace")) == .error(.versionConflict))
+        let read = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "native.fileRead",
+            targets: [target], parameters: ["path": .string("café.txt")])
+        #expect(try await approve(read) == .result(.object(["text": .string("QA café 🐼"), "resultAvailable": .bool(true)])))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: outside.path).isEmpty)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).count == 2)
+    }
+
     @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.xmlrpc", "native.models"])
     func directNativeRequestsRequireReviewAndNeverReplay(operation: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }

@@ -131,8 +131,8 @@ Contract presence alone does not make an operation available.
 | activity.changes | AgentActivityStore | connection only | none | none |
 | native.http | NativeActionHost | nativeUse | none | human |
 | native.xmlrpc | NativeActionHost | nativeUse | none | human |
-| native.fileRead | NativeActionHost | nativeUse | none | human |
-| native.fileWrite | NativeActionHost | nativeUse | none | human |
+| native.fileRead | AgentImportReading | nativeUse,filesRead | bookmark | human |
+| native.fileWrite | AgentImportReading | nativeUse,filesWrite | bookmark | human |
 | native.clipboardRead | NativeActionHost | nativeUse | none | human |
 | native.clipboardWrite | NativeActionHost | nativeUse | none | human |
 | native.htmlToMarkdown | NativeActionHost | nativeUse | none | human |

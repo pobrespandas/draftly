@@ -27,6 +27,8 @@ import DraftlyCore
         case "native.models":
             operation = parameters["prompt"] == nil ? "modelModes" : "modelRespond"
             values = parameters
+        case "native.fileRead": operation = "readBookmarkedFile"; values = parameters
+        case "native.fileWrite": operation = "createBookmarkedFile"; values = parameters
         case "native.http": operation = "http"; values = parameters
         case "native.xmlrpc":
             guard let url = parameters["url"], let timeout = parameters["timeout"],
@@ -64,17 +66,18 @@ import DraftlyCore
            let scheme = URL(string: raw)?.scheme?.lowercased(), !["http", "https"].contains(scheme) {
             capabilities.insert(.scriptsUnrestricted); libraryScope = true
         }
-        guard grant.capabilities.isSuperset(of: capabilities), !libraryScope || grant.scope == .library else {
+        guard grant.capabilities.isSuperset(of: capabilities), request.targets.allSatisfy(grant.scope.permits),
+              !libraryScope || grant.scope == .library else {
             throw AgentErrorCode.permissionDenied
         }
         return Plan(operation: operation, values: values,
-            effects: .init(capabilities: capabilities, targets: [], requiresLibraryScope: libraryScope,
+            effects: .init(capabilities: capabilities, targets: Set(request.targets), requiresLibraryScope: libraryScope,
                 snapshot: ["nativeOperation": .string(operation), "nativeParameters": .object(operation == "xmlrpc" ? parameters : values)]))
     }
 
     static func run(_ request: AgentRequest, grant: AgentGrant, operationID: UUID,
-                    environment: Environment, operations: AgentOperationRegistry,
-                    validateAuthority: () throws -> Void) async throws -> [String: AgentJSONValue] {
+                    environment: Environment, operations: AgentOperationRegistry, fileDefaults: UserDefaults = .standard,
+                    validateAuthority: @escaping () throws -> Void) async throws -> [String: AgentJSONValue] {
         var submittedEffect: UUID?
         var host: (any ActionHost)?
         defer { host?.finishAction() }
@@ -84,12 +87,45 @@ import DraftlyCore
             try operations.setWaitingForUser(operationID, waiting: true)
             try await environment.approvals.waitForApproval(request, connectionID: grant.connectionID, resolveEffects: {
                 try Task.checkCancellation(); try validateAuthority()
-                return try plan(request, grant: grant).effects
+                let effects = try plan(request, grant: grant).effects
+                guard let target = request.targets.first, target.kind == .bookmark else { return effects }
+                guard let record = try BookmarkPreferences.agentRecords(defaults: fileDefaults).first(where: { $0.id == target.id }) else {
+                    throw AgentErrorCode.notFound
+                }
+                var snapshot = effects.snapshot
+                snapshot["bookmarkName"] = .string(record.name)
+                return .init(capabilities: effects.capabilities, targets: effects.targets,
+                    requiresLibraryScope: effects.requiresLibraryScope, snapshot: snapshot)
             })
             try operations.setWaitingForUser(operationID, waiting: false)
             try Task.checkCancellation(); try validateAuthority()
             let current = try plan(request, grant: grant)
             guard current.operation == initial.operation, current.values == initial.values else { throw AgentErrorCode.versionConflict }
+            if ["native.fileRead", "native.fileWrite"].contains(request.operation) {
+                guard let bookmark = request.targets.first, case .string(let path) = current.values["path"] else {
+                    throw AgentErrorCode.invalidInput
+                }
+                let effect = UUID()
+                @MainActor func submit() throws {
+                    try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
+                    submittedEffect = effect
+                }
+                let result: [String: AgentJSONValue]
+                if request.operation == "native.fileRead" {
+                    let text = try AgentImportReading.readText(path, bookmarkID: bookmark.id, defaults: fileDefaults,
+                        authorize: validateAuthority)
+                    result = ["text": .string(text), "resultAvailable": .bool(true)]
+                    try submit()
+                } else {
+                    guard case .string(let text) = current.values["text"] else { throw AgentErrorCode.invalidInput }
+                    try AgentImportReading.writeText(text, path: path, bookmarkID: bookmark.id, defaults: fileDefaults,
+                        authorize: validateAuthority, beforePublish: submit)
+                    result = ["completed": .bool(true)]
+                }
+                try AgentNativeSchemas.validateResult(result, for: request.operation)
+                try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "completed")
+                return result
+            }
             let payload: String
             if request.operation == "native.appleScript" {
                 guard var values = try JSONSerialization.jsonObject(with: JSONEncoder().encode(current.values)) as? [String: Any] else { throw AgentErrorCode.invalidInput }

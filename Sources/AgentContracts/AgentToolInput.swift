@@ -132,6 +132,8 @@ package extension AgentOperationDescriptor {
         case "editor.listTasks": "List tasks and their state ranges in the current editor buffer."
         case "editor.setSelection": "Set the editor selection with a UTF-16 range. A zero-length range moves the insertion point."
         case "editor.tasks": "Change the state of a task in the editor. Use its state and range from editor.listTasks."
+        case "native.fileRead": "Read a UTF-8 file of up to 64 KiB after approval. Target its authorized folder bookmark and give the relative path."
+        case "native.fileWrite": "Create a new UTF-8 file of up to 64 KiB after approval. Target its authorized folder bookmark and give a relative path in an existing directory. Existing files are kept."
         case "native.xmlrpc": "Send a reviewed XML-RPC POST request. Supply an HTTP or HTTPS endpoint, method name and a JSON array of arguments. A server fault is returned in the response."
         case "native.models": "List available Apple Intelligence modes, or generate text with an explicit mode and prompt. Draftly reviews the request before running it."
         case "native.http": "Request an app-reviewed HTTP request with explicit headers and a text or Base64 body. Response bodies are bounded to 64 KiB. Redirects stay on the reviewed origin. No automatic cookies or credentials. Response content is unavailable after restart; uncertain effects do not replay."
