@@ -150,7 +150,8 @@ struct AgentOperationAvailabilityTests {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
             "themes.delete", "backups.requestRestore", "imports.commit", "bookmarks.requestAdd", "bookmarks.forget", "syntaxes.delete", "syntaxes.install", "syntaxes.replace", "syntaxes.reload", "activity.list", "activity.changes", "operations.get", "operations.cancel", "operations.wait", "operations.answerPrompt", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "editor.preview", "editor.navigate", "editor.open"]).union(AgentNativeSchemas.operationNames).union(AgentThemePresentation.operationNames).union(AgentThemeInstallation.operationNames))
-        #expect(available.operations.allSatisfy { AgentOperationCatalog.operation(named: $0) != nil })
+        #expect(available.operations == Set(AgentOperationCatalog.operations.map(\.name)))
+        #expect(available.operations.isSubset(of: AgentOperationSchemas.operationNames))
         #expect(!available.operations.contains("drafts.delete"))
         #expect(!available.operations.contains("backups.restore"))
     }

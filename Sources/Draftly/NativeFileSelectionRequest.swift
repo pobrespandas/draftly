@@ -1,9 +1,11 @@
 import AppKit
 import DraftlyCore
+import UniformTypeIdentifiers
 
 enum NativeFileSelection: Equatable {
     case save(name: String)
     case folder(name: String)
+    case document
 }
 
 typealias NativeFileSelector = @MainActor (NativeFileSelection) async throws -> URL?
@@ -35,6 +37,12 @@ enum NativeFileSelectionRequest {
             folder.canChooseFiles = false; folder.canChooseDirectories = true
             folder.message = "Choose the folder for \(name)."
             panel = folder
+        case .document:
+            let document = NSOpenPanel()
+            document.allowedContentTypes = [.image, .pdf]
+            document.allowsMultipleSelection = false
+            document.message = "Choose a scanned image or PDF to recognize its text."
+            panel = document
         }
         panel.isReleasedWhenClosed = false
         panel.begin { [weak panel] response in

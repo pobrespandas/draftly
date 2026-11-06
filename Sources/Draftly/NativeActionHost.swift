@@ -83,6 +83,7 @@ final class NativeActionHost: ActionHost {
         case .speech: result = try await NativeSpeechRequest.run(values)
         case .transcription: result = try await NativeTranscriptionRequest.run(values)
         case .appleScript: result = try await NativeAppleScriptProcess.run(values)
+        case .documentRecognition: result = try await NativeDocumentRecognition.selectAndRecognize()
         case .dictation:
             if let dictationHandler { result = try dictationHandler(values) }
             else { result = try await NativeDictationRequest.run(values) }

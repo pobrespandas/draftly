@@ -3,7 +3,7 @@ import Foundation
 // These contracts describe concrete native requests, not arbitrary host payloads.
 package enum AgentNativeSchemas {
     package static let operationNames: Set<String> = Set(schemas.keys)
-    package static let transientTextOperations: Set<String> = ["native.fileRead", "native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
+    package static let transientTextOperations: Set<String> = ["native.scanDocument", "native.fileRead", "native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
     package static let unrestrictedOperations: Set<String> = ["native.shell", "native.appleScript", "native.shortcut"]
     package static func transientResultField(for operation: String) -> String? {
         if transientTextOperations.contains(operation) { return "text" }
@@ -78,6 +78,7 @@ package enum AgentNativeSchemas {
             "title": r(.string(minimum: 1, maximum: 1024)), "notes": .init(shape: text, defaultValue: .string("")),
             "dueDate": .init(shape: .utcDate), "listID": .init(shape: .string(minimum: 1, maximum: 1024))
         ]), result: .init(fields: ["identifier": r(.string(minimum: 1, maximum: 4096))])),
+        "native.scanDocument": .init(parameters: .init(fields: [:]), result: textResult),
         "native.clipboardRead": .init(parameters: .init(fields: [:]), result: textResult),
         "native.clipboardWrite": .init(parameters: .init(fields: ["text": r(text)]), result: completed),
         "native.htmlPreview": .init(parameters: .init(fields: ["html": r(text)]), result: completed),

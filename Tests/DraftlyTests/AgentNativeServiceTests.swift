@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Darwin
 import Testing
 import AgentContracts
@@ -21,6 +22,28 @@ struct AgentNativeServiceTests {
             calls.append((operation, payload)); try onCall?(); try await afterCall?(); return response
         }
         func finishAction() { finishes += 1 }
+    }
+
+    @Test func documentRecognitionUsesOnlyTheSelectedFileAndSupportsCancellation() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tiff")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let image = NSImage(size: NSSize(width: 960, height: 300), flipped: false) { rect in
+            NSColor.white.setFill()
+            rect.fill()
+            ("Draftly scan 12345" as NSString).draw(at: NSPoint(x: 45, y: 100), withAttributes: [
+                .font: NSFont.systemFont(ofSize: 72), .foregroundColor: NSColor.black
+            ])
+            return true
+        }
+        try #require(image.tiffRepresentation).write(to: url)
+        let result = try await NativeDocumentRecognition.selectAndRecognize { selection in
+            #expect(selection == .document)
+            return url
+        }
+        #expect(result.contains("Draftly scan 12345"))
+        await #expect(throws: ActionExecutionInterruption.self) {
+            _ = try await NativeDocumentRecognition.selectAndRecognize { _ in nil }
+        }
     }
 
     @Test func nativeFilesRequireAnAuthorizedBookmarkAndNeverOverwrite() async throws {
@@ -75,7 +98,7 @@ struct AgentNativeServiceTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).count == 2)
     }
 
-    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.models"])
+    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.scanDocument", "native.models"])
     func directNativeRequestsRequireReviewAndNeverReplay(operation: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -87,7 +110,7 @@ struct AgentNativeServiceTests {
         let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
         defer { operations.cancelAll() }
         let host = DirectNativeHost()
-        let textOperations: Set<String> = ["native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
+        let textOperations: Set<String> = ["native.scanDocument", "native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
         let unrestricted: Set<String> = ["native.shell", "native.appleScript", "native.shortcut"]
         let isText = textOperations.contains(operation)
         var expected: [String: AgentJSONValue] = ["completed": .bool(true)]
@@ -131,7 +154,7 @@ struct AgentNativeServiceTests {
         case "native.xmlrpc": parameters = ["url": .string("http://127.0.0.1:8080/RPC2"),
             "methodName": .string("fixture.echo"), "paramsJSON": .string(#"["PRIVATE <text> café 🐼"]"#)]
         case "native.http": parameters = ["url": .string("https://example.invalid/qa"), "method": .string("POST"), "bodyText": .string("PRIVATE request")]
-        case "native.clipboardRead", "native.location", "native.models": parameters = [:]
+        case "native.clipboardRead", "native.location", "native.scanDocument", "native.models": parameters = [:]
         case "native.dictate", "native.transcribe": parameters = ["locale": .string("es-AR")]
         case "native.openURL": parameters = ["url": .string("https://example.com/qa")]
         case "native.htmlToMarkdown", "native.htmlPreview": parameters = ["html": .string("<b>PRIVATE input</b>")]
@@ -153,7 +176,7 @@ struct AgentNativeServiceTests {
         #expect(reply.outcome == .result(.object(expected)) && host.calls.count == 1 && host.finishes == 1 && host.constructions == 1)
         let mappings = ["native.clipboardRead": "getClipboard", "native.clipboardWrite": "clipboard", "native.htmlToMarkdown": "htmlToMarkdown",
             "native.share": "share", "native.print": "print", "native.openURL": "openURL", "native.speak": "speak", "native.dictate": "dictate",
-            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut", "native.http": "http", "native.xmlrpc": "xmlrpc", "native.mail": "openMailComposer", "native.messages": "openMessagesComposer", "native.models": "modelModes", "native.htmlPreview": "htmlPreview"]
+            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut", "native.http": "http", "native.xmlrpc": "xmlrpc", "native.mail": "openMailComposer", "native.messages": "openMessagesComposer", "native.models": "modelModes", "native.scanDocument": "recognizeSelectedDocument", "native.htmlPreview": "htmlPreview"]
         #expect(host.calls.first?.0 == mappings[operation])
         let payload = try JSONDecoder().decode([String: AgentJSONValue].self, from: Data(try #require(host.calls.first?.1).utf8))
         if operation == "native.htmlPreview" { #expect(payload["localContentOnly"] == .bool(true)) }
@@ -325,7 +348,7 @@ struct AgentNativeServiceTests {
         defer { tools.invalidate(revoke: false) }
         let names = Set(try await tools.tools().map(\.operation).filter { $0.hasPrefix("native.") })
         var expected: Set<String> = ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share",
-            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.calendar", "native.reminders", "native.models"]
+            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.calendar", "native.reminders", "native.scanDocument", "native.models"]
         if allResources && unrestricted { expected.formUnion(["native.shell", "native.appleScript", "native.shortcut"]) }
         #expect(names == expected && host.calls.isEmpty && approvals.pendingFromUserInterface().isEmpty)
     }

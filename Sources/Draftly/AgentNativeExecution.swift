@@ -27,6 +27,7 @@ import DraftlyCore
         case "native.models":
             operation = parameters["prompt"] == nil ? "modelModes" : "modelRespond"
             values = parameters
+        case "native.scanDocument": operation = "recognizeSelectedDocument"; values = [:]
         case "native.calendar": operation = "calendarCreate"; values = parameters
         case "native.reminders": operation = "reminderCreate"; values = parameters
         case "native.mail": operation = "openMailComposer"; values = parameters
@@ -164,9 +165,17 @@ import DraftlyCore
                 payload = String(decoding: try JSONEncoder().encode(values), as: UTF8.self)
             }
             let effect = UUID()
-            try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
-            submittedEffect = effect
-            let raw = try await adapter.performAsync(current.operation, payload: payload)
+            let raw: String
+            if request.operation == "native.scanDocument" {
+                raw = try await adapter.performAsync(current.operation, payload: payload)
+                try Task.checkCancellation(); try validateAuthority()
+                try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
+                submittedEffect = effect
+            } else {
+                try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
+                submittedEffect = effect
+                raw = try await adapter.performAsync(current.operation, payload: payload)
+            }
             try Task.checkCancellation(); try validateAuthority()
             let declinedEvent = ["native.calendar", "native.reminders"].contains(request.operation)
                 && (try? JSONDecoder().decode([String: AgentJSONValue].self, from: Data(raw.utf8)))?["value"] == .null

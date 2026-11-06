@@ -20,6 +20,7 @@ enum NativeAsyncRoute: Equatable {
     case speech
     case transcription
     case appleScript
+    case documentRecognition
     case dictation
 
     @MainActor
@@ -47,6 +48,7 @@ enum NativeAsyncRoute: Equatable {
         case "transcribe": return .transcription
         case "appleScript": return .appleScript
         case "dictate": return .dictation
+        case "recognizeSelectedDocument": return .documentRecognition
         default: return nil
         }
     }

@@ -170,6 +170,7 @@ private struct AgentOperationReviewSheet: View {
         switch operation {
         case "http": return "Make an HTTP request"
         case "xmlrpc": return "Make an XML-RPC request"
+        case "recognizeSelectedDocument": return "Recognize a Scanned Document"
         case "calendarCreate": return "Create Calendar Event"
         case "reminderCreate": return "Create Reminder"
         case "openMailComposer": return "Open Mail Composer"
@@ -262,6 +263,7 @@ private struct AgentOperationReviewSheet: View {
            ["shellScript", "shell", "appleScript", "shortcut"].contains(operation) {
             return [("Access", "Uses your macOS permissions and full library access.")] + rows
         }
+        if review.operation == "native.scanDocument" { return [("Effect", "Choose a scanned image or PDF to share its recognized text with this connection.")] }
         if review.operation == "native.calendar", fields["calendarID"] == nil {
             return [("Calendar", "Current default calendar")] + rows
         }

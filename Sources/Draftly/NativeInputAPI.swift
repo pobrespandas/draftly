@@ -3,6 +3,9 @@ import AVFoundation
 @preconcurrency import Speech
 import Vision
 import PDFKit
+import ImageIO
+import Darwin
+import AgentContracts
 import DraftlyCore
 
 @MainActor extension NativeActionHost {
@@ -115,4 +118,73 @@ final class SpeechResult: @unchecked Sendable {
     @objc private func up() { move(-1) }
     @objc private func down() { move(1) }
     private func move(_ offset: Int) { let row = table.selectedRow; guard lines.indices.contains(row), lines.indices.contains(row + offset) else { return }; lines.swapAt(row, row + offset); table.reloadData(); table.selectRowIndexes(IndexSet(integer: row + offset), byExtendingSelection: false) }
+}
+
+
+@MainActor enum NativeDocumentRecognition {
+    static func selectAndRecognize(select: NativeFileSelector = { try await NativeFileSelectionRequest.select($0) }) async throws -> String {
+        guard let url = try await select(.document) else { throw ActionExecutionInterruption.cancelled }
+        try Task.checkCancellation()
+        let worker = Task.detached(priority: .userInitiated) { try recognize(url) }
+        return try await withTaskCancellationHandler {
+            let result = try await worker.value
+            try Task.checkCancellation()
+            return result
+        } onCancel: { worker.cancel() }
+    }
+
+    nonisolated static func recognize(_ url: URL) throws -> String {
+        try Task.checkCancellation()
+        guard url.isFileURL else { throw AgentErrorCode.invalidInput }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        let descriptor = open(url.path, O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC)
+        guard descriptor >= 0 else { throw AgentErrorCode.unavailable }
+        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? file.close() }
+        let limit = 20 * 1024 * 1024
+        var info = stat()
+        guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG,
+              info.st_size > 0, info.st_size <= limit else { throw AgentErrorCode.invalidInput }
+        var data = Data()
+        while data.count <= limit {
+            try Task.checkCancellation()
+            let chunk = try file.read(upToCount: min(64 * 1024, limit + 1 - data.count)) ?? Data()
+            if chunk.isEmpty { break }
+            data.append(chunk)
+        }
+        guard data.count <= limit else { throw AgentErrorCode.invalidInput }
+        var output: [String] = []
+        var byteCount = 0
+        func append(_ image: CGImage) throws {
+            try Task.checkCancellation()
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            try VNImageRequestHandler(cgImage: image).perform([request])
+            try Task.checkCancellation()
+            let page = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
+            byteCount += page.utf8.count + (output.isEmpty ? 0 : 2)
+            guard byteCount <= 65_536 else { throw AgentErrorCode.invalidInput }
+            output.append(page)
+        }
+        if let pdf = PDFDocument(data: data) {
+            guard !pdf.isLocked, (1...20).contains(pdf.pageCount) else { throw AgentErrorCode.invalidInput }
+            for index in 0..<pdf.pageCount {
+                try Task.checkCancellation()
+                guard let page = pdf.page(at: index),
+                      let image = page.thumbnail(of: NSSize(width: 2400, height: 3200), for: .mediaBox)
+                        .cgImage(forProposedRect: nil, context: nil, hints: nil) else { throw AgentErrorCode.invalidInput }
+                try append(image)
+            }
+        } else {
+            let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true, kCGImageSourceThumbnailMaxPixelSize: 3200]
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetCount(source) == 1,
+                  let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+                throw AgentErrorCode.invalidInput
+            }
+            try append(image)
+        }
+        return output.joined(separator: "\n\n")
+    }
 }

@@ -543,20 +543,14 @@ Draftly stops before modifying the library.
 
 ## Operation coverage
 
-The required-operation manifest contains 137 names. A source-set review found
-136 names in implemented or conditional handler sets in the catalog work. The
-other name has no direct handler in those sets. Installed acceptance and
-connection-specific availability are tracked separately.
+The required-operation manifest contains 137 names. All names now have an
+implemented or conditional handler in the catalog branch. Installed acceptance
+and connection-specific availability are tracked separately. `server.schemas`
+reports availability for the configured host.
 
-The review used `AgentCommandService.implementedOperations`, its conditional
-availability, the draft/editor/preference writer sets, and the required
-manifest. `server.schemas` remains authoritative for a configured connection.
-Some native effects already run through reviewed Actions; that does not supply
-a direct handler for every `native.*` contract.
-
-| Family | Direct contracts still outside those handler sets |
-| --- | --- |
-| Native operations | `native.scanDocument` |
+`native.scanDocument` recognizes text from a scanned image or PDF that the
+person selects in Draftly after approval. Direct capture from Continuity
+Camera is a separate pending workflow.
 
 Keep the full [operation inventory](research/agent-operation-inventory.md) and
 [required manifest](../Tests/AgentContractsTests/required-operations.txt).
