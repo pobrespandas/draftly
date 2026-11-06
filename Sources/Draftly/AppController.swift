@@ -374,9 +374,11 @@ final class AppController: ObservableObject {
                     "Contents/Helpers/DraftlyAgent.app/Contents/MacOS/draftly-agent")
                 if FileManager.default.isExecutableFile(atPath: helper.path) {
                     do {
+                        let defaults = AgentQAConfiguration.chatDefaults ?? .standard
+                        let domain = AgentQAConfiguration.chatNamespace ?? ApplicationIdentityMigration.identifier
                         try configureAgentHost(enableReviewedActions: true, enableReviewedMutations: true,
-                            preferenceStorage: AgentPreferenceStorage(defaults: .standard,
-                                domain: ApplicationIdentityMigration.identifier))
+                            preferenceStorage: AgentPreferenceStorage(defaults: defaults, domain: domain),
+                            preferenceDefaults: defaults)
                     } catch {
                         // Agent startup must not prevent access to the writing library.
                         FileHandle.standardError.write(Data("Local agent host unavailable at startup\n".utf8))
