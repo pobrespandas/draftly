@@ -4,6 +4,29 @@ Entries describe source changes. Public downloads are listed on [GitHub Releases
 
 Historical entries were imported from public GitHub release notes. Unpublished historical candidates were excluded.
 
+## [0.4.0]
+
+Draftly 0.4.0
+
+The local MCP catalog now has 137 operations. Clients discover tools based
+on their active permissions. Local agent access starts off. You can review
+and narrow access before approving a connection.
+
+Agents can answer input prompts in running actions, install and update
+syntax definitions, and request changes to folder bookmarks. They can
+validate and preview imports before applying them. A reviewed backup restore
+saves a recovery copy before it changes the library.
+
+Reviewed native tools can read and create files in approved folders, call
+XML-RPC services, open Mail and Messages composers, create Calendar events
+and reminders, and recognize text in a selected scanned image or PDF. Mail
+and Messages open composers for you to review and send.
+
+During catalog stabilization, this update restores the default actions and
+groups. It replaces custom and edited actions and groups. It preserves drafts.
+
+Requires macOS 26 or later. Native integrations depend on system permissions
+and availability.
 
 ## [0.3.0]
 
