@@ -536,9 +536,9 @@ See [selection validation](agent-theme-selection-acceptance.md).
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-115 names in implemented or conditional handler sets. The other 22 names have
-no direct handler in those sets. These counts do not prove that 115 operations
-are complete, always available, or accepted in an installed app.
+125 names in implemented or conditional handler sets in the catalog work. The
+other 12 names have no direct handler in those sets. Installed acceptance and
+connection-specific availability are tracked separately.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
 availability, the draft/editor/preference writer sets, and the required
@@ -548,12 +548,9 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
-| Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
 | Backups | `backups.requestRestore` |
-| Native operations | `native.xmlrpc`, `native.fileRead`, `native.fileWrite`, `native.htmlPreview`, `native.mail`, `native.messages`, `native.calendar`, `native.reminders`, `native.scanDocument`, `native.models` |
-| Operation control and activity | `operations.answerPrompt`, `activity.changes` |
+| Native operations | `native.xmlrpc`, `native.fileRead`, `native.fileWrite`, `native.mail`, `native.messages`, `native.calendar`, `native.reminders`, `native.scanDocument` |
 
 Keep the full [operation inventory](research/agent-operation-inventory.md) and
 [required manifest](../Tests/AgentContractsTests/required-operations.txt).

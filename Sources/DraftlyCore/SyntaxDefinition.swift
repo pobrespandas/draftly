@@ -557,20 +557,23 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
 }
 
 @MainActor public enum SyntaxFileAccess {
+    package static func bookmarkKey(for id: UUID) -> String { "syntax.file." + id.uuidString }
+
     public static func install(_ definition: SyntaxDefinition, from url: URL, in library: LibraryStore,
                                defaults: UserDefaults = .standard) throws {
         guard definition.type == "file" else { throw DraftlyError.message("A file syntax definition is required.") }
         let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
         try library.saveSyntax(definition)
-        defaults.set(bookmark, forKey: "syntax.file." + definition.id.uuidString)
+        defaults.set(bookmark, forKey: bookmarkKey(for: definition.id))
     }
 
     public static func register(_ url: URL, id: UUID, defaults: UserDefaults = .standard) throws {
         let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
-        defaults.set(bookmark, forKey: "syntax.file." + id.uuidString)
+        defaults.set(bookmark, forKey: bookmarkKey(for: id))
     }
-    public static func read(_ definition: SyntaxDefinition, defaults: UserDefaults = .standard, maximumBytes: Int? = nil) throws -> SyntaxDefinition {
-        guard let bookmark = defaults.data(forKey: "syntax.file." + definition.id.uuidString) else { throw DraftlyError.message("Reselect the file for syntax \(definition.name).") }
+    public static func read(_ definition: SyntaxDefinition, defaults: UserDefaults = .standard, maximumBytes: Int? = nil,
+                            refreshStalePermission: Bool = true) throws -> SyntaxDefinition {
+        guard let bookmark = defaults.data(forKey: bookmarkKey(for: definition.id)) else { throw DraftlyError.message("Reselect the file for syntax \(definition.name).") }
         var stale = false
         let url = try URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
         let active = url.startAccessingSecurityScopedResource(); defer { if active { url.stopAccessingSecurityScopedResource() } }
@@ -600,7 +603,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         } else { data = try Data(contentsOf: url) }
         let current = try SyntaxDefinition(data: data, type: "file", id: definition.id)
         guard current.name == definition.name else { throw DraftlyError.message("The file syntax name changed. Import it again.") }
-        if stale { try register(url, id: definition.id, defaults: defaults) }
+        if stale && refreshStalePermission { try register(url, id: definition.id, defaults: defaults) }
         return current
     }
 }

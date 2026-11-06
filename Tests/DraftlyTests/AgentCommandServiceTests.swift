@@ -205,7 +205,8 @@ struct AgentCommandServiceTests {
             service = try makeService()
             try connections.setEnabledFromUserInterface(true)
         }
-        func makeService(withoutEditors: Bool = false) throws -> AgentCommandService {
+        func makeService(withoutEditors: Bool = false,
+                         bookmarkFolderSelector: @escaping NativeFileSelector = { try await NativeFileSelectionRequest.select($0) }) throws -> AgentCommandService {
             try AgentCommandService(library: library, libraryID: libraryID, connections: connections,
                 appVersion: "QA", preferenceDefaults: try #require(UserDefaults(suiteName: editorDefaultsName)),
                 preferenceStorage: preferenceStorage, nativePreferenceRead: nativePreferenceRead, validateHost: { [unowned self] in
@@ -214,7 +215,8 @@ struct AgentCommandServiceTests {
                 }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
                 uptime: { [unowned self] in self.uptime }, editors: withoutEditors ? nil : editorRegistry, pendingEditorGeneration: { [unowned self] _ in
                     self.onGeneration?(); return self.generation
-                }, operations: operations, deletionApprovals: deletionApprovals, nativeExecution: nativeExecution)
+                }, operations: operations, deletionApprovals: deletionApprovals, nativeExecution: nativeExecution,
+                bookmarkFolderSelector: bookmarkFolderSelector)
         }
         func enablePreferenceWrites() throws {
             let defaults = try #require(UserDefaults(suiteName: editorDefaultsName))
@@ -758,6 +760,56 @@ struct AgentCommandServiceTests {
         #expect(try operations.snapshot(id, connectionID: record.id).state == .succeeded)
         #expect(f.library.themes.isEmpty && defaults.object(forKey: key) == nil)
         #expect(defaults.data(forKey: otherKey) == Data("keep".utf8))
+        #expect(try Data(contentsOf: url) == bytes)
+    }
+
+    @Test(arguments: [false, true])
+    func fileSyntaxDeletionChecksDraftReferencesAtApproval(inUse: Bool) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        var definition = try ScriptSyntax.definition("Plain Text").object
+        definition["name"] = "Reviewed syntax café"
+        let bytes = try JSONSerialization.data(withJSONObject: definition)
+        try bytes.write(to: url)
+        let syntax = try SyntaxDefinition(data: bytes, type: "file")
+        try SyntaxFileAccess.install(syntax, from: url, in: f.library, defaults: defaults)
+        let key = SyntaxFileAccess.bookmarkKey(for: syntax.id)
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall },
+            currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals; f.service = try f.makeService(withoutEditors: true)
+        let target = AgentResourceReference(kind: .syntax, id: syntax.id)
+        let (record, session) = try f.connect(scope: .resources([target]),
+            capabilities: [.appearanceRead, .appearanceManage, .destructiveRequest])
+        guard case .string(let token) = try f.values("syntaxes.get", session: session, targets: [target])["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "syntaxes.delete",
+            targets: [target], expectedVersion: token)
+        let request = try f.preparedMutation(intent, session: session)
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else {
+            Issue.record("Missing deletion"); return
+        }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(review.effects.snapshot["syntaxName"] == .string(syntax.name))
+        var note = try f.note("Keep café 🐼")
+        if inUse { note.syntax = syntax.name; try f.library.saveNote(note) }
+        try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal { try await Task.sleep(for: .milliseconds(1)) }
+        let result = try f.send(request, session: session).outcome
+        if inUse {
+            #expect(result == .error(.invalidInput))
+            #expect(f.library.syntaxes == [syntax] && defaults.data(forKey: key) != nil)
+        } else {
+            #expect(result == .result(.object(["deletedIDs": .array([.string(syntax.id.uuidString)])])))
+            #expect(f.library.syntaxes.isEmpty && defaults.object(forKey: key) == nil)
+        }
+        #expect(f.library.notes.first?.content == note.content && f.library.notes.first?.syntax == note.syntax)
         #expect(try Data(contentsOf: url) == bytes)
     }
 
@@ -2784,6 +2836,65 @@ struct AgentCommandServiceTests {
         #expect(try f.library.backupData() == before)
     }
 
+    @Test func bookmarkAddAndForgetRequireReviewAndKeepTheFolder() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall },
+            currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals
+        let name = "Folder café 🐼"
+        var selectionCount = 0
+        f.service = try f.makeService { selection in
+            #expect(selection == .folder(name: name))
+            selectionCount += 1
+            return folder
+        }
+        let capabilities: Set<AgentCapability> = [.preferencesRead, .preferencesWrite]
+        let (record, session) = try f.connect(capabilities: capabilities)
+        func approve(_ request: AgentRequest) async throws -> AgentResponse.Outcome {
+            let reply = try f.send(request, session: session)
+            guard case .accepted(let id, _) = reply.outcome else { return reply.outcome }
+            for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+            let review = try #require(approvals.pendingFromUserInterface().first)
+            #expect(review.effects.snapshot["bookmarkName"] == .string(name))
+            #expect(review.operation == request.operation)
+            if request.operation == "bookmarks.requestAdd" {
+                #expect(selectionCount == 0 && BookmarkPreferences.names(defaults: defaults).isEmpty)
+            } else {
+                #expect(BookmarkPreferences.names(defaults: defaults) == [name])
+            }
+            try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+            for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(1))
+            }
+            return try f.send(request, session: session).outcome
+        }
+        let add = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "bookmarks.requestAdd",
+            parameters: ["name": .string(name), "interactive": .bool(true)])
+        let added = try await approve(add)
+        guard case .result(.object(let result)) = added,
+              case .object(let bookmark) = result["bookmark"], case .string(let raw) = bookmark["id"],
+              let id = UUID(uuidString: raw), case .string(let version) = bookmark["versionToken"] else {
+            Issue.record("Missing bookmark: \(added)"); return
+        }
+        #expect(Set(bookmark.keys) == ["id", "name", "versionToken"])
+        #expect(try f.send(add, session: session).outcome == added && selectionCount == 1)
+        let target = AgentResourceReference(kind: .bookmark, id: id)
+        let forget = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "bookmarks.forget",
+            targets: [target], expectedVersion: version)
+        let (_, excluded) = try f.connect(scope: .resources([]), capabilities: capabilities)
+        #expect(try f.send(forget, session: excluded).outcome == .error(.notFound))
+        #expect(try await approve(forget) == .result(.object(["deletedIDs": .array([.string(raw)])])))
+        #expect(BookmarkPreferences.names(defaults: defaults).isEmpty)
+        #expect(FileManager.default.fileExists(atPath: folder.path))
+    }
+
     @Test func bookmarkPagesKeepMembershipAndRejectOtherGrants() throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
@@ -3092,6 +3203,102 @@ struct AgentCommandServiceTests {
         object["name"] = "Changed export"
         try f.library.saveSyntax(try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: object), id: syntax.id))
         #expect(try f.values("syntaxes.export", session: allowed, targets: [target], parameters: parameters)["versionToken"] != result["versionToken"])
+    }
+
+    @Test func syntaxInstallAndReplacePreserveIdentityAndEnforceScope() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        f.operations = operations; f.service = try f.makeService()
+        defer { operations.cancelAll() }
+        let capabilities: Set<AgentCapability> = [.appearanceRead, .appearanceManage, .filesRead]
+        let (record, session) = try f.connect(capabilities: capabilities)
+        func settle(_ request: AgentRequest) async throws -> AgentResponse.Outcome {
+            let reply = try f.send(request, session: session)
+            guard case .accepted(let id, _) = reply.outcome else { return reply.outcome }
+            for _ in 0..<200 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(5))
+            }
+            return try f.send(request, session: session).outcome
+        }
+        var definition = try ScriptSyntax.definition("Plain Text").object
+        definition["name"] = "Agent install café"
+        func input() throws -> [String: AgentJSONValue] {
+            ["source": .object(["kind": .string("inline"),
+                "text": .string(String(decoding: try JSONSerialization.data(withJSONObject: definition), as: UTF8.self))])]
+        }
+        func install() throws -> AgentRequest {
+            .init(requestID: UUID(), libraryID: f.libraryID, operation: "syntaxes.install", parameters: try input())
+        }
+        guard case .result = try await settle(install()) else { Issue.record("Syntax install did not succeed"); return }
+        let syntax = try #require(f.library.syntaxes.first)
+        let target = AgentResourceReference(kind: .syntax, id: syntax.id)
+        guard case .string(let version) = try f.values("syntaxes.get", session: session, targets: [target])["versionToken"] else {
+            Issue.record("Missing syntax version"); return
+        }
+        #expect(try await settle(install()) == .error(.versionConflict))
+        definition["description"] = "Updated café 🐼"
+        func replace() throws -> AgentRequest {
+            .init(requestID: UUID(), libraryID: f.libraryID, operation: "syntaxes.replace", targets: [target],
+                  expectedVersion: version, parameters: try input())
+        }
+        let (_, restricted) = try f.connect(scope: .resources([.init(kind: .syntax, id: UUID())]), capabilities: capabilities)
+        #expect(try f.send(replace(), session: restricted).outcome == .error(.notFound))
+        let request = try replace()
+        guard case .result = try await settle(request) else { Issue.record("Syntax replace did not succeed"); return }
+        let replaced = try #require(f.library.syntaxes.first)
+        #expect(f.library.syntaxes.count == 1)
+        #expect(replaced.id == syntax.id)
+        #expect(replaced.object["description"] as? String == "Updated café 🐼")
+        #expect(try await settle(replace()) == .error(.versionConflict))
+    }
+
+    @Test func fileSyntaxReloadKeepsIdentityAndRejectsStaleVersion() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        f.operations = operations; f.service = try f.makeService()
+        defer { operations.cancelAll() }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        var definition = try ScriptSyntax.definition("Plain Text").object
+        definition["name"] = "Reload QA café"
+        let initial = try JSONSerialization.data(withJSONObject: definition)
+        try initial.write(to: url)
+        let syntax = try SyntaxDefinition(data: initial, type: "file")
+        try SyntaxFileAccess.install(syntax, from: url, in: f.library,
+            defaults: try #require(UserDefaults(suiteName: f.editorDefaultsName)))
+        let target = AgentResourceReference(kind: .syntax, id: syntax.id)
+        let (record, session) = try f.connect(scope: .resources([target]),
+            capabilities: [.appearanceRead, .appearanceManage, .filesRead])
+        let before = try f.values("syntaxes.get", session: session, targets: [target])
+        guard case .string(let version) = before["versionToken"] else { Issue.record("Missing syntax version"); return }
+        definition["description"] = "Updated café 🐼"
+        let source = try JSONSerialization.data(withJSONObject: definition)
+        try source.write(to: url)
+        func reload(_ token: String) -> AgentRequest {
+            .init(requestID: UUID(), libraryID: f.libraryID, operation: "syntaxes.reload", targets: [target], expectedVersion: token)
+        }
+        func settle(_ request: AgentRequest) async throws -> AgentResponse {
+            let reply = try f.send(request, session: session)
+            guard case .accepted(let id, _) = reply.outcome else { return reply }
+            for _ in 0..<200 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(5))
+            }
+            return try f.send(request, session: session)
+        }
+        let request = reload(version)
+        let applied = try await settle(request)
+        let after = try f.values("syntaxes.get", session: session, targets: [target])
+        #expect(after["versionToken"] != before["versionToken"])
+        let installed = try #require(f.library.syntaxes.first)
+        #expect(installed.id == syntax.id)
+        #expect(try JSONSerialization.jsonObject(with: Data(installed.source.utf8)) as? NSDictionary == definition as NSDictionary)
+        #expect(applied.outcome == .result(.object(["resource": .object([
+            "id": .string(syntax.id.uuidString), "versionToken": try #require(after["versionToken"])
+        ])])))
+        #expect(try f.send(request, session: session) == applied)
+        #expect(try await settle(reload(version)).outcome == .error(.versionConflict))
     }
 
     @Test func fileSyntaxExportRequiresFilePermissionAndReadsBoundedCurrentSource() throws {

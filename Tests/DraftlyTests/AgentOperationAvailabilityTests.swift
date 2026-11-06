@@ -13,11 +13,11 @@ struct AgentOperationAvailabilityTests {
     }
 
     @Test(arguments: 0..<4)
-    func themeDeletionNeedsReviewAndOperationControl(_ mask: Int) {
+    func appearanceAndBookmarkChangesNeedReviewAndOperationControl(_ mask: Int) {
         var handlers = Set<AgentOperationAvailability.Handler>()
-        if mask & 1 != 0 { handlers.insert(.themeDelete) }
+        if mask & 1 != 0 { handlers.insert(.appearanceReview) }
         if mask & 2 != 0 { handlers.insert(.operationControl) }
-        #expect(AgentOperationAvailability(handlers: handlers).operations.contains("themes.delete") == (mask == 3))
+        #expect(AgentAppearanceDeletion.operationNames.union(AgentBookmarkReading.reviewedOperations).isSubset(of: AgentOperationAvailability(handlers: handlers).operations) == (mask == 3))
     }
 
     @Test func readOnlyHostDoesNotAdvertiseMutationOrExecution() throws {
@@ -149,7 +149,7 @@ struct AgentOperationAvailabilityTests {
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
-            "themes.delete", "activity.list", "activity.changes", "operations.get", "operations.cancel", "operations.wait", "operations.answerPrompt", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "editor.preview", "editor.navigate", "editor.open"]).union(AgentNativeSchemas.operationNames).union(AgentThemePresentation.operationNames).union(AgentThemeInstallation.operationNames))
+            "themes.delete", "bookmarks.requestAdd", "bookmarks.forget", "syntaxes.delete", "syntaxes.install", "syntaxes.replace", "syntaxes.reload", "activity.list", "activity.changes", "operations.get", "operations.cancel", "operations.wait", "operations.answerPrompt", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "editor.preview", "editor.navigate", "editor.open"]).union(AgentNativeSchemas.operationNames).union(AgentThemePresentation.operationNames).union(AgentThemeInstallation.operationNames))
         #expect(available.operations.allSatisfy { AgentOperationCatalog.operation(named: $0) != nil })
         #expect(!available.operations.contains("drafts.delete"))
         #expect(!available.operations.contains("backups.restore"))

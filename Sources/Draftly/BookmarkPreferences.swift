@@ -1,5 +1,6 @@
 import AppKit
 import CryptoKit
+import AgentContracts
 
 enum BookmarkPreferences {
     struct AgentRecord {
@@ -52,6 +53,44 @@ enum BookmarkPreferences {
         identityLock.lock(); defer { identityLock.unlock() }
         defaults.set(data, forKey: "bookmark." + name)
         _ = try? agentRecords(defaults: defaults)
+    }
+
+    static func addForAgent(_ data: Data, named name: String, defaults: UserDefaults,
+                            beforeCommit: () throws -> Void) throws -> AgentRecord {
+        identityLock.lock(); defer { identityLock.unlock() }
+        let key = "bookmark." + name
+        guard defaults.object(forKey: key) == nil else { throw AgentErrorCode.versionConflict }
+        let previous = defaults.dictionary(forKey: identityKey)
+        try beforeCommit()
+        defaults.set(data, forKey: key)
+        do {
+            guard let record = try agentRecords(defaults: defaults).first(where: { $0.name == name }) else {
+                throw AgentErrorCode.storageError
+            }
+            return record
+        } catch {
+            defaults.removeObject(forKey: key)
+            defaults.set(previous, forKey: identityKey)
+            _ = defaults.synchronize()
+            throw error
+        }
+    }
+
+    static func forgetForAgent(_ record: AgentRecord, defaults: UserDefaults,
+                               beforeCommit: () throws -> Void) throws {
+        identityLock.lock(); defer { identityLock.unlock() }
+        guard try agentRecords(defaults: defaults).contains(where: { $0.id == record.id && $0.data == record.data }) else {
+            throw AgentErrorCode.versionConflict
+        }
+        let previous = defaults.dictionary(forKey: identityKey)
+        try beforeCommit()
+        forget(record.name, defaults: defaults)
+        guard defaults.synchronize() else {
+            defaults.set(record.data, forKey: "bookmark." + record.name)
+            defaults.set(previous, forKey: identityKey)
+            _ = defaults.synchronize()
+            throw AgentErrorCode.storageError
+        }
     }
 
     static func data(for url: URL) throws -> Data {
