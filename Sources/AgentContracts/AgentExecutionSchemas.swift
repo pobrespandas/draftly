@@ -10,6 +10,9 @@ package enum AgentExecutionSchemas {
         guard case .object(let snapshot) = values["operation"],
               case .string(let rawState) = snapshot["state"], let state = AgentOperationState(rawValue: rawState),
               case .string(let name) = snapshot["name"] else { throw AgentSchemaError.invalidValue }
+        if snapshot["prompt"] != nil, state != .waitingForUser || name != "actions.run" {
+            throw AgentSchemaError.invalidValue
+        }
         if !state.isTerminal {
             guard snapshot["result"] == .null, snapshot["error"] == .null,
                   snapshot["actionReport"] == .null else { throw AgentSchemaError.invalidValue }
@@ -77,6 +80,11 @@ package enum AgentExecutionSchemas {
             "reason": r(.string(choices: ["success", "cancelled", "error", "timeout", "busy"])),
             "message": r(text), "successParameters": r(.map(text))
         ])))),
+        "prompt": o(.object(.init(fields: [
+            "stepID": r(.uuid), "promptID": r(.uuid), "versionToken": r(AgentResourceShapes.token),
+            "title": r(text), "message": r(text), "buttons": r(.array(text, maximum: 32)),
+            "acceptsText": r(.boolean), "defaultText": o(text), "isCancellable": r(.boolean)
+        ]))),
         "completedEffects": r(.array(.object(.init(fields: [
             "kind": r(.string(minimum: 1)),
             "outcome": r(.string(choices: ["completed", "submitted", "failed", "unknown"])),
@@ -94,7 +102,10 @@ package enum AgentExecutionSchemas {
             "operation": r(.object(snapshot)), "cancellationAccepted": r(.boolean)
         ])),
         "operations.answerPrompt": .init(parameters: .init(fields: [
-            "stepID": r(.uuid), "promptID": r(.uuid), "answers": r(rawObject)
+            "stepID": r(.uuid), "promptID": r(.uuid), "answers": r(.oneOf([
+                .object(.init(fields: ["index": r(.integer(minimum: 0, maximum: 31)), "text": o(.string(maximum: 65_536))])),
+                .object(.init(fields: ["cancel": r(.boolean)]))
+            ]))
         ]), result: .init(fields: ["operation": r(.object(snapshot))]))
     ]
 }

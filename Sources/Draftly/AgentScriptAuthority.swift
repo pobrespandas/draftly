@@ -91,13 +91,14 @@ import DraftlyCore
         return result
     }
 
-    func authorizeStep(owner: UUID, step: ActionStep) throws {
+    func authorizeStep(owner: UUID, step: ActionStep, agentPrompts: Bool = false) throws {
         let grant = try currentBaseline()
         try requireTarget(grant, actionID: owner)
         let approved = try checkedAction(owner)
         guard approved.steps.contains(step) else { throw AgentErrorCode.versionConflict }
         switch step.type {
         case "script", "includeAction", "configurationKey": break
+        case "prompt" where agentPrompts: break
         case "share", "openIn", "print", "clipboard", "url":
             guard reviewedNativeEffects else { throw AgentErrorCode.unavailable }
             guard grant.capabilities.contains(.nativeUse) else { throw AgentErrorCode.permissionDenied }

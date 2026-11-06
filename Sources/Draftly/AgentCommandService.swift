@@ -322,7 +322,7 @@ import AgentContracts
 
     private func authorizedParameters(for request: AgentRequest, grant: AgentGrant) throws -> [String: AgentJSONValue] {
         var policyGrant = grant
-        if ["operations.get", "operations.cancel", "operations.wait"].contains(request.operation), let operationRegistry {
+        if ["operations.get", "operations.cancel", "operations.wait", "operations.answerPrompt"].contains(request.operation), let operationRegistry {
             guard request.targets.count == 1, let target = request.targets.first, target.kind == .operation else {
                 throw AgentErrorCode.invalidInput
             }
@@ -991,6 +991,10 @@ import AgentContracts
             let id = try submitAction(request, grant)
             let snapshot = try operationRegistry.snapshot(id, connectionID: grant.connectionID)
             return ["operationID": .string(id.uuidString), "state": .string(snapshot.state.rawValue)]
+        case "operations.answerPrompt":
+            guard let operationRegistry else { throw AgentErrorCode.unavailable }
+            let snapshot = try operationRegistry.answerPrompt(request, connectionID: grant.connectionID)
+            return ["operation": try snapshot.wireValue()]
         case "operations.get", "operations.cancel":
             guard let operationRegistry else { throw AgentErrorCode.unavailable }
             let result = try operationRegistry.control(request, connectionID: grant.connectionID)

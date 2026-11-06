@@ -32,6 +32,7 @@ import DraftlyCore
         var restoredValue: AgentJSONValue? = nil
         var name = "actions.run"
         var result: AgentJSONValue? = nil
+        var prompt: AgentJSONValue? = nil
 
         func wireValue() throws -> AgentJSONValue {
             if let restoredValue {
@@ -53,17 +54,42 @@ import DraftlyCore
             } else if name == "actions.run", state.isTerminal && state != .outcomeUnknown {
                 throw AgentErrorCode.unavailable
             }
-            let value: AgentJSONValue = .object([
+            var fields: [String: AgentJSONValue] = [
                 "operationID": .string(id.uuidString), "name": .string(name),
                 "state": .string(state.rawValue), "updatedAt": date(updatedAt),
                 "result": state == .succeeded ? (result ?? .object([:])) : .null,
                 "error": error.map { .object(["code": .string($0.rawValue), "message": .string($0.rawValue)]) } ?? .null,
                 "actionReport": report, "completedEffects": .array(effects.map(\.wireValue))
-            ])
+            ]
+            fields["prompt"] = prompt
+            let value = AgentJSONValue.object(fields)
             try AgentExecutionSchemas.validateResult(["operation": value], for: "operations.get")
             return value
         }
     }
+    private struct PendingPrompt {
+        let id = UUID()
+        let version = UUID().uuidString
+        let stepID: UUID
+        let title: String
+        let message: String
+        let buttons: [String]
+        let defaultText: String?
+        let isCancellable: Bool
+        let continuation: CheckedContinuation<String, Error>
+
+        var wireValue: AgentJSONValue {
+            var fields: [String: AgentJSONValue] = ["stepID": .string(stepID.uuidString), "promptID": .string(id.uuidString),
+                "versionToken": .string(version), "title": .string(title), "message": .string(message),
+                "buttons": .array(buttons.map(AgentJSONValue.string)), "acceptsText": .bool(defaultText != nil),
+                "isCancellable": .bool(isCancellable)]
+            fields["defaultText"] = defaultText.map(AgentJSONValue.string)
+            return .object(fields)
+        }
+    }
+
+    private var pendingPrompts: [UUID: PendingPrompt] = [:]
+
     private struct Entry {
         let connectionID: UUID
         let grant: AgentGrant
@@ -273,7 +299,8 @@ import DraftlyCore
         guard entry.connectionID == connectionID else { throw AgentErrorCode.notFound }
         try authorization.validate(entry.grant, targets: entry.targets, operationName: entry.name)
         return Snapshot(id: id, state: entry.state, updatedAt: entry.updatedAt, output: entry.output,
-            error: entry.error, effects: entry.effects, name: entry.name, result: entry.result)
+            error: entry.error, effects: entry.effects, name: entry.name, result: entry.result,
+            prompt: pendingPrompts[id]?.wireValue)
     }
 
     // Storage proof can resolve one interrupted deletion. It cannot replay work.
@@ -399,6 +426,75 @@ import DraftlyCore
             entries[id]?.cancellationRequested = true
             entries[id]?.task?.cancel()
         }
+    }
+
+    func waitForPrompt(_ id: UUID, stepID: UUID, payload: String) async throws -> String {
+        guard payload.utf8.count <= 65_536,
+              let values = try JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any],
+              let title = values["title"] as? String, let message = values["message"] as? String,
+              let buttons = values["buttons"] as? [[String: String]], (1...32).contains(buttons.count),
+              let fields = values["fields"] as? [[String: String]], fields.count <= 1,
+              let isCancellable = values["isCancellable"] as? Bool else { throw AgentErrorCode.invalidInput }
+        let labels = buttons.compactMap { $0["title"] }
+        guard labels.count == buttons.count else { throw AgentErrorCode.invalidInput }
+        let defaultText = fields.first?["value"]
+        guard fields.isEmpty || (fields.first?["key"] == "text" && defaultText != nil) else {
+            throw AgentErrorCode.invalidInput
+        }
+        try Task.checkCancellation()
+        try setWaitingForUser(id, waiting: true)
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                guard !Task.isCancelled else {
+                    try? setWaitingForUser(id, waiting: false)
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                pendingPrompts[id] = PendingPrompt(stepID: stepID, title: title, message: message, buttons: labels,
+                    defaultText: defaultText, isCancellable: isCancellable, continuation: continuation)
+            }
+        } onCancel: {
+            Task { @MainActor in
+                self.pendingPrompts.removeValue(forKey: id)?.continuation.resume(throwing: CancellationError())
+            }
+        }
+    }
+
+    func answerPrompt(_ request: AgentRequest, connectionID: UUID) throws -> Snapshot {
+        guard request.retryKey == nil else { throw AgentErrorCode.invalidInput }
+        guard let id = request.targets.first?.id, let entry = entries[id],
+              entry.connectionID == connectionID else { throw AgentErrorCode.notFound }
+        guard request.libraryID == entry.grant.libraryID else { throw AgentErrorCode.permissionDenied }
+        try authorization.validate(entry.grant, targets: entry.targets, operationName: entry.name)
+        guard !entry.cancellationRequested, !entry.deadlineExpired, entry.state == .waitingForUser,
+              let prompt = pendingPrompts[id], request.expectedVersion == prompt.version,
+              case .string(let step) = request.parameters["stepID"], UUID(uuidString: step) == prompt.stepID,
+              case .string(let promptID) = request.parameters["promptID"], UUID(uuidString: promptID) == prompt.id else {
+            throw AgentErrorCode.versionConflict
+        }
+        guard case .object(let answers) = request.parameters["answers"] else { throw AgentErrorCode.invalidInput }
+        let value: AgentJSONValue
+        if answers == ["cancel": .bool(true)], prompt.isCancellable {
+            value = .null
+        } else {
+            guard Set(answers.keys).isSubset(of: ["index", "text"]),
+                  let index = try? AgentTextShapes.count(answers["index"]), index < prompt.buttons.count else {
+                throw AgentErrorCode.invalidInput
+            }
+            var fields = prompt.defaultText.map { ["text": AgentJSONValue.string($0)] } ?? [:]
+            if let supplied = answers["text"] {
+                guard prompt.defaultText != nil, case .string(let text) = supplied, text.utf8.count <= 65_536 else {
+                    throw AgentErrorCode.invalidInput
+                }
+                fields["text"] = supplied
+            }
+            value = .object(["index": .integer(index), "fields": .object(fields)])
+        }
+        let response = try JSONEncoder().encode(AgentJSONValue.object(["value": value]))
+        try setWaitingForUser(id, waiting: false)
+        pendingPrompts.removeValue(forKey: id)
+        prompt.continuation.resume(returning: String(decoding: response, as: UTF8.self))
+        return try snapshot(id, connectionID: connectionID)
     }
 
     func setWaitingForUser(_ id: UUID, waiting: Bool) throws {

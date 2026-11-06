@@ -6,6 +6,7 @@ public protocol ActionHost: AnyObject {
     func supportsAsync(_ operation: String) -> Bool
     // Supported async operations must suspend and finish their cleanup on cancellation.
     func performAsync(_ operation: String, payload: String) async throws -> String
+    func performPrompt(stepID: UUID, payload: String) async throws -> String
     func finishAction()
 }
 
@@ -19,6 +20,10 @@ public extension ActionHost {
         let result = try perform(operation, values: values)
         let envelope = operation == "appleScript" ? try AppleScriptValueTransport.encode(result ?? NSNull()) : ["value": result ?? NSNull()]
         return String(decoding: try JSONSerialization.data(withJSONObject: envelope), as: UTF8.self)
+    }
+
+    func performPrompt(stepID: UUID, payload: String) async throws -> String {
+        try await performAsync("prompt", payload: payload)
     }
 
     func finishAction() {}

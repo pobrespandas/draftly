@@ -8,6 +8,8 @@ import DraftlyCore
     typealias Authorize = (String, [String: Any]) throws -> Void
     typealias Approve = (String, [String: Any]) async throws -> Void
     typealias RecordEffect = (UUID, String, String) throws -> Void
+    typealias AnswerablePrompt = (UUID, String) async throws -> String
+    private let answerablePrompt: AnswerablePrompt?
     private let host: any ActionHost
     private let authorize: Authorize
     private let approve: Approve?
@@ -17,8 +19,9 @@ import DraftlyCore
 
     init(host: any ActionHost, approve: Approve? = nil,
          requiresApproval: @escaping (String) -> Bool = { _ in true }, recordEffect: RecordEffect? = nil,
-         authorize: @escaping Authorize) {
+         answerablePrompt: AnswerablePrompt? = nil, authorize: @escaping Authorize) {
         self.host = host
+        self.answerablePrompt = answerablePrompt
         self.approve = approve
         self.requiresApproval = requiresApproval
         self.recordEffect = recordEffect
@@ -94,6 +97,16 @@ import DraftlyCore
             return "unknown"
         }
         return completed ? "completed" : "failed"
+    }
+
+    func performPrompt(stepID: UUID, payload: String) async throws -> String {
+        guard let answerablePrompt else { return try await performAsync("prompt", payload: payload) }
+        try Task.checkCancellation()
+        try authorize("device", [:])
+        let result = try await answerablePrompt(stepID, payload)
+        try Task.checkCancellation()
+        try authorize("device", [:])
+        return result
     }
 
     func finishAction() { host.finishAction() }

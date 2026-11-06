@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor extension ActionRunner {
-    func platformAsync(_ operation: String, payload: String) async throws -> String {
+    func platformAsync(_ operation: String, payload: String, promptStepID: UUID? = nil) async throws -> String {
         try checkCancellation()
         guard host != nil else { throw DraftlyError.message("The operation \(operation) is unavailable.") }
         let timeout = hostOperationTimeout
@@ -19,7 +19,9 @@ import Foundation
                         do {
                             guard let host = self?.host else { throw DraftlyError.message("The operation \(operation) is unavailable.") }
                             guard wait.now() < wait.deadline else { throw ActionExecutionInterruption.timeout }
-                            let value = try await host.performAsync(operation, payload: payload)
+                            let value: String
+                            if let promptStepID { value = try await host.performPrompt(stepID: promptStepID, payload: payload) }
+                            else { value = try await host.performAsync(operation, payload: payload) }
                             wait.finish(.success(value))
                         } catch { wait.finish(.failure(error)) }
                     }
@@ -41,8 +43,8 @@ import Foundation
         }
     }
 
-    func nativeValue(_ operation: String, _ values: [String: Any]) async throws -> Any? {
-        let response = try await platformAsync(operation, payload: json(values))
+    func nativeValue(_ operation: String, _ values: [String: Any], promptStepID: UUID? = nil) async throws -> Any? {
+        let response = try await platformAsync(operation, payload: json(values), promptStepID: promptStepID)
         guard let envelope = try JSONSerialization.jsonObject(with: Data(response.utf8)) as? [String: Any] else {
             throw DraftlyError.message("The native operation returned an invalid response.")
         }
@@ -97,7 +99,7 @@ import Foundation
             return try await nativeValue("print", values) as? Bool != false
         case "prompt":
             let prompt = try await ActionTemplateBuilder.build(render: { try await self.renderTemplateAsync($0, note: current) }) { try ActionPromptStep(step, render: $0) }
-            guard let tags = try prompt.tags(from: await nativeValue("prompt", prompt.values)) else { return false }
+            guard let tags = try prompt.tags(from: await nativeValue("prompt", prompt.values, promptStepID: step.id)) else { return false }
             customTags.merge(tags) { _, new in new }
             return true
         case "file", "export":
