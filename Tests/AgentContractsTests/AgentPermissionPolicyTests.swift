@@ -106,7 +106,7 @@ struct AgentPermissionPolicyTests {
             #expect(evaluate(name, version: "v1", grant: settings) == .needsEffectAuthorization(.library, humanApproval: false))
         }
         let imported = grant([.draftsWrite, .filesRead], scope: .library)
-        #expect(evaluate("imports.commit", version: "v1", grant: imported) == .needsEffectAuthorization(.library, humanApproval: false))
+        #expect(evaluate("imports.commit", version: "v1", grant: imported) == .needsEffectAuthorization(.library, humanApproval: true))
     }
     @Test func workspaceQueriesNeedDraftReadAuthorityAndApplicationNeedsEffectReview() {
         let workspace = AgentResourceReference(kind: .workspace, id: UUID())

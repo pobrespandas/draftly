@@ -2,7 +2,7 @@ import Foundation
 import Darwin
 import AgentContracts
 
-// Device-local agent metadata only. Callers never put credentials here.
+// Device-local agent state. Callers never put credentials here.
 @MainActor package final class AgentStateDirectory {
     private let descriptor: Int32
     private let path: String
@@ -50,9 +50,19 @@ import AgentContracts
     }
 
     package func replace(_ name: String, lockName: String, data: Data, expected: Data?, maximumBytes: Int) throws {
+        try validateBudget(maximumBytes)
+        try replaceFile(name, lockName: lockName, data: data, expected: expected, maximumBytes: maximumBytes)
+    }
+
+    package func saveRestoreRecovery(_ id: UUID, data: Data) throws {
+        // The library can be larger than a wire request. Recovery stays on disk.
+        try replaceFile("restore-recovery-" + id.uuidString + ".json", lockName: "restore-recovery.lock",
+            data: data, expected: nil, maximumBytes: 128 * 1024 * 1024)
+    }
+
+    private func replaceFile(_ name: String, lockName: String, data: Data, expected: Data?, maximumBytes: Int) throws {
         try validateName(name)
         guard name != lockName else { throw AgentErrorCode.invalidInput }
-        try validateBudget(maximumBytes)
         guard data.count <= maximumBytes else { throw AgentErrorCode.invalidInput }
         let lease = try acquireLock(lockName)
         try withExtendedLifetime(lease) {

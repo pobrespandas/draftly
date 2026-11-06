@@ -52,3 +52,36 @@ package enum AgentImportSource {
         return kind
     }
 }
+
+
+package enum AgentImportSchemas {
+    package static let operationNames: Set<String> = ["imports.validate", "imports.preview", "imports.commit"]
+
+    private static let input = AgentObjectShape(fields: [
+        "source": .init(shape: AgentImportSource.backupShape, required: true),
+        "fileExtension": .init(shape: .string(minimum: 1, maximum: 32), required: true)
+    ])
+    private static let changes = AgentFieldShape(shape: .object(AgentBackupSchemas.changes), required: true)
+    private static let version = AgentFieldShape(shape: AgentResourceShapes.token, required: true)
+
+    package static func schema(for operation: String) -> AgentOperationSchema? {
+        let fields: [String: AgentFieldShape]
+        switch operation {
+        case "imports.validate": fields = ["valid": .init(shape: .boolean, required: true)]
+        case "imports.preview": fields = ["changes": changes, "versionToken": version]
+        case "imports.commit": fields = ["changes": changes]
+        default: return nil
+        }
+        return .init(parameters: input, result: .init(fields: fields))
+    }
+
+    package static func validatedParameters(for request: AgentRequest) throws -> [String: AgentJSONValue] {
+        guard let schema = schema(for: request.operation) else { throw AgentErrorCode.unavailable }
+        let values = try schema.validatedParameters(request.parameters)
+        _ = try AgentImportSource.validate(values["source"])
+        guard case .string(let fileExtension) = values["fileExtension"], fileExtension.utf8.allSatisfy({
+            (65...90).contains($0) || (97...122).contains($0) || (48...57).contains($0)
+        }) else { throw AgentSchemaError.invalidValue }
+        return values
+    }
+}

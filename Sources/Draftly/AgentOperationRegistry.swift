@@ -258,7 +258,10 @@ import DraftlyCore
                 case .value(let result): self.finishValue(id, result: result)
                 }
             } catch let failure as FailureBeforeEffects {
-                self.finish(id, error: self.entries[id]?.effects.isEmpty == true ? failure.code : .outcomeUnknown)
+                let effects = self.entries[id]?.effects
+                // A completed download cannot have changed the library.
+                let noUncertainEffects = effects?.allSatisfy { $0.kind == "input.https" && $0.outcome == "completed" } == true
+                self.finish(id, error: noUncertainEffects ? failure.code : .outcomeUnknown)
             } catch is CancellationError {
                 self.finishInterrupted(id, queuedError: .cancelled)
             } catch let error as AgentErrorCode {
