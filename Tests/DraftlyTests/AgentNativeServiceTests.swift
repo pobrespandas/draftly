@@ -25,7 +25,7 @@ struct AgentNativeServiceTests {
     }
 
     @Test func documentRecognitionUsesOnlyTheSelectedFileAndSupportsCancellation() async throws {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tiff")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".png")
         defer { try? FileManager.default.removeItem(at: url) }
         let image = NSImage(size: NSSize(width: 960, height: 300), flipped: false) { rect in
             NSColor.white.setFill()
@@ -35,7 +35,9 @@ struct AgentNativeServiceTests {
             ])
             return true
         }
-        try #require(image.tiffRepresentation).write(to: url)
+        let bitmap = try #require(image.cgImage(forProposedRect: nil, context: nil, hints: nil))
+        let png = try #require(NSBitmapImageRep(cgImage: bitmap).representation(using: .png, properties: [:]))
+        try png.write(to: url)
         let result = try await NativeDocumentRecognition.selectAndRecognize { selection in
             #expect(selection == .document)
             return url

@@ -167,8 +167,9 @@ final class SpeechResult: @unchecked Sendable {
             guard byteCount <= 65_536 else { throw AgentErrorCode.invalidInput }
             output.append(page)
         }
-        if let pdf = PDFDocument(data: data) {
-            guard !pdf.isLocked, (1...20).contains(pdf.pageCount) else { throw AgentErrorCode.invalidInput }
+        if data.starts(with: Data("%PDF-".utf8)) {
+            guard let pdf = PDFDocument(data: data), !pdf.isLocked,
+                  (1...20).contains(pdf.pageCount) else { throw AgentErrorCode.invalidInput }
             for index in 0..<pdf.pageCount {
                 try Task.checkCancellation()
                 guard let page = pdf.page(at: index),
@@ -179,11 +180,16 @@ final class SpeechResult: @unchecked Sendable {
         } else {
             let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
                 kCGImageSourceCreateThumbnailWithTransform: true, kCGImageSourceThumbnailMaxPixelSize: 3200]
-            guard let source = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetCount(source) == 1,
-                  let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-                throw AgentErrorCode.invalidInput
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { throw AgentErrorCode.invalidInput }
+            let count = CGImageSourceGetCount(source)
+            guard (1...20).contains(count) else { throw AgentErrorCode.invalidInput }
+            for index in 0..<count {
+                try Task.checkCancellation()
+                guard let image = CGImageSourceCreateThumbnailAtIndex(source, index, options as CFDictionary) else {
+                    throw AgentErrorCode.invalidInput
+                }
+                try append(image)
             }
-            try append(image)
         }
         return output.joined(separator: "\n\n")
     }
