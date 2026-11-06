@@ -195,6 +195,7 @@ package extension AgentOperationDescriptor {
         case "workspaces.reorder": "Set the order of saved workspaces."
         case "workspaces.delete": "Request approval in Draftly to delete a workspace."
         case "workspaces.apply": "Apply a saved workspace to an explicit window. Target both the workspace and the window."
+        case "backups.requestRestore": "Restore the previewed backup after approval in Draftly. Use the same source and the versionToken from backups.previewRestore. Draftly saves a local recovery copy first."
         case "imports.validate": "Check whether the supplied file can be imported without changing the library. Supply the file extension without a dot."
         case "imports.commit": "Apply the import after a person approves it in Draftly. Use the same source and file extension as imports.preview and its versionToken as expectedVersion."
         case "imports.preview": "Preview what an import would add or update in the library. Use the returned versionToken when committing the same source."

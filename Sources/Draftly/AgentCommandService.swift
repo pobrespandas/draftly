@@ -31,6 +31,7 @@ import AgentContracts
             handlers.insert(.appearanceReview)
             handlers.insert(.actionDelete)
             if writes != nil { handlers.insert(.draftPurge) }
+            if saveRestoreRecovery != nil { handlers.insert(.backupRestore) }
         }
         return AgentOperationAvailability(handlers: handlers)
     }
@@ -64,6 +65,7 @@ import AgentContracts
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
     private let deletionApprovals: AgentApprovalStore?
+    private let saveRestoreRecovery: ((UUID, Data) throws -> Void)?
     private let bookmarkFolderSelector: NativeFileSelector
     private let nativeExecution: AgentNativeExecution.Environment?
     private let submitAction: ((AgentRequest, AgentGrant) throws -> UUID)?
@@ -111,6 +113,7 @@ import AgentContracts
          operations: AgentOperationRegistry? = nil,
          submitAction: ((AgentRequest, AgentGrant) throws -> UUID)? = nil,
          deletionApprovals: AgentApprovalStore? = nil, nativeExecution: AgentNativeExecution.Environment? = nil,
+         saveRestoreRecovery: ((UUID, Data) throws -> Void)? = nil,
          bookmarkFolderSelector: @escaping NativeFileSelector = { try await NativeFileSelectionRequest.select($0) }) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.preferenceStorage = preferenceStorage
@@ -120,6 +123,7 @@ import AgentContracts
         self.actionLibrary = library
         self.operationRegistry = operations
         self.deletionApprovals = deletionApprovals
+        self.saveRestoreRecovery = saveRestoreRecovery
         self.bookmarkFolderSelector = bookmarkFolderSelector
         self.submitAction = submitAction
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
@@ -293,8 +297,8 @@ import AgentContracts
                 outcome = try submitNative(request, grant: grant, sessionID: session.id)
             } else if ["backups.validate", "backups.previewRestore", "imports.validate", "imports.preview"].contains(request.operation) {
                 outcome = try submitFileInput(request, parameters: parameters, grant: grant, sessionID: session.id)
-            } else if request.operation == "imports.commit" {
-                outcome = try submitImportCommit(request, parameters: parameters, grant: grant, sessionID: session.id)
+            } else if ["imports.commit", "backups.requestRestore"].contains(request.operation) {
+                outcome = try submitReviewedFileCommit(request, parameters: parameters, grant: grant, sessionID: session.id)
             } else if AgentThemeInstallation.operationNames.contains(request.operation) {
                 outcome = try submitThemeImport(request, grant: grant, sessionID: session.id)
             } else if ["syntaxes.install", "syntaxes.replace", "syntaxes.reload"].contains(request.operation) {
@@ -360,7 +364,7 @@ import AgentContracts
         case .denied(let error): throw error
         case .needsHumanApproval:
             let reviewedOperations = AgentAppearanceDeletion.operationNames.union(AgentBookmarkReading.reviewedOperations)
-                .union(["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"])
+                .union(["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "backups.requestRestore"])
             guard reviewedOperations.contains(request.operation), deletionApprovals != nil, operationRegistry != nil else { throw AgentErrorCode.unavailable }
         case .needsEffectAuthorization(_, let humanApproval):
             let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
@@ -433,7 +437,7 @@ import AgentContracts
         return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }
 
-    private func submitImportCommit(_ request: AgentRequest, parameters: [String: AgentJSONValue],
+    private func submitReviewedFileCommit(_ request: AgentRequest, parameters: [String: AgentJSONValue],
                                     grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
         guard let operationRegistry, let deletionApprovals else { throw AgentErrorCode.unavailable }
         try validateSession(sessionID, grant: grant)
@@ -461,6 +465,7 @@ import AgentContracts
            let id = UUID(uuidString: raw) { targets.insert(.init(kind: .bookmark, id: id)) }
         let inputs = backups
         let environment = nativeExecution
+        let saveRecovery = saveRestoreRecovery
         let id = try operationRegistry.startValueRequest(request, grant: grant, effectTargets: targets) { id in
             let data: Data?
             if network, let environment {
@@ -468,8 +473,8 @@ import AgentContracts
                     environment: environment, operations: operationRegistry, operationID: id,
                     validateIntent: authorize, authorize: authorize)
             } else { data = nil }
-            return try await inputs.commitImport(request, parameters: parameters, grant: grant, sourceData: data,
-                operationID: id, approvals: deletionApprovals, operations: operationRegistry, authorize: authorize)
+            return try await inputs.commitReviewedInput(request, parameters: parameters, grant: grant, sourceData: data,
+                operationID: id, approvals: deletionApprovals, operations: operationRegistry, saveRecovery: saveRecovery, authorize: authorize)
         }
         return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }

@@ -87,18 +87,28 @@ import AgentContracts
         return ImportPlan(staging: staging, baseline: baseline, changes: changes, version: version)
     }
 
-    func commitImport(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
+    func commitReviewedInput(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                       sourceData: Data?, operationID: UUID, approvals: AgentApprovalStore,
-                      operations: AgentOperationRegistry, authorize: @escaping () throws -> Void) async throws -> [String: AgentJSONValue] {
+                      operations: AgentOperationRegistry, saveRecovery: ((UUID, Data) throws -> Void)?,
+                      authorize: @escaping () throws -> Void) async throws -> [String: AgentJSONValue] {
         var submitted = false
         let effect = UUID()
         do {
             try check(authorize)
-            guard case .string(let fileExtension) = parameters["fileExtension"] else { throw AgentErrorCode.invalidInput }
+            let restoring = request.operation == "backups.requestRestore"
+            guard !restoring || saveRecovery != nil else { throw AgentErrorCode.unavailable }
             let input = try sourceData ?? source(parameters, grant: grant, authorize: authorize)
-            let plan = try planImport(parameters, grant: grant, input: input, fileExtension: fileExtension, authorize: authorize)
+            let plan: ImportPlan
+            let required: Set<AgentCapability>
+            if restoring {
+                plan = try planRestore(parameters, grant: grant, data: input, authorize: authorize)
+                required = [.backupsRestore, .filesRead]
+            } else {
+                guard case .string(let fileExtension) = parameters["fileExtension"] else { throw AgentErrorCode.invalidInput }
+                plan = try planImport(parameters, grant: grant, input: input, fileExtension: fileExtension, authorize: authorize)
+                required = try importCapabilities(for: plan.changes, input: input)
+            }
             guard request.expectedVersion == plan.version else { throw AgentErrorCode.versionConflict }
-            let required = try importCapabilities(for: plan.changes, input: input)
             guard grant.capabilities.isSuperset(of: required) else { throw AgentErrorCode.permissionDenied }
 
             @MainActor func checkPlan() throws {
@@ -124,8 +134,13 @@ import AgentContracts
             })
             try operations.setWaitingForUser(operationID, waiting: false)
             try checkPlan()
-            let result = ["changes": plan.changes]
+            var result = ["changes": plan.changes]
+            if restoring { result["recoveryID"] = .string(operationID.uuidString) }
             try AgentOperationSchemas.validateResult(result, for: request)
+            if restoring {
+                guard let saveRecovery else { throw AgentErrorCode.unavailable }
+                try saveRecovery(operationID, plan.baseline)
+            }
             try library.applyImportedRecords(from: plan.staging) {
                 try checkPlan()
                 try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
@@ -181,15 +196,27 @@ import AgentContracts
         if request.operation == "backups.validate" { return ["valid": .bool(true), "counts": counts(incoming)] }
         guard request.operation == "backups.previewRestore" else { throw AgentErrorCode.unavailable }
         try drafts.requireStoredDraftsForRestorePreview()
+        let plan = try planRestore(parameters, grant: grant, data: data, authorize: authorize)
+        return ["counts": counts(incoming), "changes": plan.changes, "versionToken": .string(plan.version)]
+    }
+
+    private func planRestore(_ parameters: [String: AgentJSONValue], grant: AgentGrant,
+                             data: Data, authorize: () throws -> Void) throws -> ImportPlan {
+        guard grant.scope == .library, data.count <= AgentTransferSchemas.maximumBytes else { throw AgentErrorCode.permissionDenied }
+        try check(authorize)
+        try drafts.requireStoredDraftsForRestorePreview()
         let current = try library.backupData()
         let before = try JSONDecoder().decode(Backup.self, from: current)
         let staging = try LibraryStore(inMemory: true, seed: false)
         do { try staging.restore(current); try staging.restore(data) }
         catch { throw AgentErrorCode.versionConflict }
         let after = try JSONDecoder().decode(Backup.self, from: staging.backupData())
-        try check(authorize)
-        let binding = Data("backups.previewRestore:v1".utf8) + Data(SHA256.hash(data: current)) + Data(SHA256.hash(data: data))
+        let context = AgentJSONValue.object(["grant": AgentRequestBinding.grantValue(grant), "source": parameters["source"] ?? .null])
+        let binding = Data("backups.previewRestore:v2".utf8)
+            + Data(SHA256.hash(data: try AgentRequestBinding.encoded(context, maximum: AgentRequest.maximumBytes * 2)))
+            + Data(SHA256.hash(data: current)) + Data(SHA256.hash(data: data))
         let version = Data(HMAC<SHA256>.authenticationCode(for: binding, using: versionKey)).base64EncodedString()
-        return ["counts": counts(incoming), "changes": Self.changes(before, after), "versionToken": .string(version)]
+        try check(authorize)
+        return ImportPlan(staging: staging, baseline: current, changes: Self.changes(before, after), version: version)
     }
 }

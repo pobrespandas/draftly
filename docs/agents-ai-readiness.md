@@ -533,11 +533,19 @@ failure and retries. The 177 focal tests, 2,685 strict Swift tests and native De
 build passed. Signed installed appearance and process-restart checks remain open.
 See [selection validation](agent-theme-selection-acceptance.md).
 
+## Agent backup recovery
+
+A reviewed restore saves the library snapshot in the device-local `Agents`
+directory beside the library store. The file is named
+`restore-recovery-<recoveryID>.json`. The result returns the recovery ID.
+The copy has owner-only permissions and stays on the Mac. If the copy fails,
+Draftly stops before modifying the library.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-128 names in implemented or conditional handler sets in the catalog work. The
-other 9 names have no direct handler in those sets. Installed acceptance and
+129 names in implemented or conditional handler sets in the catalog work. The
+other 8 names have no direct handler in those sets. Installed acceptance and
 connection-specific availability are tracked separately.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -548,7 +556,6 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Backups | `backups.requestRestore` |
 | Native operations | `native.xmlrpc`, `native.fileRead`, `native.fileWrite`, `native.mail`, `native.messages`, `native.calendar`, `native.reminders`, `native.scanDocument` |
 
 Keep the full [operation inventory](research/agent-operation-inventory.md) and

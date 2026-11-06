@@ -105,7 +105,7 @@ struct AgentOperationAvailabilityTests {
         #expect(!untracked.operations.contains("backups.export"))
         #expect(!untracked.operations.contains("backups.previewRestore"))
         let tracked = AgentOperationAvailability(handlers: [.editorRead])
-        #expect(tracked.operations.isSuperset(of: AgentBackupSchemas.operationNames))
+        #expect(tracked.operations.isSuperset(of: AgentBackupSchemas.operationNames.subtracting(["backups.requestRestore"])))
         #expect(!tracked.operations.contains("backups.requestRestore"))
     }
 
@@ -149,7 +149,7 @@ struct AgentOperationAvailabilityTests {
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
-            "themes.delete", "imports.commit", "bookmarks.requestAdd", "bookmarks.forget", "syntaxes.delete", "syntaxes.install", "syntaxes.replace", "syntaxes.reload", "activity.list", "activity.changes", "operations.get", "operations.cancel", "operations.wait", "operations.answerPrompt", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "editor.preview", "editor.navigate", "editor.open"]).union(AgentNativeSchemas.operationNames).union(AgentThemePresentation.operationNames).union(AgentThemeInstallation.operationNames))
+            "themes.delete", "backups.requestRestore", "imports.commit", "bookmarks.requestAdd", "bookmarks.forget", "syntaxes.delete", "syntaxes.install", "syntaxes.replace", "syntaxes.reload", "activity.list", "activity.changes", "operations.get", "operations.cancel", "operations.wait", "operations.answerPrompt", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "editor.preview", "editor.navigate", "editor.open"]).union(AgentNativeSchemas.operationNames).union(AgentThemePresentation.operationNames).union(AgentThemeInstallation.operationNames))
         #expect(available.operations.allSatisfy { AgentOperationCatalog.operation(named: $0) != nil })
         #expect(!available.operations.contains("drafts.delete"))
         #expect(!available.operations.contains("backups.restore"))

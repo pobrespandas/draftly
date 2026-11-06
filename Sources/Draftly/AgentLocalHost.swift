@@ -130,7 +130,11 @@ import AgentLocalSecurity
                     guard let owner else { throw AgentErrorCode.cancelled }
                     return try owner.submitReviewedAction(request, grant: grant)
                 } : nil, deletionApprovals: enableReviewedMutations ? approvals : nil,
-                nativeExecution: nativeEnvironment)
+                nativeExecution: nativeEnvironment, saveRestoreRecovery: enableReviewedMutations ? { id, data in
+                    try validateOwner()
+                    let directory = try AgentStateDirectory(parentDirectory: lease.location.url.deletingLastPathComponent())
+                    try directory.saveRestoreRecovery(id, data: data)
+                } : nil)
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
             validateHost: validateOwner, isLocked: isLocked, resolveTargets: resolveTargets)
