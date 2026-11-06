@@ -569,7 +569,8 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
         defaults.set(bookmark, forKey: "syntax.file." + id.uuidString)
     }
-    public static func read(_ definition: SyntaxDefinition, defaults: UserDefaults = .standard, maximumBytes: Int? = nil) throws -> SyntaxDefinition {
+    public static func read(_ definition: SyntaxDefinition, defaults: UserDefaults = .standard, maximumBytes: Int? = nil,
+                            refreshStalePermission: Bool = true) throws -> SyntaxDefinition {
         guard let bookmark = defaults.data(forKey: "syntax.file." + definition.id.uuidString) else { throw DraftlyError.message("Reselect the file for syntax \(definition.name).") }
         var stale = false
         let url = try URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
@@ -600,7 +601,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         } else { data = try Data(contentsOf: url) }
         let current = try SyntaxDefinition(data: data, type: "file", id: definition.id)
         guard current.name == definition.name else { throw DraftlyError.message("The file syntax name changed. Import it again.") }
-        if stale { try register(url, id: definition.id, defaults: defaults) }
+        if stale && refreshStalePermission { try register(url, id: definition.id, defaults: defaults) }
         return current
     }
 }

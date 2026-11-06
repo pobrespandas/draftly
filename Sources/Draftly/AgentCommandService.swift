@@ -289,6 +289,8 @@ import AgentContracts
                 outcome = try submitBackupInput(request, grant: grant, sessionID: session.id)
             } else if AgentThemeInstallation.operationNames.contains(request.operation) {
                 outcome = try submitThemeImport(request, grant: grant, sessionID: session.id)
+            } else if ["syntaxes.install", "syntaxes.replace", "syntaxes.reload"].contains(request.operation) {
+                outcome = try submitSyntaxMutation(request, parameters: parameters, grant: grant, sessionID: session.id)
             } else if AgentThemePresentation.operationNames.contains(request.operation) {
                 outcome = try submitThemePresentation(request, grant: grant, sessionID: session.id)
             } else if request.operation == "editor.open" {
@@ -353,13 +355,13 @@ import AgentContracts
             let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
             let workspaceEffect = AgentWorkspaceApplication.operationNames.contains(request.operation) && workspaceApplication != nil
             let themeRead = AgentThemeReading.effectOperations.contains(request.operation)
-            let syntaxExport = request.operation == "syntaxes.export"
+            let syntaxEffect = request.operation == "syntaxes.export" || (operationRegistry != nil && ["syntaxes.install", "syntaxes.replace", "syntaxes.reload"].contains(request.operation))
             let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
                 || (AgentThemeInstallation.operationNames.contains(request.operation) && preferenceStorage != nil && operationRegistry != nil)
                 || (AgentThemePresentation.operationNames.contains(request.operation) && preferenceStorage != nil && operationRegistry != nil)
             let reviewedNative = AgentNativeSchemas.operationNames.contains(request.operation) && nativeExecution != nil && operationRegistry != nil
             let editorPresentation = ["editor.preview", "editor.navigate", "editor.open"].contains(request.operation) && editorRegistry != nil && operationRegistry != nil
-            guard reviewedAction || reviewedNative || (!humanApproval && (editorPresentation || preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
+            guard reviewedAction || reviewedNative || (!humanApproval && (editorPresentation || preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxEffect)) else {
                 throw AgentErrorCode.unavailable
             }
         }
@@ -465,6 +467,153 @@ import AgentContracts
             return try AgentThemeInstallation.run(request, input: resolved, plan: prepared, grant: grant,
                 identity: identity, library: self.actionLibrary, reader: self.themes, defaults: self.preferenceDefaults,
                 storage: preferenceStorage, now: self.now, operations: operationRegistry, operationID: id, authorize: validateOperation)
+        }
+        return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+    }
+
+    private func syntaxVersion(_ definition: SyntaxDefinition) throws -> String {
+        try syntaxVersion(definition, permission: preferenceDefaults.data(forKey: "syntax.file." + definition.id.uuidString))
+    }
+
+    private func syntaxVersion(_ definition: SyntaxDefinition, permission: Data?) throws -> String {
+        var input = Data(definition.source.utf8)
+        if definition.type == "file" {
+            input = try AgentRequestBinding.encoded(JSONValue.object([
+                "id": .string(definition.id.uuidString), "source": .string(definition.source),
+                "permission": permission.map { .string(Data(SHA256.hash(data: $0)).base64EncodedString()) } ?? .null
+            ]), maximum: AgentRequest.maximumBytes * 2)
+        }
+        return Data(HMAC<SHA256>.authenticationCode(for: input, using: preferenceVersionKey)).base64EncodedString()
+    }
+
+    private func submitSyntaxMutation(_ request: AgentRequest, parameters: [String: AgentJSONValue],
+                                      grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+        guard let operationRegistry else { throw AgentErrorCode.unavailable }
+        try validateSession(sessionID, grant: grant)
+        func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
+            if snapshot.state == .succeeded {
+                guard case .object(let result) = snapshot.result else { throw AgentErrorCode.storageError }
+                try AgentAppearanceSchemas.validateResult(result, for: request)
+                return .result(.object(result))
+            }
+            if snapshot.state.isTerminal { return .error(snapshot.error ?? .outcomeUnknown) }
+            return .accepted(operationID: snapshot.id, state: snapshot.state)
+        }
+        if let id = try operationRegistry.existingRequest(request, grant: grant) {
+            return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+        }
+        guard request.retryKey == nil else { throw AgentErrorCode.invalidInput }
+
+        let authorize = operationAuthority(for: grant)
+        let network = AgentHTTPSImport.isHTTPS(request)
+        if network {
+            guard nativeExecution != nil else { throw AgentErrorCode.interactionRequired }
+            _ = try AgentHTTPSImport.sourceURL(request, grant: grant)
+        }
+        var sourceTargets: Set<AgentResourceReference> = []
+        if case .object(let fields) = parameters["source"], case .string(let raw) = fields["bookmarkID"],
+           let id = UUID(uuidString: raw) {
+            let bookmark = AgentResourceReference(kind: .bookmark, id: id)
+            guard grant.scope.permits(bookmark) else { throw AgentErrorCode.permissionDenied }
+            sourceTargets.insert(bookmark)
+        }
+        let id = try operationRegistry.startValueRequest(request, grant: grant, effectTargets: sourceTargets) { [self] id in
+            let effect = UUID()
+            var submitted = false
+            do {
+                @MainActor func currentTarget() throws -> SyntaxDefinition? {
+                    try Task.checkCancellation()
+                    try authorize()
+                    guard let target = request.targets.first else { return nil }
+                    guard let stored = actionLibrary.syntaxes.first(where: { $0.id == target.id && $0.type != "builtIn" }) else {
+                        throw AgentErrorCode.notFound
+                    }
+                    guard try syntaxVersion(stored) == request.expectedVersion else { throw AgentErrorCode.versionConflict }
+                    return stored
+                }
+                let stored = try currentTarget()
+                let definition: SyntaxDefinition
+                let permission: Data?
+                if request.operation == "syntaxes.reload" {
+                    guard let stored, stored.type == "file" else { throw AgentErrorCode.invalidInput }
+                    permission = preferenceDefaults.data(forKey: "syntax.file." + stored.id.uuidString)
+                    do {
+                        definition = try SyntaxFileAccess.read(stored, defaults: preferenceDefaults,
+                            maximumBytes: AgentRequest.maximumBytes, refreshStalePermission: false)
+                    } catch { throw AgentErrorCode.unavailable }
+                } else {
+                    guard let source = parameters["source"], case .object(let fields) = source,
+                          case .string(let mode) = parameters["mode"] else { throw AgentErrorCode.invalidInput }
+                    let data: Data
+                    if fields["kind"] == .string("installationURL") {
+                        guard case .string(let raw) = fields["url"], let url = URLComponents(string: raw) else {
+                            throw AgentErrorCode.invalidInput
+                        }
+                        if let payload = url.queryItems?.first(where: { $0.name == "data" })?.value {
+                            data = Data(payload.utf8)
+                        } else {
+                            guard request.operation == "syntaxes.install",
+                                  let name = url.queryItems?.first(where: { $0.name == "name" })?.value,
+                                  ScriptSyntax.names.contains(name) else { throw AgentErrorCode.invalidInput }
+                            let result: [String: AgentJSONValue] = ["resource": .null, "builtInName": .string(name)]
+                            try AgentAppearanceSchemas.validateResult(result, for: request)
+                            return result
+                        }
+                        permission = nil
+                    } else if network, let environment = nativeExecution {
+                        data = try await AgentHTTPSImport.read(request, grant: grant, maximumBytes: AgentRequest.maximumBytes,
+                            environment: environment, operations: operationRegistry, operationID: id,
+                            validateIntent: { _ = try currentTarget() }, authorize: authorize)
+                        permission = nil
+                    } else {
+                        let snapshot = try AgentImportReading.snapshot(source, grant: grant, defaults: preferenceDefaults,
+                            transfers: transfers, maximumBytes: AgentRequest.maximumBytes,
+                            captureFilePermission: mode == "file", authorize: authorize)
+                        data = snapshot.data
+                        permission = snapshot.filePermission
+                    }
+                    guard data.count <= AgentRequest.maximumBytes, mode != "file" || permission != nil else {
+                        throw AgentErrorCode.invalidInput
+                    }
+                    let incoming: SyntaxDefinition
+                    do { incoming = try SyntaxDefinition(data: data, type: mode) }
+                    catch { throw AgentErrorCode.invalidInput }
+                    guard !ScriptSyntax.names.contains(incoming.name) else { throw AgentErrorCode.invalidInput }
+                    if let stored {
+                        // Drafts refer to the syntax by name. Keep that reference valid.
+                        guard incoming.name == stored.name, incoming.type == stored.type else { throw AgentErrorCode.invalidInput }
+                    } else if actionLibrary.syntaxes.contains(where: { $0.name == incoming.name }) {
+                        throw AgentErrorCode.versionConflict
+                    }
+                    guard let prepared = try SyntaxImportPreparation.prepare(incoming,
+                        installed: stored.map { [$0] } ?? [], choice: .replace) else { throw AgentErrorCode.invalidInput }
+                    definition = prepared
+                }
+                _ = try currentTarget()
+                let version = try syntaxVersion(definition, permission: permission)
+                var result: [String: AgentJSONValue] = ["resource": .object([
+                    "id": .string(definition.id.uuidString), "versionToken": .string(version)
+                ])]
+                if request.operation == "syntaxes.install" { result["builtInName"] = .null }
+                try AgentAppearanceSchemas.validateResult(result, for: request)
+                try operationRegistry.recordEffect(id, effectID: effect, kind: request.operation, outcome: "submitted")
+                submitted = true
+                try actionLibrary.saveSyntax(definition)
+                if let permission, request.operation != "syntaxes.reload" {
+                    preferenceDefaults.set(permission, forKey: "syntax.file." + definition.id.uuidString)
+                }
+                try operationRegistry.recordEffect(id, effectID: effect, kind: request.operation, outcome: "completed")
+                return result
+            } catch {
+                if submitted {
+                    try? operationRegistry.recordEffect(id, effectID: effect, kind: request.operation, outcome: "unknown")
+                    throw AgentErrorCode.outcomeUnknown
+                }
+                if let error = error as? AgentOperationRegistry.FailureBeforeEffects { throw error }
+                if (error as? AgentErrorCode) == .outcomeUnknown { throw error }
+                throw AgentOperationRegistry.FailureBeforeEffects(code:
+                    error is CancellationError ? .cancelled : (error as? AgentErrorCode ?? .storageError))
+            }
         }
         return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }
@@ -938,7 +1087,7 @@ import AgentContracts
                 parameters: parameters, expiresAt: grant.expiresAt,
                 ids: { syntaxes.map(\.id) }, value: { id in
                     guard let syntax = byID[id] else { return nil }
-                    let token = Data(HMAC<SHA256>.authenticationCode(for: Data(syntax.source.utf8), using: self.preferenceVersionKey)).base64EncodedString()
+                    let token = try self.syntaxVersion(syntax)
                     return .object(["id": .string(id.uuidString), "name": .string(syntax.name),
                         "type": .string(syntax.type), "versionToken": .string(token)])
                 })
@@ -957,7 +1106,7 @@ import AgentContracts
                 catch { throw AgentErrorCode.unavailable }
                 try validateSession(sessionID, grant: grant)
             }
-            let token = Data(HMAC<SHA256>.authenticationCode(for: Data(syntax.source.utf8), using: preferenceVersionKey)).base64EncodedString()
+            let token = try syntaxVersion(syntax)
             let text: String
             if parameters["format"] == .string("installationURL") {
                 var components = URLComponents(); components.scheme = "draftly"; components.host = "syntax"
@@ -974,7 +1123,7 @@ import AgentContracts
                   let syntax = actionLibrary.syntaxes.first(where: { $0.id == id && $0.type != "builtIn" }) else {
                 throw AgentErrorCode.notFound
             }
-            let token = Data(HMAC<SHA256>.authenticationCode(for: Data(syntax.source.utf8), using: preferenceVersionKey)).base64EncodedString()
+            let token = try syntaxVersion(syntax)
             let definition = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(syntax))
             return ["definition": definition, "versionToken": .string(token)]
         case "actions.run":

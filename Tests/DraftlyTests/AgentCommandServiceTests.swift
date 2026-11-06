@@ -3094,6 +3094,102 @@ struct AgentCommandServiceTests {
         #expect(try f.values("syntaxes.export", session: allowed, targets: [target], parameters: parameters)["versionToken"] != result["versionToken"])
     }
 
+    @Test func syntaxInstallAndReplacePreserveIdentityAndEnforceScope() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        f.operations = operations; f.service = try f.makeService()
+        defer { operations.cancelAll() }
+        let capabilities: Set<AgentCapability> = [.appearanceRead, .appearanceManage, .filesRead]
+        let (record, session) = try f.connect(capabilities: capabilities)
+        func settle(_ request: AgentRequest) async throws -> AgentResponse.Outcome {
+            let reply = try f.send(request, session: session)
+            guard case .accepted(let id, _) = reply.outcome else { return reply.outcome }
+            for _ in 0..<200 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(5))
+            }
+            return try f.send(request, session: session).outcome
+        }
+        var definition = try ScriptSyntax.definition("Plain Text").object
+        definition["name"] = "Agent install café"
+        func input() throws -> [String: AgentJSONValue] {
+            ["source": .object(["kind": .string("inline"),
+                "text": .string(String(decoding: try JSONSerialization.data(withJSONObject: definition), as: UTF8.self))])]
+        }
+        func install() throws -> AgentRequest {
+            .init(requestID: UUID(), libraryID: f.libraryID, operation: "syntaxes.install", parameters: try input())
+        }
+        guard case .result = try await settle(install()) else { Issue.record("Syntax install did not succeed"); return }
+        let syntax = try #require(f.library.syntaxes.first)
+        let target = AgentResourceReference(kind: .syntax, id: syntax.id)
+        guard case .string(let version) = try f.values("syntaxes.get", session: session, targets: [target])["versionToken"] else {
+            Issue.record("Missing syntax version"); return
+        }
+        #expect(try await settle(install()) == .error(.versionConflict))
+        definition["description"] = "Updated café 🐼"
+        func replace() throws -> AgentRequest {
+            .init(requestID: UUID(), libraryID: f.libraryID, operation: "syntaxes.replace", targets: [target],
+                  expectedVersion: version, parameters: try input())
+        }
+        let (_, restricted) = try f.connect(scope: .resources([.init(kind: .syntax, id: UUID())]), capabilities: capabilities)
+        #expect(try f.send(replace(), session: restricted).outcome == .error(.notFound))
+        let request = try replace()
+        guard case .result = try await settle(request) else { Issue.record("Syntax replace did not succeed"); return }
+        let replaced = try #require(f.library.syntaxes.first)
+        #expect(f.library.syntaxes.count == 1)
+        #expect(replaced.id == syntax.id)
+        #expect(replaced.object["description"] as? String == "Updated café 🐼")
+        #expect(try await settle(replace()) == .error(.versionConflict))
+    }
+
+    @Test func fileSyntaxReloadKeepsIdentityAndRejectsStaleVersion() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        f.operations = operations; f.service = try f.makeService()
+        defer { operations.cancelAll() }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        var definition = try ScriptSyntax.definition("Plain Text").object
+        definition["name"] = "Reload QA café"
+        let initial = try JSONSerialization.data(withJSONObject: definition)
+        try initial.write(to: url)
+        let syntax = try SyntaxDefinition(data: initial, type: "file")
+        try SyntaxFileAccess.install(syntax, from: url, in: f.library,
+            defaults: try #require(UserDefaults(suiteName: f.editorDefaultsName)))
+        let target = AgentResourceReference(kind: .syntax, id: syntax.id)
+        let (record, session) = try f.connect(scope: .resources([target]),
+            capabilities: [.appearanceRead, .appearanceManage, .filesRead])
+        let before = try f.values("syntaxes.get", session: session, targets: [target])
+        guard case .string(let version) = before["versionToken"] else { Issue.record("Missing syntax version"); return }
+        definition["description"] = "Updated café 🐼"
+        let source = try JSONSerialization.data(withJSONObject: definition)
+        try source.write(to: url)
+        func reload(_ token: String) -> AgentRequest {
+            .init(requestID: UUID(), libraryID: f.libraryID, operation: "syntaxes.reload", targets: [target], expectedVersion: token)
+        }
+        func settle(_ request: AgentRequest) async throws -> AgentResponse {
+            let reply = try f.send(request, session: session)
+            guard case .accepted(let id, _) = reply.outcome else { return reply }
+            for _ in 0..<200 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(5))
+            }
+            return try f.send(request, session: session)
+        }
+        let request = reload(version)
+        let applied = try await settle(request)
+        let after = try f.values("syntaxes.get", session: session, targets: [target])
+        #expect(after["versionToken"] != before["versionToken"])
+        let installed = try #require(f.library.syntaxes.first)
+        #expect(installed.id == syntax.id)
+        #expect(try JSONSerialization.jsonObject(with: Data(installed.source.utf8)) as? NSDictionary == definition as NSDictionary)
+        #expect(applied.outcome == .result(.object(["resource": .object([
+            "id": .string(syntax.id.uuidString), "versionToken": try #require(after["versionToken"])
+        ])])))
+        #expect(try f.send(request, session: session) == applied)
+        #expect(try await settle(reload(version)).outcome == .error(.versionConflict))
+    }
+
     @Test func fileSyntaxExportRequiresFilePermissionAndReadsBoundedCurrentSource() throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
