@@ -208,8 +208,13 @@ package actor AgentMCPServer {
         return (id, values)
     }
     private static func sdk(_ value: AgentJSONValue) throws -> MCP.Value {
-        let result = try JSONDecoder().decode(MCP.Value.self, from: JSONEncoder().encode(value))
-        guard try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(result)) == value else { throw AgentErrorCode.unavailable }
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        let encoded = try encoder.encode(value)
+        let result = try decoder.decode(MCP.Value.self, from: encoded)
+        let original = try decoder.decode(AgentJSONValue.self, from: encoded)
+        let converted = try decoder.decode(AgentJSONValue.self, from: encoder.encode(result))
+        guard converted == original else { throw AgentErrorCode.unavailable }
         return result
     }
     private static func bounded<T: Encodable>(_ value: T) throws -> T {

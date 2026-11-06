@@ -52,3 +52,20 @@ Normal locked startup, real lock/sleep/resume, all operation families,
 provider renewal and cancellation, notarized packaging and post-update client
 sessions still require separate acceptance. Later bookmark, transfer and wait
 changes were not present in this installed source.
+
+## Pagination compatibility with a neutral fixture
+
+On 6 November 2026, Codex CLI 0.166.0 and Claude Code 2.1.318 each
+requested all three MCP pages. The fixture used the 137 required tool names.
+It returned 50, 50, and 37 names. Both clients called a tool from the last page
+and returned its neutral marker.
+
+Codex discovered the tool with no annotations, then blocked the call under
+its never-approve policy. The call succeeded when the fixture identified the
+tool as read-only. The fixture performed only a read, regardless of the tool
+name. This check did not change a Draftly workspace.
+
+The client check used an isolated stdio fixture. It verifies pagination in
+both clients. Draftly's Swift bridge tests exercise its actual schemas and
+cursor validation separately. These checks do not establish installed
+catalog acceptance, deferred tool loading, or comparative token cost.

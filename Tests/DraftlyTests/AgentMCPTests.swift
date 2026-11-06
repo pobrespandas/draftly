@@ -145,6 +145,44 @@ struct AgentMCPTests {
         return try JSONDecoder().decode(AgentResponse.self, from: Data(text.utf8))
     }
 
+    @Test func fullCatalogFitsDefaultTransportAndForcedPagesKeepEverySchema() async throws {
+        let preferences = try AgentPreferenceCatalog.make()
+        let rows = try AgentOperationCatalog.operations.map { operation -> AgentJSONValue in
+            let schema = try #require(AgentOperationSchemas.schema(for: operation.name, preferences: preferences))
+            return .object(["name": .string(operation.name), "available": .bool(true),
+                "inputSchema": schema.parameters.jsonSchema, "resultSchema": schema.result.jsonSchema])
+        }
+        let backend: AgentMCPServer.Backend = { request in
+            let result: [String: AgentJSONValue]
+            switch request.operation {
+            case "server.schemas": result = ["operations": .array(rows)]
+            case "server.capabilities":
+                result = ["capabilities": .array(AgentCapability.allCases.map { .string($0.rawValue) }),
+                    "scope": .object(["allResources": .bool(true), "resources": .array([])]),
+                    "expiresAt": .string("2099-01-01T00:00:00Z")]
+            default: throw AgentErrorCode.invalidInput
+            }
+            return try AgentResponse(requestID: request.requestID, outcome: .result(.object(result)))
+        }
+        let all = try await AgentMCPServer(backend: backend).tools()
+        #expect(all.nextCursor == nil)
+        let expected = AgentOperationCatalog.operations.map(\.name).sorted().map(AgentToolInput.name)
+        #expect(all.tools.map(\.name) == expected && Set(expected).count == 137)
+
+        let paged = AgentMCPServer(toolPageLimit: 32_768, backend: backend)
+        var page = try await paged.tools()
+        var tools = page.tools
+        _ = try #require(page.nextCursor)
+        while let cursor = page.nextCursor {
+            #expect(try JSONEncoder().encode(page).count <= 32_768)
+            page = try await paged.tools(cursor: cursor)
+            tools.append(contentsOf: page.tools)
+            guard tools.count <= expected.count else { break }
+        }
+        #expect(tools == all.tools)
+        #expect(try JSONEncoder().encode(page).count <= 32_768)
+    }
+
     @Test func toolPagesKeepStableOrderAndRejectInvalidCursors() async throws {
         let runtime = try Runtime(count: 1)
         do {
