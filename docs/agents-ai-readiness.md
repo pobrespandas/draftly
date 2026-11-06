@@ -536,8 +536,8 @@ See [selection validation](agent-theme-selection-acceptance.md).
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-125 names in implemented or conditional handler sets in the catalog work. The
-other 12 names have no direct handler in those sets. Installed acceptance and
+127 names in implemented or conditional handler sets in the catalog work. The
+other 10 names have no direct handler in those sets. Installed acceptance and
 connection-specific availability are tracked separately.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -548,7 +548,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Imports | `imports.commit`, `imports.preview`, `imports.validate` |
+| Imports | `imports.commit` |
 | Backups | `backups.requestRestore` |
 | Native operations | `native.xmlrpc`, `native.fileRead`, `native.fileWrite`, `native.mail`, `native.messages`, `native.calendar`, `native.reminders`, `native.scanDocument` |
 

@@ -291,8 +291,8 @@ import AgentContracts
             let outcome: AgentResponse.Outcome
             if AgentNativeSchemas.operationNames.contains(request.operation) {
                 outcome = try submitNative(request, grant: grant, sessionID: session.id)
-            } else if ["backups.validate", "backups.previewRestore"].contains(request.operation) {
-                outcome = try submitBackupInput(request, grant: grant, sessionID: session.id)
+            } else if ["backups.validate", "backups.previewRestore", "imports.validate", "imports.preview"].contains(request.operation) {
+                outcome = try submitFileInput(request, parameters: parameters, grant: grant, sessionID: session.id)
             } else if AgentThemeInstallation.operationNames.contains(request.operation) {
                 outcome = try submitThemeImport(request, grant: grant, sessionID: session.id)
             } else if ["syntaxes.install", "syntaxes.replace", "syntaxes.reload"].contains(request.operation) {
@@ -382,7 +382,8 @@ import AgentContracts
         return parameters
     }
 
-    private func submitBackupInput(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+    private func submitFileInput(_ request: AgentRequest, parameters: [String: AgentJSONValue],
+                                 grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
         try validateSession(sessionID, grant: grant)
         func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
             if snapshot.state == .succeeded {
@@ -396,10 +397,15 @@ import AgentContracts
         if let operationRegistry, let id = try operationRegistry.existingRequest(request, grant: grant) {
             return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
         }
-        let parameters = try AgentBackupSchemas.validatedParameters(for: request)
+        let inputs = backups
+        @MainActor func read(_ data: Data?, authorize: () throws -> Void) throws -> [String: AgentJSONValue] {
+            if AgentImportSchemas.operationNames.contains(request.operation) {
+                return try inputs.importRead(request, parameters: parameters, grant: grant, sourceData: data, authorize: authorize)
+            }
+            return try inputs.read(request, parameters: parameters, grant: grant, sourceData: data, authorize: authorize)
+        }
         if !AgentHTTPSImport.isHTTPS(request) {
-            let result = try backups.read(request, parameters: parameters, grant: grant,
-                authorize: { try self.validateSession(sessionID, grant: grant) })
+            let result = try read(nil, authorize: { try self.validateSession(sessionID, grant: grant) })
             try AgentOperationSchemas.validateResult(result, for: request, preferences: preferences)
             return .result(.object(result))
         }
@@ -408,16 +414,17 @@ import AgentContracts
         let validateOperation = operationAuthority(for: grant)
         func validateIntent() throws {
             try validateOperation()
-            guard grant.scope == .library else { throw AgentErrorCode.permissionDenied }
-            if request.operation == "backups.previewRestore" { try self.drafts.requireStoredDraftsForRestorePreview() }
+            guard grant.scope == .library || request.operation == "imports.validate" else { throw AgentErrorCode.permissionDenied }
+            if ["backups.previewRestore", "imports.preview"].contains(request.operation) {
+                try self.drafts.requireStoredDraftsForRestorePreview()
+            }
         }
         try validateIntent()
-        let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] id in
-            guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
+        let id = try operationRegistry.startValueRequest(request, grant: grant) { id in
             let data = try await AgentHTTPSImport.read(request, grant: grant, maximumBytes: AgentTransferSchemas.maximumBytes,
                 environment: environment, operations: operationRegistry, operationID: id,
                 validateIntent: validateIntent, authorize: validateOperation)
-            do { return try self.backups.read(request, parameters: parameters, grant: grant, sourceData: data, authorize: validateOperation) }
+            do { return try read(data, authorize: validateOperation) }
             catch { throw AgentErrorCode.outcomeUnknown }
         }
         return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))

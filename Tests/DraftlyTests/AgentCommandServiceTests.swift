@@ -3031,6 +3031,32 @@ struct AgentCommandServiceTests {
         #expect(try f.library.backupData() == after)
     }
 
+    @Test func importPreviewBindsSourceLibraryAndGrantWithoutWriting() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let capabilities: Set<AgentCapability> = [.filesRead, .draftsWrite]
+        let (_, session) = try f.connect(capabilities: capabilities)
+        let (_, other) = try f.connect(capabilities: capabilities)
+        let (_, scoped) = try f.connect(scope: .resources([]), capabilities: capabilities)
+        let input: [String: AgentJSONValue] = ["fileExtension": .string("txt"),
+            "source": .object(["kind": .string("inline"), "text": .string("Import café 🐼")])]
+        let before = try f.library.backupData()
+        #expect(try f.values("imports.validate", session: scoped, parameters: input) == ["valid": .bool(true)])
+        #expect(try f.response("imports.preview", session: scoped, parameters: input).outcome == .error(.permissionDenied))
+        let preview = try f.values("imports.preview", session: session, parameters: input)
+        guard case .object(let changes) = preview["changes"] else { Issue.record("Missing changes"); return }
+        #expect(changes["drafts"] == .object(["created": .integer(1), "updated": .integer(0)]))
+        #expect(try f.values("imports.preview", session: session, parameters: input) == preview)
+        #expect(try f.values("imports.preview", session: other, parameters: input)["versionToken"] != preview["versionToken"])
+        var changed = input
+        changed["source"] = .object(["kind": .string("inline"), "text": .string("Different café")])
+        #expect(try f.values("imports.preview", session: session, parameters: changed)["versionToken"] != preview["versionToken"])
+        changed["fileExtension"] = .string("json")
+        #expect(try f.response("imports.validate", session: session, parameters: changed).outcome == .error(.invalidInput))
+        #expect(try f.library.backupData() == before)
+        _ = try f.note("Existing draft")
+        #expect(try f.values("imports.preview", session: session, parameters: input)["versionToken"] != preview["versionToken"])
+    }
+
     @Test func backupSourcesRequireSavedAccessOrNetworkReview() throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let (_, session) = try f.connect(capabilities: [.backupsRestore, .filesRead])

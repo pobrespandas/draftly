@@ -15,10 +15,15 @@ import Foundation
             try apply(file.data, fileExtension: file.fileExtension, to: library)
             return
         }
-        let staging = try LibraryStore(inMemory: true, seed: false)
-        try staging.restore(library.backupData())
-        for file in files { try apply(file.data, fileExtension: file.fileExtension, to: staging) }
+        let staging = try stage(files, baseline: library.backupData())
         try library.applyImportedRecords(from: staging)
+    }
+
+    package static func stage(_ files: [File], baseline: Data? = nil) throws -> LibraryStore {
+        let staging = try LibraryStore(inMemory: true, seed: false)
+        if let baseline { try staging.restore(baseline) }
+        for file in files { try apply(file.data, fileExtension: file.fileExtension, to: staging) }
+        return staging
     }
 
     public static func apply(_ data: Data, fileExtension: String, to library: LibraryStore) throws {

@@ -7,7 +7,7 @@ package enum AgentBackupSchemas {
     private static let counts = AgentObjectShape(fields: Dictionary(uniqueKeysWithValues: collectionNames.map {
         ($0, r(.integer(minimum: 0)))
     }))
-    private static let changes = AgentObjectShape(fields: Dictionary(uniqueKeysWithValues: collectionNames.map {
+    package static let changes = AgentObjectShape(fields: Dictionary(uniqueKeysWithValues: collectionNames.map {
         ($0, r(.object(.init(fields: ["created": r(.integer(minimum: 0)), "updated": r(.integer(minimum: 0))]))))
     }))
     private static let input = AgentObjectShape(fields: ["source": r(AgentImportSource.backupShape)])

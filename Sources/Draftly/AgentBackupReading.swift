@@ -29,7 +29,7 @@ import AgentContracts
             "workspaces": .integer(Int64(backup.workspaces.count)), "themes": .integer(Int64(backup.themes?.count ?? 0)),
             "syntaxes": .integer(Int64(backup.syntaxes?.count ?? 0)), "runs": .integer(Int64(backup.runs?.count ?? 0))])
     }
-    private func changes(_ before: Backup, _ after: Backup) -> AgentJSONValue {
+    static func changes(_ before: Backup, _ after: Backup) -> AgentJSONValue {
         func count<T: Identifiable & Equatable>(_ old: [T], _ new: [T]) -> AgentJSONValue where T.ID == UUID {
             let values = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0) })
             return .object(["created": .integer(Int64(new.filter { values[$0.id] == nil }.count)),
@@ -40,6 +40,39 @@ import AgentContracts
             "workspaces": count(before.workspaces, after.workspaces), "themes": count(before.themes ?? [], after.themes ?? []),
             "syntaxes": count(before.syntaxes ?? [], after.syntaxes ?? []), "runs": count(before.runs ?? [], after.runs ?? [])])
     }
+    func importRead(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
+                    sourceData: Data? = nil, authorize: () throws -> Void) throws -> [String: AgentJSONValue] {
+        try check(authorize)
+        guard case .string(let fileExtension) = parameters["fileExtension"] else { throw AgentErrorCode.invalidInput }
+        let input = try sourceData ?? source(parameters, grant: grant, authorize: authorize)
+        guard input.count <= AgentTransferSchemas.maximumBytes else { throw AgentErrorCode.invalidInput }
+        let files = [LibraryFileImport.File(data: input, fileExtension: fileExtension)]
+        do { _ = try LibraryFileImport.stage(files) }
+        catch { throw AgentErrorCode.invalidInput }
+        try check(authorize)
+        if request.operation == "imports.validate" { return ["valid": .bool(true)] }
+        guard request.operation == "imports.preview", grant.scope == .library else { throw AgentErrorCode.permissionDenied }
+        try drafts.requireStoredDraftsForRestorePreview()
+        let baseline = try library.backupData()
+        let before = try JSONDecoder().decode(Backup.self, from: baseline)
+        let staging: LibraryStore
+        do { staging = try LibraryFileImport.stage(files, baseline: baseline) }
+        catch { throw AgentErrorCode.versionConflict }
+        let after = try JSONDecoder().decode(Backup.self, from: staging.backupData())
+        let changes = Self.changes(before, after)
+        let context = AgentJSONValue.object([
+            "grant": AgentRequestBinding.grantValue(grant),
+            "source": parameters["source"] ?? .null,
+            "fileExtension": .string(fileExtension)
+        ])
+        let binding = Data("imports.preview:v1".utf8)
+            + Data(SHA256.hash(data: try AgentRequestBinding.encoded(context, maximum: AgentRequest.maximumBytes * 2)))
+            + Data(SHA256.hash(data: input)) + Data(SHA256.hash(data: baseline))
+        let version = Data(HMAC<SHA256>.authenticationCode(for: binding, using: versionKey)).base64EncodedString()
+        try check(authorize)
+        return ["changes": changes, "versionToken": .string(version)]
+    }
+
     func read(_ request: AgentRequest, parameters: [String: AgentJSONValue],
               grant: AgentGrant, sourceData: Data? = nil, authorize: () throws -> Void) throws -> [String: AgentJSONValue] {
         try check(authorize)
@@ -70,6 +103,6 @@ import AgentContracts
         try check(authorize)
         let binding = Data("backups.previewRestore:v1".utf8) + Data(SHA256.hash(data: current)) + Data(SHA256.hash(data: data))
         let version = Data(HMAC<SHA256>.authenticationCode(for: binding, using: versionKey)).base64EncodedString()
-        return ["counts": counts(incoming), "changes": changes(before, after), "versionToken": .string(version)]
+        return ["counts": counts(incoming), "changes": Self.changes(before, after), "versionToken": .string(version)]
     }
 }
