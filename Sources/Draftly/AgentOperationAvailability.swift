@@ -50,6 +50,7 @@ import AgentContracts
             handlers: [.operationControl, .workspaceDelete], optionalHostFeature: true),
         .init(operations: AgentActivitySchemas.operationNames, handlers: [.activityRead], optionalHostFeature: true),
         .init(operations: ["operations.get", "operations.cancel", "operations.wait"], handlers: [.operationControl], optionalHostFeature: true),
+        .init(operations: ["operations.answerPrompt"], handlers: [.operationControl, .actionExecution], optionalHostFeature: true),
         .init(operations: AgentNativeSchemas.operationNames, handlers: [.nativeExecution, .operationControl], optionalHostFeature: true),
         .init(operations: ["actions.run"], handlers: [.operationControl, .actionExecution], optionalHostFeature: true)
     ]

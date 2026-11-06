@@ -119,7 +119,8 @@ package enum AgentActionSchemas {
             ]), result: .init(fields: ["available": r(.boolean)])),
             "actions.run": .init(parameters: .init(fields: [
                 "interactive": o(.boolean, default: .bool(false)), "windowID": o(.uuid),
-                "timeoutSeconds": o(.integer(minimum: 1, maximum: 3600))
+                "timeoutSeconds": o(.integer(minimum: 1, maximum: 3600)),
+                "promptMode": o(.string(choices: ["agent"]))
             ]), result: .init(fields: ["operationID": r(.uuid),
                 "state": r(.string(choices: AgentOperationState.allCases.map(\.rawValue)))])),
             "actionGroups.get": .init(parameters: none, result: .init(fields: [

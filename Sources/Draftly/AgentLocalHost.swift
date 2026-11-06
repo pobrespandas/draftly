@@ -169,7 +169,11 @@ import AgentLocalSecurity
             approvedActions: Dictionary(uniqueKeysWithValues: approved.map { ($0.id, $0) }),
             currentAction: { [weak self] id in self?.library.actions.first { $0.id == id } }, reviewedNativeEffects: true)
         return try operations.startRequest(request, grant: grant) { [self] id in
-            try await AgentReviewedActionExecution.run(action: action, draftID: draftID, request: request,
+            let answerablePrompt: AgentAuthorizedActionHost.AnswerablePrompt? =
+                request.parameters["promptMode"] == .string("agent") ? { stepID, payload in
+                    try await self.operations.waitForPrompt(id, stepID: stepID, payload: payload)
+                } : nil
+            return try await AgentReviewedActionExecution.run(action: action, draftID: draftID, request: request,
                 connectionID: grant.connectionID, library: library, models: models, host: model.host,
                 authority: authority, approvals: approvals,
                 currentSnapshot: { try self.service.actionExecutionSnapshot(request, connectionID: grant.connectionID) },
@@ -177,7 +181,7 @@ import AgentLocalSecurity
                 recordEffect: { effectID, kind, outcome in
                     try self.operations.recordEffect(id, effectID: effectID, kind: kind, outcome: outcome)
                 },
-                resolveModel: { models, _ in models.first })
+                answerablePrompt: answerablePrompt, resolveModel: { models, _ in models.first })
         }
     }
 

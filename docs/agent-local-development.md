@@ -1065,3 +1065,21 @@ Direct file update returns `interaction_required`; use the separate native
 Reload or replacement route when those handlers are connected. A saved receipt
 recovers the original result across service recreation. It never repeats a
 completed write or replaces a later user edit. Installed acceptance is pending.
+
+## Answer a built-in Action prompt
+
+Start `actions.run` with an authorized draft, window and Action version. Set
+`parameters.promptMode` to `agent` to let the connection answer built-in input
+steps. Poll `operations.get` for the operation returned by `actions.run`.
+A pending input step adds a `prompt` object with the step ID, prompt ID,
+version token, button labels and optional default text.
+
+Call `operations.answerPrompt` with the operation target. Use the prompt's
+`versionToken` as `expectedVersion`. Put `stepID`, `promptID` and `answers` in
+`parameters`. Use a zero-based `index` and optional `text`, or `cancel: true`
+if the prompt permits cancellation. Omit `text` to use the displayed default.
+Read the operation again to check its result. The next prompt has a new ID
+and token.
+
+Only the connection that owns the pending operation can answer it. The
+response is used once. Draftly still handles approval for native effects.

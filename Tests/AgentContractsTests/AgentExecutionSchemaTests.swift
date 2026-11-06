@@ -76,7 +76,7 @@ struct AgentExecutionSchemaTests {
     @Test func promptRepliesRequireStepAndPromptIdentitiesAndCannotApprovePermissions() throws {
         let schema = try #require(AgentExecutionSchemas.schema(for: "operations.answerPrompt"))
         var answer: [String: AgentJSONValue] = ["stepID": .string(UUID().uuidString),
-            "promptID": .string(UUID().uuidString), "answers": .object(["choice": .string("Neutral")])]
+            "promptID": .string(UUID().uuidString), "answers": .object(["index": .integer(0), "text": .string("Neutral")])]
         #expect(try schema.validatedParameters(answer) == answer)
         answer["approveGrant"] = .bool(true)
         #expect(throws: AgentSchemaError.self) { try schema.validatedParameters(answer) }

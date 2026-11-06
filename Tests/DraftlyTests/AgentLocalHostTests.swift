@@ -3,6 +3,8 @@ import CoreData
 import Testing
 import AgentContracts
 import AgentLocalTransport
+import AgentMCP
+import MCP
 import AgentLocalSecurity
 @testable import DraftlyCore
 @testable import Draftly
@@ -252,6 +254,73 @@ struct AgentLocalHostTests {
         guard case .result = polled.outcome else { Issue.record("Missing completed operation"); return }
         #expect(model.editor.content.contains(" café 🐼"))
         #expect(f.library.notes.first?.content == model.editor.content)
+    }
+
+    @Test func builtInActionPromptCanBeReadByCLIAndAnsweredByMCPOnce() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let note = try f.library.createNote(content: "Neutral")
+        let step = ActionStep("prompt", ["includeTextField": "true", "textFieldDefault": "Default"])
+        let action = DraftAction(name: "Agent prompt", steps: [step, ActionStep("insertText", ["template": " [[prompt_text]]"])])
+        try f.library.saveAction(action)
+        let model = WindowModel(library: f.library); model.select(note.id)
+        let editors = AgentEditorRegistry(library: f.library, models: { [model] })
+        let host = try f.host(editors: editors, enableReviewedActions: true)
+        defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let record = try host.connections.connectFromUserInterface(name: "Prompt owner", libraryID: host.libraryID,
+            capabilities: [.actionsRead, .actionsRun, .draftsRead, .draftsWrite, .editorWrite], scope: .library)
+        let client = try await f.client(host, record: record)
+        func cli(_ name: String, targets: [AgentResourceReference], expectedVersion: String? = nil,
+                 parameters: [String: AgentJSONValue] = [:]) async throws -> AgentResponse {
+            var arguments: [String: AgentJSONValue] = [
+                "requestID": .string(UUID().uuidString), "parameters": .object(parameters),
+                "targets": .array(targets.map { .object(["kind": .string($0.kind.rawValue), "id": .string($0.id.uuidString)]) })
+            ]
+            arguments["expectedVersion"] = expectedVersion.map(AgentJSONValue.string)
+            let request = try AgentCLIRequest.make(mode: "call", operationName: name,
+                readInput: { try JSONEncoder().encode(AgentJSONValue.object(arguments)) })
+            return try JSONDecoder().decode(AgentResponse.self, from: await client.request(JSONEncoder().encode(request)))
+        }
+        let actionTarget = AgentResourceReference(kind: .action, id: action.id)
+        guard case .result(.object(let info)) = try await cli("actions.get", targets: [actionTarget]).outcome,
+              case .string(let version) = info["versionToken"] else { Issue.record("Missing action version"); return }
+        let window = try #require(editors.windowSnapshots().first)
+        let started = try await cli("actions.run", targets: [actionTarget, .init(kind: .draft, id: note.id)],
+            expectedVersion: version, parameters: ["windowID": .string(window.id.uuidString), "promptMode": .string("agent")])
+        guard case .result(.object(let submitted)) = started.outcome,
+              case .string(let rawID) = submitted["operationID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Expected action operation"); return
+        }
+        for _ in 0..<200 where try host.operations.snapshot(id, connectionID: record.id).prompt == nil {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let operation = AgentResourceReference(kind: .operation, id: id)
+        guard case .result(.object(let result)) = try await cli("operations.get", targets: [operation]).outcome,
+              case .object(let state) = result["operation"], case .object(let prompt) = state["prompt"],
+              case .string(let promptID) = prompt["promptID"], case .string(let promptVersion) = prompt["versionToken"] else {
+            Issue.record("Expected visible input prompt"); return
+        }
+        #expect(prompt["stepID"] == .string(step.id.uuidString))
+        #expect(host.approvals.pendingFromUserInterface().isEmpty)
+        let answer: [String: MCP.Value] = ["stepID": .string(step.id.uuidString), "promptID": .string(promptID),
+            "answers": .object(["index": .int(0), "text": .string("café 🐼")])]
+        let bridge = AgentMCPServer { request in
+            try await JSONDecoder().decode(AgentResponse.self, from: client.request(JSONEncoder().encode(request)))
+        }
+        var arguments: [String: MCP.Value] = [
+            "targets": .array([.object(["kind": .string("operation"), "id": .string(id.uuidString)])]),
+            "requestID": .string(UUID().uuidString), "expectedVersion": .string("stale"), "parameters": .object(answer)
+        ]
+        #expect(await bridge.call("draftly_operations_answerPrompt", arguments: arguments).isError == true)
+        arguments["expectedVersion"] = .string(promptVersion)
+        #expect(await bridge.call("draftly_operations_answerPrompt", arguments: arguments).isError == false)
+        #expect(await bridge.call("draftly_operations_answerPrompt", arguments: arguments).isError == true)
+        for _ in 0..<200 where try !host.operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(try host.operations.snapshot(id, connectionID: record.id).state == .succeeded)
+        #expect(f.library.notes.first?.content == " café 🐼Neutral")
+        await client.close()
     }
 
     @Test(arguments: ["stopWork", "removeEditor", "timeout"])
