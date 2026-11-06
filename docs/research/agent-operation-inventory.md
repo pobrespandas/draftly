@@ -1,127 +1,125 @@
 # Agent operation inventory
 
-Current handler and acceptance reconciliation is in
-[agents and AI readiness](../agents-ai-readiness.md#operation-coverage).
-This inventory records required contracts, including contracts without a current
-handler. It is not a list of delivered tools.
-
-The table records all required contracts. It does not claim that each contract
-has a connected handler. Current source coverage, test evidence and installed
-acceptance are recorded in the readiness report linked above.
-
-The authoritative operation names, permission families, resource target rules,
-and expected-version/approval requirements are in
+This table matches the 137 required operation names and records the owner,
+capabilities, target kinds and gates from
 [AgentOperationCatalog](../../Sources/AgentContracts/AgentOperationCatalog.swift).
-The configured service advertises only its connected and permitted handlers.
-Contract presence alone does not make an operation available.
+`AgentOperationSchemas` provides a schema for each row. The complete-host
+availability test checks all 137 names against the handler sets and schema
+registry. A configured host can omit tools based on its connected handlers,
+the connection's grant and the state of the app.
 
-| Operation | Existing owner or planned boundary | Capability names in code | Targets | Additional requirements |
+Installed evidence is separate from source coverage. See
+[agents and AI readiness](../agents-ai-readiness.md#operation-coverage)
+and the acceptance table below.
+
+| Operation | Catalog owner | Capability names in code | Targets | Additional requirements |
 | --- | --- | --- | --- | --- |
 | server.status | AgentCommandService | connection only | none | none |
 | server.capabilities | AgentCommandService | connection only | none | none |
 | server.schemas | AgentCommandService | connection only | none | none |
+| mutations.prepare | AgentCommandService | connection only | none | none |
 | library.summary | LibraryStore | draftsRead | none | none |
 | drafts.list | LibraryStore + DraftCommands | draftsRead | none | none |
 | drafts.search | LibraryStore + DraftCommands | draftsRead | none | none |
 | drafts.get | LibraryStore + DraftCommands | draftsRead | draft | none |
 | drafts.versions | LibraryStore + DraftCommands | draftsRead | draft | none |
-| drafts.create | LibraryStore + DraftCommands | draftsWrite | none | none |
+| drafts.create | LibraryStore + DraftCommands | draftsWrite | none | library |
 | drafts.update | LibraryStore + DraftCommands | draftsWrite | draft | version |
 | drafts.patch | LibraryStore + DraftCommands | draftsWrite | draft | version |
-| drafts.duplicate | LibraryStore + DraftCommands | draftsWrite | draft | version |
-| drafts.merge | LibraryStore + DraftCommands | draftsWrite | drafts | version |
-| drafts.archive | LibraryStore + DraftCommands | draftsWrite | drafts | version |
-| drafts.trash | LibraryStore + DraftCommands | draftsWrite | drafts | version |
-| drafts.restore | LibraryStore + DraftCommands | draftsWrite | drafts | version |
-| drafts.flag | LibraryStore + DraftCommands | draftsWrite | drafts | version |
-| drafts.tags | LibraryStore + DraftCommands | draftsWrite | drafts | version |
-| drafts.syntax | LibraryStore + DraftCommands | draftsWrite | drafts | version |
-| drafts.restoreVersion | LibraryStore + DraftCommands | draftsWrite | draftAndRevision | version |
-| drafts.purge | LibraryStore | draftsWrite,destructiveRequest | drafts | version,human |
-| editor.windows | EditorSession + WindowModel | editorRead,draftsRead | none | none |
-| editor.get | EditorSession + WindowModel | editorRead,draftsRead | window | none |
-| editor.find | EditorSession + WindowModel | editorRead,draftsRead | window | none |
-| editor.markers | EditorSession + WindowModel | editorRead,draftsRead | window | none |
-| editor.links | EditorSession + WindowModel | editorRead,draftsRead | window | none |
-| editor.replaceRange | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
-| editor.setSelection | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
-| editor.replaceAll | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
-| editor.listTasks | SyntaxDefinition + EditorSession | editorRead,draftsRead | window | none |
-| editor.tasks | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
-| editor.undo | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
-| editor.redo | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
-| editor.open | WindowModel | presentUI,draftsRead | draft | none |
-| editor.navigate | WindowModel | presentUI,draftsRead | window | version |
-| editor.preview | WindowModel | presentUI,draftsRead | window | none |
+| drafts.duplicate | LibraryStore + DraftCommands | draftsWrite | draft | version, library |
+| drafts.merge | LibraryStore + DraftCommands | draftsWrite | one or more draft | version, library |
+| drafts.archive | LibraryStore + DraftCommands | draftsWrite | one or more draft | version |
+| drafts.trash | LibraryStore + DraftCommands | draftsWrite | one or more draft | version |
+| drafts.restore | LibraryStore + DraftCommands | draftsWrite | one or more draft | version |
+| drafts.flag | LibraryStore + DraftCommands | draftsWrite | one or more draft | version |
+| drafts.tags | LibraryStore + DraftCommands | draftsWrite | one or more draft | version |
+| drafts.syntax | LibraryStore + DraftCommands | draftsWrite | one or more draft | version |
+| drafts.restoreVersion | LibraryStore + DraftCommands | draftsWrite | draft + revision | version |
+| drafts.purge | LibraryStore | draftsWrite, destructiveRequest | one or more draft | version, human |
+| editor.windows | EditorSession + WindowModel | editorRead, draftsRead | none | none |
+| editor.get | EditorSession + WindowModel | editorRead, draftsRead | window | none |
+| editor.find | EditorSession + WindowModel | editorRead, draftsRead | window | none |
+| editor.markers | EditorSession + WindowModel | editorRead, draftsRead | window | none |
+| editor.links | EditorSession + WindowModel | editorRead, draftsRead | window | none |
+| editor.replaceRange | EditorSession + WindowModel | editorWrite, draftsWrite | window | version |
+| editor.setSelection | EditorSession + WindowModel | editorWrite, draftsWrite | window | version |
+| editor.replaceAll | EditorSession + WindowModel | editorWrite, draftsWrite | window | version |
+| editor.listTasks | SyntaxDefinition + EditorSession | editorRead, draftsRead | window | none |
+| editor.tasks | EditorSession + WindowModel | editorWrite, draftsWrite | window | version |
+| editor.undo | EditorSession + WindowModel | editorWrite, draftsWrite | window | version |
+| editor.redo | EditorSession + WindowModel | editorWrite, draftsWrite | window | version |
+| editor.open | WindowModel | presentUI, draftsRead | draft | none |
+| editor.navigate | WindowModel | presentUI, draftsRead | window | version |
+| editor.preview | WindowModel | presentUI, draftsRead | window | none |
 | actions.list | ActionCatalog + ActionEditingCopy | actionsRead | none | none |
 | actions.get | ActionCatalog + ActionEditingCopy | actionsRead | action | none |
 | actions.stepSchemas | ActionCatalog + ActionEditingCopy | actionsRead | none | none |
 | actions.groups | ActionCatalog + ActionEditingCopy | actionsRead | none | none |
-| actions.create | LibraryStore + ActionEditingCopy | actionsManage | none | none |
+| actions.create | LibraryStore + ActionEditingCopy | actionsManage | none | library |
 | actions.update | LibraryStore + ActionEditingCopy | actionsManage | action | version |
-| actions.duplicate | LibraryStore + ActionEditingCopy | actionsManage | action | version |
-| actions.move | LibraryStore + ActionEditingCopy | actionsManage | actionAndGroup | version |
-| actions.reorder | LibraryStore + ActionEditingCopy | actionsManage | actions | version |
-| actions.validateShortcut | LibraryStore + ActionEditingCopy | actionsManage | none | none |
-| actions.delete | LibraryStore | actionsManage,destructiveRequest | action | version,human |
+| actions.duplicate | LibraryStore + ActionEditingCopy | actionsManage | action | version, library |
+| actions.move | LibraryStore + ActionEditingCopy | actionsManage | action + actionGroup | version |
+| actions.reorder | LibraryStore + ActionEditingCopy | actionsManage | one or more action | version, library |
+| actions.validateShortcut | LibraryStore + ActionEditingCopy | actionsManage | none | library |
+| actions.delete | LibraryStore | actionsManage, destructiveRequest | action | version, human |
 | actionGroups.get | LibraryStore + ActionCatalog | actionsRead | actionGroup | none |
-| actionGroups.create | LibraryStore + ActionCatalog | actionsManage | none | none |
-| actionGroups.update | LibraryStore + ActionCatalog | actionsManage | actionGroup | version |
-| actionGroups.duplicate | LibraryStore + ActionCatalog | actionsManage | actionGroup | version |
-| actionGroups.reorder | LibraryStore + ActionCatalog | actionsManage | actionGroups | version |
-| actionGroups.delete | LibraryStore | actionsManage,destructiveRequest | actionGroup | version,human |
-| actions.run | AutomationActionExecution + ActionRunner | actionsRun,draftsRead | actionAndDraft | version |
+| actionGroups.create | LibraryStore + ActionCatalog | actionsManage | none | library |
+| actionGroups.update | LibraryStore + ActionCatalog | actionsManage | actionGroup | version, library |
+| actionGroups.duplicate | LibraryStore + ActionCatalog | actionsManage | actionGroup | version, library |
+| actionGroups.reorder | LibraryStore + ActionCatalog | actionsManage | one or more actionGroup | version, library |
+| actionGroups.delete | LibraryStore | actionsManage, destructiveRequest | actionGroup | version, human |
+| actions.run | AutomationActionExecution + ActionRunner | actionsRun, draftsRead | action + draft | version |
 | operations.get | AgentOperationRegistry | connection only | operation | none |
 | operations.wait | AgentOperationRegistry | connection only | operation | none |
 | operations.cancel | AgentOperationRegistry | connection only | operation | none |
 | operations.answerPrompt | AgentOperationRegistry | connection only | operation | version |
 | workspaces.list | Workspace + LibraryStore | workspacesRead | none | none |
 | workspaces.get | Workspace + LibraryStore | workspacesRead | workspace | none |
-| workspaces.query | Workspace + LibraryStore | workspacesRead,draftsRead | workspace | none |
-| workspaces.create | LibraryStore | workspacesManage | none | none |
+| workspaces.query | Workspace + LibraryStore | workspacesRead, draftsRead | workspace | none |
+| workspaces.create | LibraryStore | workspacesManage | none | library |
 | workspaces.update | LibraryStore | workspacesManage | workspace | version |
-| workspaces.duplicate | LibraryStore | workspacesManage | workspace | version |
-| workspaces.reorder | LibraryStore | workspacesManage | workspaces | version |
-| workspaces.delete | LibraryStore | workspacesManage,destructiveRequest | workspace | version,human |
-| workspaces.apply | WindowModel.prepareWorkspace | workspacesApply,presentUI | workspaceAndWindow | version |
+| workspaces.duplicate | LibraryStore | workspacesManage | workspace | version, library |
+| workspaces.reorder | LibraryStore | workspacesManage | one or more workspace | version, library |
+| workspaces.delete | LibraryStore | workspacesManage, destructiveRequest | workspace | version, human |
+| workspaces.apply | WindowModel.prepareWorkspace | workspacesApply, presentUI | workspace + window | version |
 | themes.list | InstalledThemeCommands | appearanceRead | none | none |
 | themes.get | InstalledThemeCommands | appearanceRead | theme | none |
 | themes.export | InstalledThemeCommands | appearanceRead | theme | none |
-| themes.create | InstalledThemeCommands | appearanceManage | none | none |
+| themes.create | InstalledThemeCommands | appearanceManage | none | library |
 | themes.update | InstalledThemeCommands | appearanceManage | theme | version |
-| themes.duplicate | InstalledThemeCommands | appearanceManage | theme | version |
+| themes.duplicate | InstalledThemeCommands | appearanceManage | theme | version, library |
 | themes.select | InstalledThemeCommands | appearanceManage | theme | version |
 | themes.selection | EditorThemePreferences | appearanceRead | none | none |
-| themes.replace | ThemeFileAccess + InstalledThemeCommands | appearanceManage,filesRead | theme | version |
+| themes.replace | ThemeFileAccess + InstalledThemeCommands | appearanceManage, filesRead | theme | version |
 | themes.selectBuiltIn | EditorThemePreferences + ThemeCatalog | appearanceManage | none | version |
 | themes.exportBuiltIn | ThemeInstallation | appearanceRead | none | none |
-| themes.reload | InstalledThemeCommands | appearanceManage,filesRead | theme | version |
-| themes.install | InstalledThemeCommands | appearanceManage,filesRead | none | none |
-| themes.delete | InstalledThemeCommands | appearanceManage,destructiveRequest | theme | version,human |
+| themes.reload | InstalledThemeCommands | appearanceManage, filesRead | theme | version |
+| themes.install | InstalledThemeCommands | appearanceManage, filesRead | none | none |
+| themes.delete | InstalledThemeCommands | appearanceManage, destructiveRequest | theme | version, human |
 | syntaxes.list | SyntaxDefinition + ScriptSyntax | appearanceRead | none | none |
 | syntaxes.get | SyntaxDefinition + ScriptSyntax | appearanceRead | syntax | none |
 | syntaxes.getBuiltIn | ScriptSyntax | appearanceRead | none | none |
 | syntaxes.exportBuiltIn | ScriptSyntax | appearanceRead | none | none |
-| syntaxes.reload | SyntaxFileAccess | appearanceManage,filesRead | syntax | version |
+| syntaxes.reload | SyntaxFileAccess | appearanceManage, filesRead | syntax | version |
 | syntaxes.export | SyntaxDefinition + ScriptSyntax | appearanceRead | syntax | none |
-| syntaxes.install | SyntaxImportPreparation + ApplicationURLRouter | appearanceManage,filesRead | none | none |
-| syntaxes.replace | SyntaxImportPreparation + ApplicationURLRouter | appearanceManage,filesRead | syntax | version |
-| syntaxes.delete | SyntaxImportPreparation + ApplicationURLRouter | appearanceManage,destructiveRequest | syntax | version,human |
+| syntaxes.install | SyntaxImportPreparation + ApplicationURLRouter | appearanceManage, filesRead | none | none |
+| syntaxes.replace | SyntaxImportPreparation + ApplicationURLRouter | appearanceManage, filesRead | syntax | version |
+| syntaxes.delete | SyntaxImportPreparation + ApplicationURLRouter | appearanceManage, destructiveRequest | syntax | version, human |
 | preferences.schema | Typed preference commands | preferencesRead | none | none |
 | preferences.get | Typed preference commands | preferencesRead | none | none |
 | preferences.update | Typed preference commands | preferencesWrite | none | version |
 | preferences.reset | Typed preference commands | preferencesWrite | none | version |
 | bookmarks.list | BookmarkPreferences | preferencesRead | none | none |
 | bookmarks.requestAdd | BookmarkPreferences | preferencesWrite | none | human |
-| bookmarks.forget | BookmarkPreferences | preferencesWrite | bookmark | version,human |
-| imports.validate | DraftFileCommands + importers | filesRead,draftsWrite | none | none |
-| imports.preview | DraftFileCommands + importers | filesRead,draftsWrite | none | none |
-| imports.commit | DraftFileCommands + importers | filesRead,draftsWrite | none | version |
-| exports.drafts | DraftFileCommands | draftsRead,filesWrite | drafts | none |
-| backups.export | LibraryStore.backupData | backupsExport,draftsRead,actionsRead,workspacesRead,appearanceRead,filesWrite | none | library |
-| backups.validate | LibraryStore.restore | backupsRestore,filesRead | none | library |
-| backups.previewRestore | LibraryStore.restore | backupsRestore,filesRead | none | library |
-| backups.requestRestore | LibraryStore.restore | backupsRestore,filesRead | none | library,human,version |
+| bookmarks.forget | BookmarkPreferences | preferencesWrite | bookmark | version, human |
+| imports.validate | DraftFileCommands + importers | filesRead, draftsWrite | none | none |
+| imports.preview | DraftFileCommands + importers | filesRead, draftsWrite | none | library |
+| imports.commit | DraftFileCommands + importers | filesRead, draftsWrite | none | version, library, human |
+| exports.drafts | DraftFileCommands | draftsRead, filesWrite | one or more draft | none |
+| backups.export | LibraryStore.backupData | backupsExport, draftsRead, actionsRead, workspacesRead, appearanceRead, filesWrite | none | library |
+| backups.validate | LibraryStore.restore | backupsRestore, filesRead | none | library |
+| backups.previewRestore | LibraryStore.restore | backupsRestore, filesRead | none | library |
+| backups.requestRestore | LibraryStore.restore | backupsRestore, filesRead | none | version, library, human |
 | transfers.beginImport | AgentTransferStore | filesRead | none | none |
 | transfers.appendChunk | AgentTransferStore | filesRead | operation | none |
 | transfers.finishImport | AgentTransferStore | filesRead | operation | none |
@@ -131,8 +129,8 @@ Contract presence alone does not make an operation available.
 | activity.changes | AgentActivityStore | connection only | none | none |
 | native.http | NativeActionHost | nativeUse | none | human |
 | native.xmlrpc | NativeActionHost | nativeUse | none | human |
-| native.fileRead | AgentImportReading | nativeUse,filesRead | bookmark | human |
-| native.fileWrite | AgentImportReading | nativeUse,filesWrite | bookmark | human |
+| native.fileRead | AgentImportReading | nativeUse, filesRead | bookmark | human |
+| native.fileWrite | AgentImportReading | nativeUse, filesWrite | bookmark | human |
 | native.clipboardRead | NativeActionHost | nativeUse | none | human |
 | native.clipboardWrite | NativeActionHost | nativeUse | none | human |
 | native.htmlToMarkdown | NativeActionHost | nativeUse | none | human |
@@ -150,17 +148,26 @@ Contract presence alone does not make an operation available.
 | native.print | NativeActionHost | nativeUse | none | human |
 | native.speak | NativeActionHost | nativeUse | none | human |
 | native.openURL | NativeActionHost | nativeUse | none | human |
-| native.shell | NativeAutomationAdapter | nativeUse,scriptsUnrestricted | none | human |
-| native.appleScript | NativeAutomationAdapter | nativeUse,scriptsUnrestricted | none | human |
-| native.shortcut | NativeAutomationAdapter | nativeUse,scriptsUnrestricted | none | human |
+| native.shell | NativeAutomationAdapter | nativeUse, scriptsUnrestricted | none | library, human |
+| native.appleScript | NativeAutomationAdapter | nativeUse, scriptsUnrestricted | none | library, human |
+| native.shortcut | NativeAutomationAdapter | nativeUse, scriptsUnrestricted | none | library, human |
 
+
+| Scope | Evidence in the catalog branch |
+| --- | --- |
+| Every operation in the table | The complete-host test checks a registered handler and a schema for each required name. This is source evidence. |
+| `activity.changes` | Signed build 26 returned the new event exactly once over CLI and MCP. |
+| `operations.answerPrompt` | Signed build 24 answered and rejected a duplicate over CLI and MCP. The final retry-key rejection still needs installed verification. |
+| `syntaxes.install`, `syntaxes.replace`, `syntaxes.reload`, `syntaxes.delete`, `bookmarks.requestAdd`, `bookmarks.forget` | Signed build 26 passed CLI and MCP. See [PR #114](https://github.com/pobrespandas/draftly/pull/114). |
+| `imports.validate`, `imports.preview`, `imports.commit`, `backups.previewRestore`, `backups.requestRestore` | Signed build 27 passed CLI and MCP and verified the pre-restore copy. See [PR #115](https://github.com/pobrespandas/draftly/pull/115). |
+| Native operations added in the catalog branch | Focused source tests passed by increment. Signed installed verification remains open. See [PR #116](https://github.com/pobrespandas/draftly/pull/116). |
 
 `version` requires an expected-version token. `human` requires a bound one-use
 approval. `library` requires an explicit whole-library grant. Other target kinds
 are always checked against the connection's allowed resources. Query handlers
 must filter their results using the returned scope; an empty target list does
-not authorize reading the whole library. Native grants and operation/transfer
-ownership need additional validation in their future handlers.
+not authorize reading the whole library. Native effects and operation or transfer ownership have additional checks in
+their handlers.
 
 Read/write capability names above are Swift case names. Their persisted names
 are the dotted raw values in AgentCapability. Update this table when the catalog
