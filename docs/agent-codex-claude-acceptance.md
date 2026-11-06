@@ -77,3 +77,20 @@ returned the marker. With tool search disabled, it called the same fixture
 tool directly and returned the same marker. This establishes both discovery
 paths on the fixture. The single runs used different prompt caches, so they
 do not establish a token or latency advantage.
+
+## Catalog QA signed update
+
+On 6 November 2026, the signed loopback feed offered QA build 30
+(dc88e59) to build 13 (757dbdb plus the earlier QA-only loopback updater
+patch). Both app bundles and their helpers passed notarization. Both used
+the same isolated library. Sparkle downloaded the signed archive, installed
+it in place and relaunched Draftly from the original app path.
+
+The updated bundle reported build 30 and source dc88e59. Strict signature
+verification and the stapled ticket passed after installation. The draft
+created in build 13 remained in the library and its complete Unicode text
+opened in the editor. The Agents pane showed local access off, no approved
+connections and protected data available.
+
+This confirms update installation and draft text preservation in local QA.
+Installed CLI and MCP calls after updating remain pending.
