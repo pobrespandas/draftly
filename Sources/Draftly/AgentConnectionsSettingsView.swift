@@ -163,6 +163,7 @@ private struct AgentOperationReviewSheet: View {
         }
         if review.operation == "actionGroups.delete" { return "Remove Action Group" }
         if review.operation == "bookmarks.requestAdd" { return "Add Folder Bookmark" }
+        if review.operation == "imports.commit" { return "Import into Library" }
         if let destructiveButtonTitle { return destructiveButtonTitle }
         guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
         switch operation {
@@ -187,6 +188,16 @@ private struct AgentOperationReviewSheet: View {
     }
 
     private var nativeFields: [(String, String)] {
+        if review.operation == "imports.commit", case .object(let changes) = review.effects.snapshot["changes"] {
+            let labels = ["drafts": "Drafts", "versions": "Versions", "actions": "Actions", "actionGroups": "Action Groups",
+                "workspaces": "Workspaces", "themes": "Themes", "syntaxes": "Syntaxes", "runs": "Action Runs"]
+            return AgentBackupSchemas.collectionNames.compactMap { key in
+                guard let title = labels[key], case .object(let counts) = changes[key],
+                      case .integer(let added) = counts["created"], case .integer(let updated) = counts["updated"],
+                      added > 0 || updated > 0 else { return nil }
+                return (title, "\(added) added, \(updated) updated")
+            }
+        }
         if case .string(let name) = review.effects.snapshot["bookmarkName"] {
             if review.operation == "bookmarks.requestAdd" {
                 return [("Bookmark", name), ("Effect", "Open a folder picker. Save access only if you select a folder.")]

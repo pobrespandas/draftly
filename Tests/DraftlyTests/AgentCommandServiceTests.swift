@@ -3057,6 +3057,53 @@ struct AgentCommandServiceTests {
         #expect(try f.values("imports.preview", session: session, parameters: input)["versionToken"] != preview["versionToken"])
     }
 
+    @Test(arguments: ["approve", "changed", "storage", "deny"])
+    func importCommitUsesReviewedPreviewAndWritesOnce(decision: String) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall },
+            currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals; f.service = try f.makeService()
+        let (record, session) = try f.connect(capabilities: [.filesRead, .draftsWrite])
+        let input: [String: AgentJSONValue] = ["fileExtension": .string("txt"),
+            "source": .object(["kind": .string("inline"), "text": .string("Imported café 🐼")])]
+        let preview = try f.values("imports.preview", session: session, parameters: input)
+        guard case .string(let version) = preview["versionToken"] else { Issue.record("Missing preview"); return }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "imports.commit",
+            expectedVersion: version, parameters: input)
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else {
+            Issue.record("Missing accepted import"); return
+        }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let snapshot = try operations.snapshot(id, connectionID: record.id)
+        let review = try #require(approvals.pendingFromUserInterface().first, "Import state: \(snapshot.state), error: \(String(describing: snapshot.error))")
+        #expect(review.effects.snapshot["changes"] == preview["changes"])
+        #expect(f.library.notes.isEmpty)
+        if decision == "changed" { _ = try f.note("Edited library before approval") }
+        if decision == "storage" {
+            f.library.beforeBatchCommit = { throw DraftlyError.message("Test storage failure") }
+        }
+        if decision == "deny" { try approvals.denyFromUserInterface(review.id) }
+        else { try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint) }
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let result = try f.send(request, session: session).outcome
+        if decision == "approve" {
+            #expect(result == .result(.object(["changes": try #require(preview["changes"])])))
+            #expect(f.library.notes.map(\.content) == ["Imported café 🐼"])
+            #expect(try f.send(request, session: session).outcome == result)
+            #expect(f.library.notes.count == 1)
+        } else {
+            let expected: AgentErrorCode = decision == "changed" ? .versionConflict :
+                decision == "deny" ? .permissionDenied : .storageError
+            #expect(result == .error(expected))
+            #expect(!f.library.notes.contains { $0.content == "Imported café 🐼" })
+        }
+    }
+
     @Test func backupSourcesRequireSavedAccessOrNetworkReview() throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let (_, session) = try f.connect(capabilities: [.backupsRestore, .filesRead])

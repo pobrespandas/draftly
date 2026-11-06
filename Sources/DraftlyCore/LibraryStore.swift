@@ -826,7 +826,7 @@ public final class LibraryStore: ObservableObject {
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
 
-    func applyImportedRecords(from staging: LibraryStore) throws {
+    package func applyImportedRecords(from staging: LibraryStore, validateCommit: () throws -> Void = {}) throws {
         func changed<T: Identifiable & Equatable>(_ incoming: [T], existing: [T]) -> [T] where T.ID == UUID {
             let previous = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
             return incoming.filter { previous[$0.id] != $0 }
@@ -841,6 +841,7 @@ public final class LibraryStore: ObservableObject {
             for theme in changed(staging.themes, existing: themes) { try persist(theme, id: theme.id, kind: "theme") }
             for run in changed(staging.runs, existing: runs) { try persist(run, id: run.id, kind: "run") }
             try beforeBatchCommit?()
+            try validateCommit()
             try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }

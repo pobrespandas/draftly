@@ -293,6 +293,8 @@ import AgentContracts
                 outcome = try submitNative(request, grant: grant, sessionID: session.id)
             } else if ["backups.validate", "backups.previewRestore", "imports.validate", "imports.preview"].contains(request.operation) {
                 outcome = try submitFileInput(request, parameters: parameters, grant: grant, sessionID: session.id)
+            } else if request.operation == "imports.commit" {
+                outcome = try submitImportCommit(request, parameters: parameters, grant: grant, sessionID: session.id)
             } else if AgentThemeInstallation.operationNames.contains(request.operation) {
                 outcome = try submitThemeImport(request, grant: grant, sessionID: session.id)
             } else if ["syntaxes.install", "syntaxes.replace", "syntaxes.reload"].contains(request.operation) {
@@ -371,7 +373,8 @@ import AgentContracts
                 || (AgentThemePresentation.operationNames.contains(request.operation) && preferenceStorage != nil && operationRegistry != nil)
             let reviewedNative = AgentNativeSchemas.operationNames.contains(request.operation) && nativeExecution != nil && operationRegistry != nil
             let editorPresentation = ["editor.preview", "editor.navigate", "editor.open"].contains(request.operation) && editorRegistry != nil && operationRegistry != nil
-            guard reviewedAction || reviewedNative || (!humanApproval && (editorPresentation || preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxEffect)) else {
+            let importCommit = request.operation == "imports.commit" && deletionApprovals != nil && operationRegistry != nil
+            guard reviewedAction || reviewedNative || importCommit || (!humanApproval && (editorPresentation || preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxEffect)) else {
                 throw AgentErrorCode.unavailable
             }
         }
@@ -426,6 +429,47 @@ import AgentContracts
                 validateIntent: validateIntent, authorize: validateOperation)
             do { return try read(data, authorize: validateOperation) }
             catch { throw AgentErrorCode.outcomeUnknown }
+        }
+        return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+    }
+
+    private func submitImportCommit(_ request: AgentRequest, parameters: [String: AgentJSONValue],
+                                    grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+        guard let operationRegistry, let deletionApprovals else { throw AgentErrorCode.unavailable }
+        try validateSession(sessionID, grant: grant)
+        func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
+            if snapshot.state == .succeeded {
+                guard case .object(let result) = snapshot.result else { throw AgentErrorCode.storageError }
+                try AgentOperationSchemas.validateResult(result, for: request)
+                return .result(.object(result))
+            }
+            if snapshot.state.isTerminal { return .error(snapshot.error ?? .outcomeUnknown) }
+            return .accepted(operationID: snapshot.id, state: snapshot.state)
+        }
+        if let id = try operationRegistry.existingRequest(request, grant: grant) {
+            return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+        }
+        guard request.retryKey == nil else { throw AgentErrorCode.invalidInput }
+        let authorize = operationAuthority(for: grant)
+        let network = AgentHTTPSImport.isHTTPS(request)
+        if network {
+            guard nativeExecution != nil else { throw AgentErrorCode.interactionRequired }
+            _ = try AgentHTTPSImport.sourceURL(request, grant: grant)
+        }
+        var targets: Set<AgentResourceReference> = []
+        if case .object(let source) = parameters["source"], case .string(let raw) = source["bookmarkID"],
+           let id = UUID(uuidString: raw) { targets.insert(.init(kind: .bookmark, id: id)) }
+        let inputs = backups
+        let environment = nativeExecution
+        let id = try operationRegistry.startValueRequest(request, grant: grant, effectTargets: targets) { id in
+            let data: Data?
+            if network, let environment {
+                data = try await AgentHTTPSImport.read(request, grant: grant, maximumBytes: AgentTransferSchemas.maximumBytes,
+                    environment: environment, operations: operationRegistry, operationID: id,
+                    validateIntent: authorize, authorize: authorize)
+            } else { data = nil }
+            return try await inputs.commitImport(request, parameters: parameters, grant: grant, sourceData: data,
+                operationID: id, approvals: deletionApprovals, operations: operationRegistry, authorize: authorize)
         }
         return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }

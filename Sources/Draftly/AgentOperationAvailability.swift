@@ -23,6 +23,7 @@ import AgentContracts
         .init(operations: AgentBookmarkReading.operationNames, handlers: []),
         .init(operations: AgentTransferSchemas.operationNames, handlers: []),
         .init(operations: ["backups.validate", "imports.validate"], handlers: []),
+        .init(operations: ["imports.commit"], handlers: [.editorRead, .appearanceReview, .operationControl], optionalHostFeature: true),
         .init(operations: ["backups.export", "backups.previewRestore", "imports.preview"], handlers: [.editorRead]),
         .init(operations: AgentThemeReading.operationNames, handlers: []),
         .init(operations: AgentAppearanceDeletion.operationNames.union(AgentBookmarkReading.reviewedOperations), handlers: [.appearanceReview, .operationControl], optionalHostFeature: true),

@@ -196,6 +196,7 @@ package extension AgentOperationDescriptor {
         case "workspaces.delete": "Request approval in Draftly to delete a workspace."
         case "workspaces.apply": "Apply a saved workspace to an explicit window. Target both the workspace and the window."
         case "imports.validate": "Check whether the supplied file can be imported without changing the library. Supply the file extension without a dot."
+        case "imports.commit": "Apply the import after a person approves it in Draftly. Use the same source and file extension as imports.preview and its versionToken as expectedVersion."
         case "imports.preview": "Preview what an import would add or update in the library. Use the returned versionToken when committing the same source."
         case "bookmarks.requestAdd": "Ask the user to select a folder and save a bookmark with a new name. Set interactive to true. Only the user can choose the folder."
         case "bookmarks.forget": "Ask the user to remove a saved folder permission. Use the ID and version from bookmarks.list. The folder and its files are kept."

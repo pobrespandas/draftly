@@ -51,12 +51,26 @@ import AgentContracts
         catch { throw AgentErrorCode.invalidInput }
         try check(authorize)
         if request.operation == "imports.validate" { return ["valid": .bool(true)] }
-        guard request.operation == "imports.preview", grant.scope == .library else { throw AgentErrorCode.permissionDenied }
+        guard request.operation == "imports.preview" else { throw AgentErrorCode.invalidInput }
+        let plan = try planImport(parameters, grant: grant, input: input, fileExtension: fileExtension, authorize: authorize)
+        return ["changes": plan.changes, "versionToken": .string(plan.version)]
+    }
+
+    private struct ImportPlan {
+        let staging: LibraryStore
+        let baseline: Data
+        let changes: AgentJSONValue
+        let version: String
+    }
+
+    private func planImport(_ parameters: [String: AgentJSONValue], grant: AgentGrant, input: Data,
+                            fileExtension: String, authorize: () throws -> Void) throws -> ImportPlan {
+        guard grant.scope == .library else { throw AgentErrorCode.permissionDenied }
         try drafts.requireStoredDraftsForRestorePreview()
         let baseline = try library.backupData()
         let before = try JSONDecoder().decode(Backup.self, from: baseline)
         let staging: LibraryStore
-        do { staging = try LibraryFileImport.stage(files, baseline: baseline) }
+        do { staging = try LibraryFileImport.stage([.init(data: input, fileExtension: fileExtension)], baseline: baseline) }
         catch { throw AgentErrorCode.versionConflict }
         let after = try JSONDecoder().decode(Backup.self, from: staging.backupData())
         let changes = Self.changes(before, after)
@@ -70,7 +84,80 @@ import AgentContracts
             + Data(SHA256.hash(data: input)) + Data(SHA256.hash(data: baseline))
         let version = Data(HMAC<SHA256>.authenticationCode(for: binding, using: versionKey)).base64EncodedString()
         try check(authorize)
-        return ["changes": changes, "versionToken": .string(version)]
+        return ImportPlan(staging: staging, baseline: baseline, changes: changes, version: version)
+    }
+
+    func commitImport(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
+                      sourceData: Data?, operationID: UUID, approvals: AgentApprovalStore,
+                      operations: AgentOperationRegistry, authorize: @escaping () throws -> Void) async throws -> [String: AgentJSONValue] {
+        var submitted = false
+        let effect = UUID()
+        do {
+            try check(authorize)
+            guard case .string(let fileExtension) = parameters["fileExtension"] else { throw AgentErrorCode.invalidInput }
+            let input = try sourceData ?? source(parameters, grant: grant, authorize: authorize)
+            let plan = try planImport(parameters, grant: grant, input: input, fileExtension: fileExtension, authorize: authorize)
+            guard request.expectedVersion == plan.version else { throw AgentErrorCode.versionConflict }
+            let required = try importCapabilities(for: plan.changes, input: input)
+            guard grant.capabilities.isSuperset(of: required) else { throw AgentErrorCode.permissionDenied }
+
+            @MainActor func checkPlan() throws {
+                try check(authorize)
+                try drafts.requireStoredDraftsForRestorePreview()
+                guard try library.backupData() == plan.baseline else { throw AgentErrorCode.versionConflict }
+                if sourceData == nil {
+                    guard try source(parameters, grant: grant, authorize: authorize) == input else {
+                        throw AgentErrorCode.versionConflict
+                    }
+                }
+            }
+
+            // A download and an import have different effects and separate reviews.
+            let reviewRequest = sourceData == nil ? request : AgentRequest(requestID: operationID,
+                libraryID: request.libraryID, operation: request.operation, expectedVersion: request.expectedVersion,
+                parameters: request.parameters)
+            try operations.setWaitingForUser(operationID, waiting: true)
+            try await approvals.waitForApproval(reviewRequest, connectionID: grant.connectionID, resolveEffects: {
+                try checkPlan()
+                return .init(capabilities: required, targets: [], requiresLibraryScope: true,
+                    snapshot: ["changes": plan.changes, "previewVersion": .string(plan.version)])
+            })
+            try operations.setWaitingForUser(operationID, waiting: false)
+            try checkPlan()
+            let result = ["changes": plan.changes]
+            try AgentOperationSchemas.validateResult(result, for: request)
+            try library.applyImportedRecords(from: plan.staging) {
+                try checkPlan()
+                try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
+                submitted = true
+            }
+            try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "completed")
+            return result
+        } catch {
+            if submitted { throw AgentErrorCode.outcomeUnknown }
+            let code = error is CancellationError ? .cancelled : (error as? AgentErrorCode ?? .storageError)
+            throw AgentOperationRegistry.FailureBeforeEffects(code: code)
+        }
+    }
+
+    private func importCapabilities(for changes: AgentJSONValue, input: Data) throws -> Set<AgentCapability> {
+        guard case .object(let collections) = changes else { throw AgentErrorCode.storageError }
+        let additional: [String: AgentCapability] = [
+            "actions": .actionsManage, "actionGroups": .actionsManage, "workspaces": .workspacesManage,
+            "themes": .appearanceManage, "syntaxes": .appearanceManage, "runs": .backupsRestore
+        ]
+        var required: Set<AgentCapability> = [.filesRead, .draftsWrite]
+        // Draft creation records its first revision. Importing history from a backup needs backup access.
+        if case .object(let versions) = collections["versions"],
+           versions["created"] != .integer(0) || versions["updated"] != .integer(0),
+           (try? JSONDecoder().decode(Backup.self, from: input)) != nil {
+            required.insert(.backupsRestore)
+        }
+        for (name, capability) in additional {
+            guard case .object(let fields) = collections[name] else { throw AgentErrorCode.storageError }
+            if fields["created"] != .integer(0) || fields["updated"] != .integer(0) { required.insert(capability) }
+        }
+        return required
     }
 
     func read(_ request: AgentRequest, parameters: [String: AgentJSONValue],
