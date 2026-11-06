@@ -541,10 +541,10 @@ Settings bindings are complete.
 Bookmark list replies contain names, local IDs and versions, not paths or saved
 permission data. Add requests preserve Unicode names and require a native human
 folder choice; an arbitrary path or self-approval field is rejected. Adding a
-bookmark does not grant the connection file authority. Forget replies bind the
-requested identity. The existing name-based store still needs a stable local ID
-adapter and scope filtering before these routes can run. No folder, preference,
-service registration, native permission or grant was changed by these tests.
+bookmark does not grant the connection file authority. The app uses stable local
+IDs for bookmark records and filters them by the grant. Forget requires review
+and the current bookmark version. It removes the saved permission from Draftly
+and leaves the folder on disk.
 
 
 ### Scoped file transfers
@@ -558,8 +558,8 @@ work in `operations.get`.
 Uploads declare a byte count and SHA-256 digest. Chunks use byte offsets and
 canonical Base64. Finish requires the complete bytes and a matching digest.
 A repeated identical chunk is safe; an overlapping change is a conflict.
-Finish does not install any content. Existing import handlers must validate
-and apply the prepared content separately. Those handlers remain unavailable.
+Finish does not install any content. The import handlers validate and preview
+the completed transfer. Commit requires the preview version and app review.
 
 Exports freeze the selected drafts, including pending editor content. The
 `draftly` format uses the existing backup format with only selected drafts and
@@ -576,7 +576,7 @@ do not receive the cancellation tool.
 It returns no content and changes no library resource.
 
 
-### Backup readers
+### Backup validation, preview and restore
 
 Backup export uses the existing backup model and projects pending text in saved drafts
 without saving the editor. It requires whole-library scope, every declared
@@ -589,9 +589,9 @@ preview also applies them to a disposable copy of current storage. Both use
 editor byte changes. Its version token binds incoming bytes and stored library
 state. Reports contain counts, not existing record content.
 
-Inline and completed owned-transfer sources work. Bookmark and HTTPS inputs
-need native effect review; the current handler returns `interaction_required`
-without reading or fetching them. Those routes remain unfinished. Backup
-installation links are not supported input. The actual restore handler remains
-unavailable. It still needs native approval, source/version binding, editor
-coordination, cancellation and a durable receipt.
+Validation, preview and restore accept inline data, completed transfers and
+authorized bookmark sources. HTTPS input requires a separate download review.
+Restore requires whole-library scope, the current preview version and app
+review. It checks for pending editor changes and saves a recovery copy before
+it applies the restore. The operation journal records the result and lets the
+connection recover it without applying the restore again.
