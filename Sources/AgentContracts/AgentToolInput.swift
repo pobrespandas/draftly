@@ -132,6 +132,8 @@ package extension AgentOperationDescriptor {
         case "editor.listTasks": "List tasks and their state ranges in the current editor buffer."
         case "editor.setSelection": "Set the editor selection with a UTF-16 range. A zero-length range moves the insertion point."
         case "editor.tasks": "Change the state of a task in the editor. Use its state and range from editor.listTasks."
+        case "native.mail": "Open an email composer with the reviewed recipients, subject and plain-text body. The result confirms handoff to macOS. The person sends the email."
+        case "native.messages": "Open a Messages composer with the reviewed recipients and body. The result confirms handoff to macOS. The person sends the message."
         case "native.fileRead": "Read a UTF-8 file of up to 64 KiB after approval. Target its authorized folder bookmark and give the relative path."
         case "native.fileWrite": "Create a new UTF-8 file of up to 64 KiB after approval. Target its authorized folder bookmark and give a relative path in an existing directory. Existing files are kept."
         case "native.xmlrpc": "Send a reviewed XML-RPC POST request. Supply an HTTP or HTTPS endpoint, method name and a JSON array of arguments. A server fault is returned in the response."

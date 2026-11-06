@@ -75,7 +75,7 @@ struct AgentNativeServiceTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).count == 2)
     }
 
-    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.xmlrpc", "native.models"])
+    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.models"])
     func directNativeRequestsRequireReviewAndNeverReplay(operation: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -95,6 +95,8 @@ struct AgentNativeServiceTests {
         if isText {
             host.response = "{\"value\":\"PRIVATE native café 🐼\"}"
             expected = ["text": .string("PRIVATE native café 🐼"), "resultAvailable": .bool(true)]; resultField = "text"
+        } else if ["native.mail", "native.messages"].contains(operation) {
+            expected = ["handoffAccepted": .bool(true)]
         } else if operation == "native.htmlPreview" {
             host.response = #"{"value":{"success":true,"values":{}}}"#
         } else if operation == "native.models" {
@@ -125,6 +127,7 @@ struct AgentNativeServiceTests {
             capabilities: unrestricted.contains(operation) ? [.nativeUse, .scriptsUnrestricted] : [.nativeUse])
         let parameters: [String: AgentJSONValue]
         switch operation {
+        case "native.mail", "native.messages": parameters = ["body": .string("PRIVATE draft café 🐼")]
         case "native.xmlrpc": parameters = ["url": .string("http://127.0.0.1:8080/RPC2"),
             "methodName": .string("fixture.echo"), "paramsJSON": .string(#"["PRIVATE <text> café 🐼"]"#)]
         case "native.http": parameters = ["url": .string("https://example.invalid/qa"), "method": .string("POST"), "bodyText": .string("PRIVATE request")]
@@ -150,7 +153,7 @@ struct AgentNativeServiceTests {
         #expect(reply.outcome == .result(.object(expected)) && host.calls.count == 1 && host.finishes == 1 && host.constructions == 1)
         let mappings = ["native.clipboardRead": "getClipboard", "native.clipboardWrite": "clipboard", "native.htmlToMarkdown": "htmlToMarkdown",
             "native.share": "share", "native.print": "print", "native.openURL": "openURL", "native.speak": "speak", "native.dictate": "dictate",
-            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut", "native.http": "http", "native.xmlrpc": "xmlrpc", "native.models": "modelModes", "native.htmlPreview": "htmlPreview"]
+            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut", "native.http": "http", "native.xmlrpc": "xmlrpc", "native.mail": "openMailComposer", "native.messages": "openMessagesComposer", "native.models": "modelModes", "native.htmlPreview": "htmlPreview"]
         #expect(host.calls.first?.0 == mappings[operation])
         let payload = try JSONDecoder().decode([String: AgentJSONValue].self, from: Data(try #require(host.calls.first?.1).utf8))
         if operation == "native.htmlPreview" { #expect(payload["localContentOnly"] == .bool(true)) }
@@ -271,7 +274,7 @@ struct AgentNativeServiceTests {
         defer { tools.invalidate(revoke: false) }
         let names = Set(try await tools.tools().map(\.operation).filter { $0.hasPrefix("native.") })
         var expected: Set<String> = ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share",
-            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.xmlrpc", "native.models"]
+            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.models"]
         if allResources && unrestricted { expected.formUnion(["native.shell", "native.appleScript", "native.shortcut"]) }
         #expect(names == expected && host.calls.isEmpty && approvals.pendingFromUserInterface().isEmpty)
     }

@@ -27,6 +27,8 @@ import DraftlyCore
         case "native.models":
             operation = parameters["prompt"] == nil ? "modelModes" : "modelRespond"
             values = parameters
+        case "native.mail": operation = "openMailComposer"; values = parameters
+        case "native.messages": operation = "openMessagesComposer"; values = parameters
         case "native.fileRead": operation = "readBookmarkedFile"; values = parameters
         case "native.fileWrite": operation = "createBookmarkedFile"; values = parameters
         case "native.http": operation = "http"; values = parameters
@@ -152,6 +154,11 @@ import DraftlyCore
             let raw = try await adapter.performAsync(current.operation, payload: payload)
             try Task.checkCancellation(); try validateAuthority()
             let result = try decodedResult(raw, for: request.operation)
+            if result["handoffAccepted"] == .bool(false) {
+                try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "failed")
+                submittedEffect = nil
+                throw AgentOperationRegistry.FailureBeforeEffects(code: .unavailable, knownFailedEffects: true)
+            }
             let outcome: String
             if case .bool(let completed) = result["completed"] { outcome = completed ? "completed" : "failed" }
             else if request.operation == "native.shell", case .object(let process) = result["process"] {
@@ -168,6 +175,7 @@ import DraftlyCore
                 try? operations.recordEffect(operationID, effectID: submittedEffect, kind: request.operation, outcome: "unknown")
                 throw AgentErrorCode.outcomeUnknown
             }
+            if let failure = error as? AgentOperationRegistry.FailureBeforeEffects { throw failure }
             let code = error is CancellationError ? AgentErrorCode.cancelled : (error as? AgentErrorCode ?? .storageError)
             throw AgentOperationRegistry.FailureBeforeEffects(code: code)
         }
@@ -194,6 +202,8 @@ import DraftlyCore
                 result = ["model": .object(["text": .string(text)]), "resultAvailable": .bool(true)]
             default: throw AgentErrorCode.outcomeUnknown
             }
+        } else if ["native.mail", "native.messages"].contains(operation) {
+            result = ["handoffAccepted": value]
         } else if operation == "native.htmlPreview" {
             guard case .object(let preview) = value, let success = preview["success"] else { throw AgentErrorCode.outcomeUnknown }
             result = ["completed": success]

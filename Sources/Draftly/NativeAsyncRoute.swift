@@ -9,6 +9,7 @@ enum NativeAsyncRoute: Equatable {
     case htmlPreview
     case file
     case message
+    case messageHandoff
     case callback
     case shell
     case shortcut
@@ -33,6 +34,7 @@ enum NativeAsyncRoute: Equatable {
         case "htmlPreview": return .htmlPreview
         case "saveFile", "bookmark", "fileAPI": return .file
         case "composeMail", "composeMessage": return .message
+        case "openMailComposer", "openMessagesComposer": return .messageHandoff
         case "callbackURL": return .callback
         case "shellScript": return .shell
         case "shortcut": return .shortcut

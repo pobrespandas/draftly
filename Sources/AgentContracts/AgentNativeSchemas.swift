@@ -59,6 +59,15 @@ package enum AgentNativeSchemas {
         "native.fileWrite": .init(parameters: .init(fields: [
             "path": r(.string(minimum: 1, maximum: 4096)), "text": r(text)
         ]), result: completed),
+        "native.mail": .init(parameters: .init(fields: [
+            "toRecipients": .init(shape: .array(.string(minimum: 1, maximum: 254), maximum: 32), defaultValue: .array([])),
+            "subject": .init(shape: .string(maximum: 998), defaultValue: .string("")),
+            "body": r(text)
+        ]), result: .init(fields: ["handoffAccepted": r(.boolean)])),
+        "native.messages": .init(parameters: .init(fields: [
+            "toRecipients": .init(shape: .array(.string(minimum: 1, maximum: 254), maximum: 32), defaultValue: .array([])),
+            "body": r(text)
+        ]), result: .init(fields: ["handoffAccepted": r(.boolean)])),
         "native.clipboardRead": .init(parameters: .init(fields: [:]), result: textResult),
         "native.clipboardWrite": .init(parameters: .init(fields: ["text": r(text)]), result: completed),
         "native.htmlPreview": .init(parameters: .init(fields: ["html": r(text)]), result: completed),
@@ -128,6 +137,17 @@ package enum AgentNativeSchemas {
                 throw AgentSchemaError.invalidValue
             }
             if case .string(let content) = values["text"], content.utf8.count > 65_536 { throw AgentSchemaError.invalidValue }
+        }
+        if ["native.mail", "native.messages"].contains(request.operation) {
+            guard case .array(let recipients) = values["toRecipients"],
+                  recipients.allSatisfy({ value in
+                      guard case .string(let recipient) = value else { return false }
+                      return recipient == recipient.trimmingCharacters(in: .whitespacesAndNewlines)
+                          && recipient.unicodeScalars.allSatisfy { $0.value >= 32 && $0.value != 127 }
+                  }) else { throw AgentSchemaError.invalidValue }
+            if case .string(let subject) = values["subject"], subject.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }) {
+                throw AgentSchemaError.invalidValue
+            }
         }
         if request.operation == "native.openURL" {
             guard case .string(let raw) = values["url"], let url = URL(string: raw),

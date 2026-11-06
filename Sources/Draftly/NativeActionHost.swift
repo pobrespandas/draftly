@@ -68,6 +68,7 @@ final class NativeActionHost: ActionHost {
         case .htmlPreview: result = try await interactivePreviewAsync(values)
         case .file: result = try await fileAdapter.performAsync(operation, values: values)
         case .message: result = try await NativeMessageAdapter().composeAsync(operation, values)
+        case .messageHandoff: result = NativeMessageAdapter().openComposition(operation, values)
         case .callback: result = try await ActionCallbackRouter.openAsync(values)
         case .shell: result = try await NativeAutomationAdapter().executeShellAsync(values)
         case .shortcut: result = try await NativeAutomationAdapter().runShortcutAsync(name: values["name"] as? String ?? "", input: values["text"] as? String ?? "", waitForResponse: values["waitForResponse"] as? Bool ?? true)
