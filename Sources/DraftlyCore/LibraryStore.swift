@@ -549,6 +549,13 @@ public final class LibraryStore: ObservableObject {
             resource: resource, validateCommit: validateCommit)
     }
 
+    package func commitSyntaxDeletion(_ id: UUID, mutation: LibraryMutationIdentity, at now: Date,
+                                     resource: LibraryMutationReceipt.Resource,
+                                     validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        try commitRecordDeletion(id, kind: "syntax", mutation: mutation, at: now,
+            resource: resource, validateCommit: validateCommit)
+    }
+
     private func commitRecordDeletion(_ id: UUID, kind: String, mutation: LibraryMutationIdentity, at now: Date,
                                       resource: LibraryMutationReceipt.Resource,
                                       validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {

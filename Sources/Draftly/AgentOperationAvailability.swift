@@ -25,7 +25,7 @@ import AgentContracts
         .init(operations: ["backups.validate"], handlers: []),
         .init(operations: ["backups.export", "backups.previewRestore"], handlers: [.editorRead]),
         .init(operations: AgentThemeReading.operationNames, handlers: []),
-        .init(operations: ["themes.delete"], handlers: [.themeDelete, .operationControl], optionalHostFeature: true),
+        .init(operations: AgentAppearanceDeletion.operationNames, handlers: [.themeDelete, .operationControl], optionalHostFeature: true),
         .init(operations: AgentThemeInstallation.operationNames, handlers: [.themeImport, .operationControl], optionalHostFeature: true),
         .init(operations: ["syntaxes.install", "syntaxes.replace", "syntaxes.reload"], handlers: [.operationControl], optionalHostFeature: true),
         .init(operations: AgentThemePresentation.operationNames, handlers: [.themePresentation, .operationControl], optionalHostFeature: true),

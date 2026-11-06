@@ -197,6 +197,7 @@ package extension AgentOperationDescriptor {
         case "workspaces.apply": "Apply a saved workspace to an explicit window. Target both the workspace and the window."
         case "syntaxes.install": "Install a new syntax definition. A file syntax requires an authorized folder bookmark. Use syntaxes.replace to update an existing definition."
         case "syntaxes.replace": "Replace an installed syntax while keeping its name, type and ID. Read its current version with syntaxes.get first."
+        case "syntaxes.delete": "Request approval to delete an installed syntax and its saved file permission. Use the version from syntaxes.get. Drafts must use another syntax before deletion. The source file is kept."
         case "syntaxes.reload": "Reload a file syntax from its saved permission. Use the stored version from syntaxes.get. This does not change the syntax name or ID."
         case "syntaxes.list": "List available syntaxes."
         case "syntaxes.get": "Read the definition of an installed syntax."

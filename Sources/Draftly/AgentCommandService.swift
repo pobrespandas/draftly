@@ -51,8 +51,11 @@ import AgentContracts
     private lazy var themes = AgentThemeReading(library: actionLibrary, defaults: preferenceDefaults, pages: pages)
     private lazy var themeWrites = AgentThemeWriting(library: actionLibrary, libraryID: libraryID,
         reader: themes, keys: retryKeys, now: now)
-    private lazy var themeDeletion = AgentThemeDeletion(library: actionLibrary, libraryID: libraryID,
-        reader: themes, keys: retryKeys, defaults: preferenceDefaults, now: now,
+    private lazy var appearanceDeletion = AgentAppearanceDeletion(library: actionLibrary, libraryID: libraryID,
+        reader: themes, keys: retryKeys, defaults: preferenceDefaults, syntaxVersion: { [weak self] definition in
+            guard let self else { throw AgentErrorCode.cancelled }
+            return try self.syntaxVersion(definition)
+        }, now: now,
         validateAdmission: { [weak self] in
             guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
         })
@@ -297,7 +300,7 @@ import AgentContracts
                 outcome = try submitEditorOpen(request, grant: grant, sessionID: session.id)
             } else if ["editor.preview", "editor.navigate"].contains(request.operation) {
                 outcome = try submitEditorPresentation(request, grant: grant, sessionID: session.id)
-            } else if ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "themes.delete"].contains(request.operation) {
+            } else if ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "themes.delete", "syntaxes.delete"].contains(request.operation) {
                 outcome = try submitDeletion(request, grant: grant, sessionID: session.id)
             } else {
                 let values = try dispatch(request, parameters: parameters, grant: grant, sessionID: session.id)
@@ -348,7 +351,7 @@ import AgentContracts
         case .permitted: break
         case .denied(let error): throw error
         case .needsHumanApproval:
-            guard ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "themes.delete"].contains(request.operation), deletionApprovals != nil,
+            guard ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "themes.delete", "syntaxes.delete"].contains(request.operation), deletionApprovals != nil,
                   operationRegistry != nil else { throw AgentErrorCode.unavailable }
         case .needsEffectAuthorization(_, let humanApproval):
             let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
@@ -472,7 +475,7 @@ import AgentContracts
     }
 
     private func syntaxVersion(_ definition: SyntaxDefinition) throws -> String {
-        try syntaxVersion(definition, permission: preferenceDefaults.data(forKey: "syntax.file." + definition.id.uuidString))
+        try syntaxVersion(definition, permission: preferenceDefaults.data(forKey: SyntaxFileAccess.bookmarkKey(for: definition.id)))
     }
 
     private func syntaxVersion(_ definition: SyntaxDefinition, permission: Data?) throws -> String {
@@ -536,7 +539,7 @@ import AgentContracts
                 let permission: Data?
                 if request.operation == "syntaxes.reload" {
                     guard let stored, stored.type == "file" else { throw AgentErrorCode.invalidInput }
-                    permission = preferenceDefaults.data(forKey: "syntax.file." + stored.id.uuidString)
+                    permission = preferenceDefaults.data(forKey: SyntaxFileAccess.bookmarkKey(for: stored.id))
                     do {
                         definition = try SyntaxFileAccess.read(stored, defaults: preferenceDefaults,
                             maximumBytes: AgentRequest.maximumBytes, refreshStalePermission: false)
@@ -600,7 +603,7 @@ import AgentContracts
                 submitted = true
                 try actionLibrary.saveSyntax(definition)
                 if let permission, request.operation != "syntaxes.reload" {
-                    preferenceDefaults.set(permission, forKey: "syntax.file." + definition.id.uuidString)
+                    preferenceDefaults.set(permission, forKey: SyntaxFileAccess.bookmarkKey(for: definition.id))
                 }
                 try operationRegistry.recordEffect(id, effectID: effect, kind: request.operation, outcome: "completed")
                 return result
@@ -852,7 +855,7 @@ import AgentContracts
         if purge && writes == nil { throw AgentErrorCode.unavailable }
         let receipt = try purge ? writes!.purgeReceipt(request, connectionID: grant.connectionID)
             : ["actions.delete", "actionGroups.delete"].contains(request.operation) ? actions.deletionReceipt(request, connectionID: grant.connectionID)
-            : request.operation == "themes.delete" ? themeDeletion.deletionReceipt(request, connectionID: grant.connectionID)
+            : AgentAppearanceDeletion.operationNames.contains(request.operation) ? appearanceDeletion.deletionReceipt(request, connectionID: grant.connectionID)
             : workspaces.deletionReceipt(request, connectionID: grant.connectionID)
         func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
             if snapshot.state == .succeeded {
@@ -866,8 +869,8 @@ import AgentContracts
         if let id = try operationRegistry.existingRequest(request, grant: grant) {
             var snapshot = try operationRegistry.snapshot(id, connectionID: grant.connectionID)
             if let receipt, snapshot.state == .outcomeUnknown {
-                if request.operation == "themes.delete" {
-                    try themeDeletion.cleanupBookmark(request, validate: { try self.validateSession(sessionID, grant: grant) })
+                if AgentAppearanceDeletion.operationNames.contains(request.operation) {
+                    try appearanceDeletion.cleanupBookmark(request, validate: { try self.validateSession(sessionID, grant: grant) })
                 }
                 snapshot = try operationRegistry.recoverDeletion(request, grant: grant, receipt: receipt)
             }
@@ -876,7 +879,7 @@ import AgentContracts
         if receipt == nil {
             if purge { _ = try writes!.purgeEffects(request, connectionID: grant.connectionID) }
             else if ["actions.delete", "actionGroups.delete"].contains(request.operation) { _ = try actions.deletionEffects(request, connectionID: grant.connectionID) }
-            else if request.operation == "themes.delete" { _ = try themeDeletion.deletionEffects(request, connectionID: grant.connectionID) }
+            else if AgentAppearanceDeletion.operationNames.contains(request.operation) { _ = try appearanceDeletion.deletionEffects(request, connectionID: grant.connectionID) }
             else { _ = try workspaces.deletionEffects(request, connectionID: grant.connectionID) }
         }
         let validateOperation = operationAuthority(for: grant)
@@ -893,8 +896,8 @@ import AgentContracts
                     operationID: operationID, approvals: deletionApprovals, operations: operationRegistry,
                     validateSession: validateOperation)
             }
-            if request.operation == "themes.delete" {
-                return try await self.themeDeletion.reviewAndDelete(request, connectionID: grant.connectionID,
+            if AgentAppearanceDeletion.operationNames.contains(request.operation) {
+                return try await self.appearanceDeletion.reviewAndDelete(request, connectionID: grant.connectionID,
                     operationID: operationID, approvals: deletionApprovals, operations: operationRegistry, validateSession: validateOperation)
             }
             return try await self.workspaces.reviewAndDelete(request, connectionID: grant.connectionID,
@@ -1246,9 +1249,9 @@ import AgentContracts
             } else if ["actions.delete", "actionGroups.delete"].contains(bound.operation) {
                 guard deletionApprovals != nil, operationRegistry != nil else { throw AgentErrorCode.unavailable }
                 ticket = try actions.prepareDeletion(bound, connectionID: grant.connectionID)
-            } else if bound.operation == "themes.delete" {
+            } else if AgentAppearanceDeletion.operationNames.contains(bound.operation) {
                 guard deletionApprovals != nil, operationRegistry != nil else { throw AgentErrorCode.unavailable }
-                ticket = try themeDeletion.prepareDeletion(bound, connectionID: grant.connectionID)
+                ticket = try appearanceDeletion.prepareDeletion(bound, connectionID: grant.connectionID)
             } else if bound.operation == "workspaces.delete" {
                 guard deletionApprovals != nil, operationRegistry != nil else { throw AgentErrorCode.unavailable }
                 ticket = try workspaces.prepareDeletion(bound, connectionID: grant.connectionID)

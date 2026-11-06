@@ -132,7 +132,7 @@ BB967C5A0AC69091CEFC337F = { isa = PBXFileReference; lastKnownFileType = sourcec
 BEC8407190181A0F2CE7DCF9 = { isa = PBXBuildFile; fileRef = BB967C5A0AC69091CEFC337F; };
 B980365CF1E8A852B884D3C2 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentSocketBroker.swift"; sourceTree = "<group>"; };
 7D6BC0EAEBD5F533CDC68A1C = { isa = PBXBuildFile; fileRef = B980365CF1E8A852B884D3C2; };
-9F4A0F772C1B844308A31AB2 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentThemeDeletion.swift"; sourceTree = "<group>"; };
+9F4A0F772C1B844308A31AB2 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentAppearanceDeletion.swift"; sourceTree = "<group>"; };
 71811655B244A8BBA45CA0B3 = { isa = PBXBuildFile; fileRef = 9F4A0F772C1B844308A31AB2; };
 0CAA8A3387FFC12C367C581B = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentThemeInstallation.swift"; sourceTree = "<group>"; };
 EDBF40AA5DB97FF0DF61E95A = { isa = PBXBuildFile; fileRef = 0CAA8A3387FFC12C367C581B; };

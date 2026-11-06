@@ -144,15 +144,24 @@ private struct AgentOperationReviewSheet: View {
     let dismiss: () -> Void
     @State private var showTechnicalDetails = false
 
+    private var destructiveButtonTitle: String? {
+        switch review.operation {
+        case "syntaxes.delete": "Delete Syntax"
+        case "themes.delete": "Delete Theme"
+        case "workspaces.delete": "Delete Workspace"
+        case "actions.delete": "Delete Action"
+        case "actionGroups.delete": "Remove Group"
+        default: nil
+        }
+    }
+
     private var nativeTitle: String? {
         if review.effects.snapshot["sourceImport"] == .bool(true) {
             return ["themes.install": "Download and Install Theme", "themes.replace": "Download and Replace Theme",
                 "backups.validate": "Download Backup for Validation", "backups.previewRestore": "Download Backup for Preview"][review.operation] ?? "Download Input"
         }
-        if review.operation == "themes.delete" { return "Delete Theme" }
-        if review.operation == "workspaces.delete" { return "Delete Workspace" }
-        if review.operation == "actions.delete" { return "Delete Action" }
         if review.operation == "actionGroups.delete" { return "Remove Action Group" }
+        if let destructiveButtonTitle { return destructiveButtonTitle }
         guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
         switch operation {
         case "http": return "Make an HTTP request"
@@ -176,6 +185,9 @@ private struct AgentOperationReviewSheet: View {
     }
 
     private var nativeFields: [(String, String)] {
+        if review.operation == "syntaxes.delete", case .string(let name) = review.effects.snapshot["syntaxName"] {
+            return [("Syntax", name), ("Effect", "Delete the installed syntax and its saved file permission. Keep drafts and the source file.")]
+        }
         if review.operation == "themes.delete", case .string(let name) = review.effects.snapshot["themeName"] {
             return [("Theme", name), ("Effect", "Delete the installed theme and its saved file permission. Keep drafts and the source file.")]
         }
@@ -282,8 +294,8 @@ private struct AgentOperationReviewSheet: View {
                     if (try? model.decideOperation(review, approved: false)) != nil { dismiss() }
                 }
                 Group {
-                    if ["workspaces.delete", "actions.delete", "actionGroups.delete", "themes.delete"].contains(review.operation) {
-                        Button(review.operation == "themes.delete" ? "Delete Theme" : review.operation == "actions.delete" ? "Delete Action" : review.operation == "actionGroups.delete" ? "Remove Group" : "Delete Workspace", role: .destructive) {
+                    if let destructiveButtonTitle {
+                        Button(destructiveButtonTitle, role: .destructive) {
                             if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
                         }
                     } else {
