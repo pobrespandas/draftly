@@ -157,10 +157,10 @@ and the acceptance table below.
 | --- | --- |
 | Every operation in the table | The complete-host test checks a registered handler and a schema for each required name. This is source evidence. |
 | `activity.changes` | Signed build 26 returned the new event exactly once over CLI and MCP. |
-| `operations.answerPrompt` | Signed build 24 answered and rejected a duplicate over CLI and MCP. The final retry-key rejection still needs installed verification. |
+| `operations.answerPrompt` | Signed build 30 rejected an unrelated retry key and accepted the valid answer over CLI and MCP. MCP also rejected a duplicate. |
 | `syntaxes.install`, `syntaxes.replace`, `syntaxes.reload`, `syntaxes.delete`, `bookmarks.requestAdd`, `bookmarks.forget` | Signed build 26 passed CLI and MCP. See [PR #114](https://github.com/pobrespandas/draftly/pull/114). |
 | `imports.validate`, `imports.preview`, `imports.commit`, `backups.previewRestore`, `backups.requestRestore` | Signed build 27 passed CLI and MCP and verified the pre-restore copy. See [PR #115](https://github.com/pobrespandas/draftly/pull/115). |
-| Native operations added in the catalog branch | Focused source tests passed by increment. Signed installed verification remains open. See [PR #116](https://github.com/pobrespandas/draftly/pull/116). |
+| Native operations added in the catalog branch | Signed build 30 passed model mode enumeration, HTML preview, XML-RPC, file read and write, Mail and Messages composition, and OCR of a selected PNG over CLI and MCP. Calendar and Reminders still need installed checks. See [post-update acceptance](../agent-codex-claude-acceptance.md#post-update-client-and-operation-checks). |
 
 `version` requires an expected-version token. `human` requires a bound one-use
 approval. `library` requires an explicit whole-library grant. Other target kinds

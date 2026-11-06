@@ -92,5 +92,24 @@ created in build 13 remained in the library and its complete Unicode text
 opened in the editor. The Agents pane showed local access off, no approved
 connections and protected data available.
 
-This confirms update installation and draft text preservation in local QA.
-Installed CLI and MCP calls after updating remain pending.
+### Post-update client and operation checks
+
+After the update, the signed helper returned all 137 available operations
+with input and result schemas through the CLI. MCP listed the same 137
+tool names without duplicates. Codex CLI 0.166.0 and Claude Code 2.1.318
+each called `server.status` on the installed app and received version
+0.1.10. Claude Code found the tool through `ToolSearch`.
+
+Both transports rejected an unrelated retry key for
+`operations.answerPrompt`, then accepted a valid answer and saved its
+marker once. MCP also rejected a duplicate answer. Both transports passed
+model mode enumeration, local HTML preview, loopback XML-RPC success and
+fault, and OCR of a selected PNG. They also created and read a UTF-8 file
+in an approved test folder. Repeating the write request recovered its
+result. Forgetting the bookmark left the file in place.
+
+Mail and Messages each opened a composer with neutral text and no
+recipient through both transports. The test text was discarded or cleared.
+No message was sent. Calendar and Reminders still need installed checks
+with isolated destinations. The connection was revoked and local access
+was turned off at the end.
