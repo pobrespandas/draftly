@@ -36,9 +36,9 @@ struct AgentNativeSchemaTests {
     }
 
     @Test func concreteSchemasDoNotPublishOtherNativeContracts() {
-        #expect(AgentNativeSchemas.operationNames == ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown",
+        #expect(AgentNativeSchemas.operationNames == ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview",
             "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe",
-            "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http"])
+            "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.models"])
         #expect(AgentNativeSchemas.operationNames.isSubset(of: AgentOperationSchemas.operationNames))
         #expect(AgentOperationSchemas.schema(for: "native.xmlrpc") == nil)
     }

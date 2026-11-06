@@ -7,7 +7,7 @@ package enum AgentNativeSchemas {
     package static let unrestrictedOperations: Set<String> = ["native.shell", "native.appleScript", "native.shortcut"]
     package static func transientResultField(for operation: String) -> String? {
         if transientTextOperations.contains(operation) { return "text" }
-        return ["native.http": "response", "native.location": "coordinates", "native.shell": "process", "native.appleScript": "valueJSON"][operation]
+        return ["native.http": "response", "native.location": "coordinates", "native.shell": "process", "native.appleScript": "valueJSON", "native.models": "model"][operation]
     }
     package static func unavailableResult(for operation: String) -> [String: AgentJSONValue]? {
         guard let field = transientResultField(for: operation) else { return nil }
@@ -27,7 +27,15 @@ package enum AgentNativeSchemas {
         "headersJSON": r(text), "responseText": r(text),
         "bodyBase64": r(.string(maximum: 87_384))
     ])
+    private static let modelMode = AgentValueShape.string(choices: ["onDevice", "pcc"])
+    private static let modelResult = AgentObjectShape(fields: [
+        "modes": .init(shape: .array(modelMode, maximum: 2)),
+        "text": .init(shape: text)
+    ])
     private static let schemas: [String: AgentOperationSchema] = [
+        "native.models": .init(parameters: .init(fields: [
+            "mode": .init(shape: modelMode), "prompt": .init(shape: .string(minimum: 1, maximum: 65_536))
+        ]), result: .init(fields: ["model": r(.nullable(.object(modelResult))), "resultAvailable": r(.boolean)])),
         "native.http": .init(parameters: .init(fields: [
             "url": r(.string(minimum: 1, maximum: 8192)),
             "method": .init(shape: .string(minimum: 1, maximum: 32), defaultValue: .string("GET")),
@@ -38,6 +46,7 @@ package enum AgentNativeSchemas {
         ]), result: .init(fields: ["response": r(.nullable(.object(httpResponse))), "resultAvailable": r(.boolean)])),
         "native.clipboardRead": .init(parameters: .init(fields: [:]), result: textResult),
         "native.clipboardWrite": .init(parameters: .init(fields: ["text": r(text)]), result: completed),
+        "native.htmlPreview": .init(parameters: .init(fields: ["html": r(text)]), result: completed),
         "native.htmlToMarkdown": .init(parameters: .init(fields: ["html": r(text)]), result: textResult),
         "native.share": .init(parameters: .init(fields: ["text": r(text)]), result: completed),
         "native.print": .init(parameters: .init(fields: ["text": r(text),
@@ -65,6 +74,9 @@ package enum AgentNativeSchemas {
         guard request.apiVersion == AgentRequest.version, request.targets.isEmpty,
               let schema = schemas[request.operation], request.retryKey == nil else { throw AgentSchemaError.invalidValue }
         let values = try schema.validatedParameters(request.parameters)
+        if request.operation == "native.models", (values["mode"] == nil) != (values["prompt"] == nil) {
+            throw AgentSchemaError.invalidValue
+        }
         if request.operation == "native.http" {
             guard case .string(let raw) = values["url"], let url = URLComponents(string: raw), url.url != nil,
                   ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host?.isEmpty == false,
@@ -110,6 +122,8 @@ package enum AgentNativeSchemas {
                   case .string(let body) = response["bodyBase64"], let data = Data(base64Encoded: body),
                   data.count <= 65_536, data.base64EncodedString() == body else { throw AgentSchemaError.invalidValue }
         }
+        if operation == "native.models", case .object(let model) = values["model"],
+           (model["modes"] == nil) == (model["text"] == nil) { throw AgentSchemaError.invalidValue }
         if let field = transientResultField(for: operation) {
             if values["resultAvailable"] == .bool(true) {
                 guard values[field] != .null else { throw AgentSchemaError.invalidValue }

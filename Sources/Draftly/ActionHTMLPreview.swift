@@ -4,13 +4,18 @@ import DraftlyCore
 
 @MainActor final class ActionPreviewRequest: ObservableObject, Identifiable {
     let id = UUID(), html: String, hideInterface: Bool
+    let localContentOnly: Bool
     private(set) var result: Bool?
     private(set) var error: Error?
     var values: [String: Any] = [:]
     var onFinish: (() -> Void)?
     private var observers: [() -> Void] = []
     private var cleanups: [() -> Void] = []
-    init(html: String, hideInterface: Bool) { self.html = html; self.hideInterface = hideInterface }
+    init(html: String, hideInterface: Bool, localContentOnly: Bool = false) {
+        self.html = html
+        self.hideInterface = hideInterface
+        self.localContentOnly = localContentOnly
+    }
     func finish(_ success: Bool) {
         guard result == nil else { return }
         result = success
@@ -46,7 +51,10 @@ import DraftlyCore
                     present: @MainActor (ActionPreviewRequest) throws -> Void) async throws -> [String: Any] {
         try Task.checkCancellation()
         guard timeout.isFinite, timeout > 0 else { throw DraftlyError.message("The HTML preview timeout must be positive and finite.") }
-        let request = ActionPreviewRequest(html: values["html"] as? String ?? "", hideInterface: values["hideInterface"] as? Bool ?? false)
+        let localContentOnly = values["localContentOnly"] as? Bool == true
+        let request = ActionPreviewRequest(html: values["html"] as? String ?? "",
+            hideInterface: !localContentOnly && values["hideInterface"] as? Bool == true,
+            localContentOnly: localContentOnly)
         var timeoutTask: Task<Void, Never>?
         defer { timeoutTask?.cancel() }
         let success: Bool = try await withTaskCancellationHandler {
@@ -87,6 +95,10 @@ struct ActionPreviewWebView: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(request) }
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
+        if request.localContentOnly {
+            configuration.websiteDataStore = .nonPersistent()
+            configuration.defaultWebpagePreferences.allowsContentJavaScript = false
+        }
         configuration.userContentController.add(context.coordinator, name: "draftly")
         configuration.userContentController.addUserScript(WKUserScript(source: """
             window.Drafts = {
@@ -100,7 +112,10 @@ struct ActionPreviewWebView: NSViewRepresentable {
         request.addCleanup { [weak view, weak coordinator = context.coordinator] in
             if let view { coordinator?.detach(view) }
         }
-        if request.result == nil { view.loadHTMLString(request.html, baseURL: nil) }
+        if request.result == nil {
+            let policy = #"<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">"#
+            view.loadHTMLString((request.localContentOnly ? policy : "") + request.html, baseURL: nil)
+        }
         return view
     }
     func updateNSView(_ view: WKWebView, context: Context) {}
@@ -119,6 +134,11 @@ struct ActionPreviewWebView: NSViewRepresentable {
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard let body = message.body as? [String: Any] else { return }
             request.receive(body, mainFrame: message.frameInfo.isMainFrame)
+        }
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
+            guard request.localContentOnly else { return .allow }
+            return navigationAction.targetFrame?.isMainFrame == true &&
+                navigationAction.request.url?.absoluteString == "about:blank" ? .allow : .cancel
         }
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { request.fail(error) }
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { request.fail(error) }
