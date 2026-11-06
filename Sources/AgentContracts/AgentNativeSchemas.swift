@@ -7,7 +7,7 @@ package enum AgentNativeSchemas {
     package static let unrestrictedOperations: Set<String> = ["native.shell", "native.appleScript", "native.shortcut"]
     package static func transientResultField(for operation: String) -> String? {
         if transientTextOperations.contains(operation) { return "text" }
-        return ["native.http": "response", "native.location": "coordinates", "native.shell": "process", "native.appleScript": "valueJSON", "native.models": "model"][operation]
+        return ["native.http": "response", "native.xmlrpc": "response", "native.location": "coordinates", "native.shell": "process", "native.appleScript": "valueJSON", "native.models": "model"][operation]
     }
     package static func unavailableResult(for operation: String) -> [String: AgentJSONValue]? {
         guard let field = transientResultField(for: operation) else { return nil }
@@ -44,6 +44,15 @@ package enum AgentNativeSchemas {
             "timeout": .init(shape: .number(minimum: 0.001, maximum: 90), defaultValue: .integer(60)),
             "followRedirects": .init(shape: .boolean, defaultValue: .bool(false))
         ]), result: .init(fields: ["response": r(.nullable(.object(httpResponse))), "resultAvailable": r(.boolean)])),
+        "native.xmlrpc": .init(parameters: .init(fields: [
+            "url": r(.string(minimum: 1, maximum: 8192)),
+            "methodName": r(.string(minimum: 1, maximum: 256)),
+            "paramsJSON": .init(shape: text, defaultValue: .string("[]")),
+            "timeout": .init(shape: .number(minimum: 0.001, maximum: 90), defaultValue: .integer(60))
+        ]), result: .init(fields: ["response": r(.nullable(.object(.init(fields: [
+            "success": r(.boolean), "statusCode": r(.integer(minimum: 100, maximum: 999)),
+            "paramsJSON": r(text), "faultCode": .init(shape: .integer()), "error": .init(shape: text)
+        ])))), "resultAvailable": r(.boolean)])),
         "native.clipboardRead": .init(parameters: .init(fields: [:]), result: textResult),
         "native.clipboardWrite": .init(parameters: .init(fields: ["text": r(text)]), result: completed),
         "native.htmlPreview": .init(parameters: .init(fields: ["html": r(text)]), result: completed),
@@ -94,6 +103,19 @@ package enum AgentNativeSchemas {
                 guard let data = Data(base64Encoded: body), data.count <= 65_536, data.base64EncodedString() == body else { throw AgentSchemaError.invalidValue }
             }
         }
+        if request.operation == "native.xmlrpc" {
+            guard case .string(let raw) = values["url"], let url = URLComponents(string: raw), url.url != nil,
+                  ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host?.isEmpty == false,
+                  url.user == nil, url.password == nil, url.fragment == nil,
+                  url.port.map({ (1...65535).contains($0) }) ?? true,
+                  case .string(let method) = values["methodName"],
+                  method.utf8.allSatisfy({ byte in
+                      (65...90).contains(byte) || (97...122).contains(byte) || (48...57).contains(byte)
+                          || [95, 46, 58, 47].contains(byte)
+                  }),
+                  case .string(let json) = values["paramsJSON"], let params = try boundedJSON(json) as? [Any],
+                  params.count <= 128 else { throw AgentSchemaError.invalidValue }
+        }
         if request.operation == "native.openURL" {
             guard case .string(let raw) = values["url"], let url = URL(string: raw),
                   let scheme = url.scheme?.lowercased(), !scheme.isEmpty,
@@ -121,6 +143,12 @@ package enum AgentNativeSchemas {
                   case .string(let raw) = response["headersJSON"], try boundedJSON(raw) is [String: String],
                   case .string(let body) = response["bodyBase64"], let data = Data(base64Encoded: body),
                   data.count <= 65_536, data.base64EncodedString() == body else { throw AgentSchemaError.invalidValue }
+        }
+        if operation == "native.xmlrpc", case .object(let response) = values["response"] {
+            guard case .string(let raw) = response["paramsJSON"], let params = try boundedJSON(raw) as? [Any],
+                  case .integer(let status) = response["statusCode"],
+                  response["success"] == .bool(false) || (status == 200 && response["error"] == nil && response["faultCode"] == nil),
+                  response["success"] == .bool(true) || params.isEmpty else { throw AgentSchemaError.invalidValue }
         }
         if operation == "native.models", case .object(let model) = values["model"],
            (model["modes"] == nil) == (model["text"] == nil) { throw AgentSchemaError.invalidValue }

@@ -23,7 +23,7 @@ struct AgentNativeServiceTests {
         func finishAction() { finishes += 1 }
     }
 
-    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.models"])
+    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.xmlrpc", "native.models"])
     func directNativeRequestsRequireReviewAndNeverReplay(operation: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -49,6 +49,11 @@ struct AgentNativeServiceTests {
             host.response = #"{"value":["onDevice"]}"#
             expected = ["model": .object(["modes": .array([.string("onDevice")])]), "resultAvailable": .bool(true)]
             resultField = "model"
+        } else if operation == "native.xmlrpc" {
+            let response: AgentJSONValue = .object(["success": .bool(false), "statusCode": .integer(200),
+                "paramsJSON": .string("[]"), "faultCode": .integer(23), "error": .string("PRIVATE fault")])
+            host.response = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(["value": response])), as: UTF8.self)
+            expected = ["response": response, "resultAvailable": .bool(true)]; resultField = "response"
         } else if operation == "native.http" {
             let response: AgentJSONValue = .object(["success": .bool(false), "statusCode": .integer(503), "headersJSON": .string("{}"), "responseText": .string("PRIVATE HTTP café 🐼"), "bodyBase64": .string(Data("PRIVATE HTTP café 🐼".utf8).base64EncodedString())])
             host.response = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(["value": response])), as: UTF8.self)
@@ -68,6 +73,8 @@ struct AgentNativeServiceTests {
             capabilities: unrestricted.contains(operation) ? [.nativeUse, .scriptsUnrestricted] : [.nativeUse])
         let parameters: [String: AgentJSONValue]
         switch operation {
+        case "native.xmlrpc": parameters = ["url": .string("http://127.0.0.1:8080/RPC2"),
+            "methodName": .string("fixture.echo"), "paramsJSON": .string(#"["PRIVATE <text> café 🐼"]"#)]
         case "native.http": parameters = ["url": .string("https://example.invalid/qa"), "method": .string("POST"), "bodyText": .string("PRIVATE request")]
         case "native.clipboardRead", "native.location", "native.models": parameters = [:]
         case "native.dictate", "native.transcribe": parameters = ["locale": .string("es-AR")]
@@ -91,7 +98,7 @@ struct AgentNativeServiceTests {
         #expect(reply.outcome == .result(.object(expected)) && host.calls.count == 1 && host.finishes == 1 && host.constructions == 1)
         let mappings = ["native.clipboardRead": "getClipboard", "native.clipboardWrite": "clipboard", "native.htmlToMarkdown": "htmlToMarkdown",
             "native.share": "share", "native.print": "print", "native.openURL": "openURL", "native.speak": "speak", "native.dictate": "dictate",
-            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut", "native.http": "http", "native.models": "modelModes", "native.htmlPreview": "htmlPreview"]
+            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut", "native.http": "http", "native.xmlrpc": "xmlrpc", "native.models": "modelModes", "native.htmlPreview": "htmlPreview"]
         #expect(host.calls.first?.0 == mappings[operation])
         let payload = try JSONDecoder().decode([String: AgentJSONValue].self, from: Data(try #require(host.calls.first?.1).utf8))
         if operation == "native.htmlPreview" { #expect(payload["localContentOnly"] == .bool(true)) }
@@ -99,7 +106,11 @@ struct AgentNativeServiceTests {
         if operation == "native.appleScript" {
             #expect(payload["argumentsJSON"] == nil && payload["arguments"] == .array([.string("café 🐼"), .object(["record": .array([.bool(true), .null])])]))
         }
-        if ["native.shell", "native.http"].contains(operation) { #expect(try operations.snapshot(id, connectionID: record.id).effects.map(\.outcome) == ["failed"]) }
+        if operation == "native.xmlrpc", case .string(let body) = payload["bodyText"] {
+            #expect(body.contains("<methodName>fixture.echo</methodName>"))
+            #expect(body.contains("PRIVATE &lt;text&gt; café 🐼"))
+        }
+        if ["native.shell", "native.http", "native.xmlrpc"].contains(operation) { #expect(try operations.snapshot(id, connectionID: record.id).effects.map(\.outcome) == ["failed"]) }
         #expect(try f.send(request, session: session) == reply && host.calls.count == 1)
         let changed = AgentRequest(requestID: request.requestID, libraryID: f.libraryID,
             operation: "native.clipboardWrite", parameters: ["text": .string("Changed intent")])
@@ -208,7 +219,7 @@ struct AgentNativeServiceTests {
         defer { tools.invalidate(revoke: false) }
         let names = Set(try await tools.tools().map(\.operation).filter { $0.hasPrefix("native.") })
         var expected: Set<String> = ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share",
-            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.models"]
+            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.xmlrpc", "native.models"]
         if allResources && unrestricted { expected.formUnion(["native.shell", "native.appleScript", "native.shortcut"]) }
         #expect(names == expected && host.calls.isEmpty && approvals.pendingFromUserInterface().isEmpty)
     }

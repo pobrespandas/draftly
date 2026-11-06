@@ -1,5 +1,6 @@
 enum NativeAsyncRoute: Equatable {
     case http
+    case xmlrpc
     case model
     case prompt
     case sharing
@@ -25,6 +26,7 @@ enum NativeAsyncRoute: Equatable {
         if NativePromptAdapter.operations.contains(operation) { return .prompt }
         switch operation {
         case "http": return .http
+        case "xmlrpc": return .xmlrpc
         case "share", "shareFile", "shareURL": return .sharing
         case "print": return .printing
         case "arrangeText": return .arrangement

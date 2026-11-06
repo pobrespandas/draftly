@@ -37,6 +37,26 @@ final class NativeActionHost: ActionHost {
             let headers = String(decoding: try JSONSerialization.data(withJSONObject: response.headers, options: [.sortedKeys]), as: UTF8.self)
             result = ["success": (200..<300).contains(response.statusCode), "statusCode": response.statusCode,
                       "headersJSON": headers, "responseText": response.text, "bodyBase64": response.data.base64EncodedString()]
+        case .xmlrpc:
+            guard let url = values["url"] as? String, let body = values["bodyText"] as? String,
+                  let timeout = values["timeout"] as? NSNumber else { throw DraftlyError.message("The XML-RPC request is invalid.") }
+            let input: [String: Any] = ["url": url, "method": "POST", "bodyText": body, "timeout": timeout,
+                "headersJSON": #"{"Content-Type":"text/xml; charset=utf-8"}"#, "followRedirects": false]
+            let request = String(decoding: try JSONSerialization.data(withJSONObject: input), as: UTF8.self)
+            let response = try await BoundedHTTP.request(request, maximumBytes: 65_536)
+            var parsed: [String: Any]
+            if response.statusCode == 200 {
+                parsed = ScriptXMLRPC.response(response.data, statusCode: response.statusCode)
+                guard parsed["success"] as? Bool == true || parsed["faultCode"] != nil else {
+                    throw DraftlyError.message("The server returned an invalid XML-RPC response.")
+                }
+            } else {
+                parsed = ["success": false, "statusCode": response.statusCode, "params": [],
+                    "error": "The XML-RPC HTTP request failed."]
+            }
+            let params = parsed.removeValue(forKey: "params") as? [Any] ?? []
+            parsed["paramsJSON"] = String(decoding: try JSONSerialization.data(withJSONObject: params), as: UTF8.self)
+            result = parsed
         case .model: return try await models.performAsync(operation, payload: payload)
         case .prompt:
             result = try await NativePromptAdapter().performAsync(operation, values: values)

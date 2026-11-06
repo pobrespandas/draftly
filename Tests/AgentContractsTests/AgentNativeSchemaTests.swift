@@ -8,6 +8,20 @@ struct AgentNativeSchemaTests {
         .init(requestID: UUID(), libraryID: UUID(), operation: operation, parameters: parameters)
     }
 
+    @Test func xmlRPCRequiresAnHTTPURLAndBoundedArgumentArray() throws {
+        let good: [String: AgentJSONValue] = ["url": .string("http://127.0.0.1:8080/RPC2"),
+            "methodName": .string("fixture.echo"), "paramsJSON": .string(#"["café 🐼",{"list":[true,null]}]"#)]
+        let values = try AgentNativeSchemas.validatedParameters(for: request("native.xmlrpc", good))
+        #expect(values["timeout"] == .integer(60))
+        for (key, invalid) in [("url", "https://user:pass@example.invalid/"), ("url", "file:///etc/passwd"),
+                               ("methodName", "wrong method"), ("paramsJSON", #"{"not":"an array"}"#)] {
+            var input = good; input[key] = .string(invalid)
+            #expect(throws: (any Error).self) {
+                try AgentNativeSchemas.validatedParameters(for: request("native.xmlrpc", input))
+            }
+        }
+    }
+
     @Test func httpInputsKeepExplicitBinaryAndRejectHeaderOrURLOverrides() throws {
         let good = request("native.http", ["url": .string("https://fixture.invalid/qa"), "method": .string("PATCH"), "headersJSON": .string("{\"Authorization\":\"Bearer explicit\"}"), "bodyBase64": .string("AID/")])
         let values = try AgentNativeSchemas.validatedParameters(for: good)
@@ -38,9 +52,9 @@ struct AgentNativeSchemaTests {
     @Test func concreteSchemasDoNotPublishOtherNativeContracts() {
         #expect(AgentNativeSchemas.operationNames == ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview",
             "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe",
-            "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.models"])
+            "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.xmlrpc", "native.models"])
         #expect(AgentNativeSchemas.operationNames.isSubset(of: AgentOperationSchemas.operationNames))
-        #expect(AgentOperationSchemas.schema(for: "native.xmlrpc") == nil)
+        #expect(AgentOperationSchemas.schema(for: "native.fileRead") == nil)
     }
 
     @Test(arguments: ["native.clipboardWrite", "native.share", "native.print", "native.speak"])

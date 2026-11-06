@@ -28,6 +28,18 @@ import DraftlyCore
             operation = parameters["prompt"] == nil ? "modelModes" : "modelRespond"
             values = parameters
         case "native.http": operation = "http"; values = parameters
+        case "native.xmlrpc":
+            guard let url = parameters["url"], let timeout = parameters["timeout"],
+                  case .string(let method) = parameters["methodName"],
+                  case .string(let raw) = parameters["paramsJSON"], let params = try AgentNativeSchemas.boundedJSON(raw) as? [Any],
+                  let body = try? ScriptXMLRPC.requestBody(method: method, params: params),
+                  body.utf8.count <= 65_536,
+                  body.unicodeScalars.allSatisfy({ [9, 10, 13].contains($0.value) || (32...0xD7FF).contains($0.value)
+                      || (0xE000...0xFFFD).contains($0.value) || (0x10000...0x10FFFF).contains($0.value) }) else {
+                throw AgentErrorCode.invalidInput
+            }
+            operation = "xmlrpc"
+            values = ["url": url, "bodyText": .string(body), "timeout": timeout]
         case "native.clipboardRead": operation = "getClipboard"; values = [:]
         case "native.clipboardWrite": operation = "clipboard"; values = parameters
         case "native.htmlPreview": operation = "htmlPreview"; values = ["html": parameters["html"]!, "localContentOnly": .bool(true)]
@@ -57,7 +69,7 @@ import DraftlyCore
         }
         return Plan(operation: operation, values: values,
             effects: .init(capabilities: capabilities, targets: [], requiresLibraryScope: libraryScope,
-                snapshot: ["nativeOperation": .string(operation), "nativeParameters": .object(values)]))
+                snapshot: ["nativeOperation": .string(operation), "nativeParameters": .object(operation == "xmlrpc" ? parameters : values)]))
     }
 
     static func run(_ request: AgentRequest, grant: AgentGrant, operationID: UUID,
@@ -108,7 +120,7 @@ import DraftlyCore
             if case .bool(let completed) = result["completed"] { outcome = completed ? "completed" : "failed" }
             else if request.operation == "native.shell", case .object(let process) = result["process"] {
                 outcome = process["status"] == .integer(0) ? "completed" : "failed"
-            } else if request.operation == "native.http", case .object(let response) = result["response"] {
+            } else if ["native.http", "native.xmlrpc"].contains(request.operation), case .object(let response) = result["response"] {
                 outcome = response["success"] == .bool(true) ? "completed" : "failed"
             } else { outcome = "completed" }
             try AgentNativeSchemas.validateResult(result, for: request.operation)
