@@ -125,7 +125,7 @@ import AgentLocalSecurity
                 }, readActivity: { connectionID, grantID in
                     guard let owner else { throw AgentErrorCode.cancelled }
                     try owner.validateOwnership()
-                    return try activity.entries(libraryID: owner.libraryID).filter { $0.connectionID == connectionID && $0.grantID == grantID }
+                    return try activity.entries(libraryID: owner.libraryID, inRecordingOrder: true).filter { $0.connectionID == connectionID && $0.grantID == grantID }
                 }, operations: operations, submitAction: enableReviewedActions ? { request, grant in
                     guard let owner else { throw AgentErrorCode.cancelled }
                     return try owner.submitReviewedAction(request, grant: grant)

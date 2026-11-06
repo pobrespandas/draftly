@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import MCP
 import Logging
 import AgentContracts
@@ -7,7 +8,13 @@ import AgentContracts
 package actor AgentMCPServer {
     package typealias Backend = @Sendable (AgentRequest) async throws -> AgentResponse
     private let backend: Backend
-    package init(backend: @escaping Backend) { self.backend = backend }
+    private let cursorKey = SymmetricKey(size: .bits256)
+    private let toolPageLimit: Int
+
+    package init(toolPageLimit: Int = AgentRequest.maximumBytes - 4096, backend: @escaping Backend) {
+        self.backend = backend
+        self.toolPageLimit = min(toolPageLimit, AgentRequest.maximumBytes - 4096)
+    }
 
     package func makeServer() async -> MCP.Server {
         let server = MCP.Server(name: "Draftly", version: "1", instructions:
@@ -19,7 +26,7 @@ package actor AgentMCPServer {
             capabilities: .init(prompts: .init(), resources: .init(), tools: .init()),
             configuration: .strict)
         await server.withMethodHandler(ListTools.self) { [self] params in
-            do { guard params.cursor == nil else { throw AgentErrorCode.invalidInput }; return try await tools() }
+            do { return try await tools(cursor: params.cursor) }
             catch { throw Self.rpc(error) }
         }
         await server.withMethodHandler(CallTool.self) { [self] params in await call(params.name, arguments: params.arguments ?? [:]) }
@@ -43,15 +50,15 @@ package actor AgentMCPServer {
         return server
     }
 
-    private func discovery() async throws -> AgentAvailableTools {
+    private func discovery() async throws -> (tools: AgentAvailableTools, authority: [String: AgentJSONValue]) {
         let capabilities = try await values("server.capabilities")
         let schemas = try await values("server.schemas")
-        return try AgentAvailableTools(capabilities: capabilities, schemas: schemas)
+        return (try AgentAvailableTools(capabilities: capabilities, schemas: schemas), capabilities)
     }
 
-    package func tools() async throws -> ListTools.Result {
+    package func tools(cursor: String? = nil) async throws -> ListTools.Result {
         let current = try await discovery()
-        let tools = try current.definitions.map { definition in
+        let tools = try current.tools.definitions.map { definition in
             Tool(name: definition.name, description: definition.summary,
                 inputSchema: try Self.sdk(definition.inputSchema),
                 annotations: .init(readOnlyHint: definition.isReadOnly ? true : nil,
@@ -59,14 +66,59 @@ package actor AgentMCPServer {
                     idempotentHint: definition.isReadOnly ? true : nil,
                     openWorldHint: definition.isReadOnly ? false : nil))
         }
-        return try Self.bounded(ListTools.Result(tools: tools))
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let all = ListTools.Result(tools: tools)
+        let catalog = try encoder.encode(all)
+        if cursor == nil, catalog.count <= toolPageLimit { return all }
+
+        var fingerprint = Data(SHA256.hash(data: catalog))
+        fingerprint.append(try encoder.encode(current.authority))
+        func token(at offset: Int) -> String {
+            var message = fingerprint
+            message.append(contentsOf: String(offset).utf8)
+            let signature = Data(HMAC<SHA256>.authenticationCode(for: message, using: cursorKey))
+            return "\(offset).\(signature.base64EncodedString())"
+        }
+        let start: Int
+        if let cursor {
+            guard cursor.utf8.count <= 64,
+                  let offset = Int(cursor.prefix(while: { $0 != "." })),
+                  offset > 0, offset < tools.count, cursor == token(at: offset) else {
+                throw AgentErrorCode.invalidInput
+            }
+            start = offset
+        } else {
+            start = 0
+        }
+
+        let remainder = ListTools.Result(tools: Array(tools[start...]))
+        if try encoder.encode(remainder).count <= toolPageLimit { return remainder }
+
+        // Find the largest page that fits. Leave room for the JSON-RPC envelope.
+        var lower = start + 1
+        var upper = tools.count - 1
+        var page: ListTools.Result?
+        while lower <= upper {
+            let end = lower + (upper - lower) / 2
+            let candidate = ListTools.Result(tools: Array(tools[start..<end]),
+                nextCursor: token(at: end))
+            if try encoder.encode(candidate).count <= toolPageLimit {
+                page = candidate
+                lower = end + 1
+            } else {
+                upper = end - 1
+            }
+        }
+        guard let page else { throw AgentErrorCode.unavailable }
+        return page
     }
 
     package func call(_ name: String, arguments: [String: MCP.Value]) async -> CallTool.Result {
         do {
             guard let operation = AgentToolInput.operation(named: name) else { throw AgentErrorCode.unavailable }
             let current = try await discovery()
-            guard current.inputs[operation.name] != nil else { throw AgentErrorCode.permissionDenied }
+            guard current.tools.inputs[operation.name] != nil else { throw AgentErrorCode.permissionDenied }
             let encoded = try JSONEncoder().encode(MCP.Value.object(arguments))
             guard encoded.count <= AgentRequest.maximumBytes,
                   case .object(let input) = try JSONDecoder().decode(AgentJSONValue.self, from: encoded) else { throw AgentErrorCode.invalidInput }
@@ -112,7 +164,7 @@ package actor AgentMCPServer {
 
     package func prompts() async throws -> ListPrompts.Result {
         let current = try await discovery()
-        guard current.inputs["drafts.get"] != nil else { return .init(prompts: []) }
+        guard current.tools.inputs["drafts.get"] != nil else { return .init(prompts: []) }
         return .init(prompts: [Prompt(name: "draftly_review_draft", description: "Review an authorized draft without changing it.",
             arguments: [.init(name: "draftID", description: "The authorized draft UUID.", required: true)])])
     }

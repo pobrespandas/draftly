@@ -27,13 +27,14 @@ import AgentLocalSecurity
         self.now = now
     }
 
-    func entries(libraryID: UUID) throws -> [Entry] {
+    func entries(libraryID: UUID, inRecordingOrder: Bool = false) throws -> [Entry] {
         let timestamp = now()
         guard timestamp.timeIntervalSince1970.isFinite else { throw AgentErrorCode.unavailable }
         let cutoff = timestamp.addingTimeInterval(-retention)
         let entries = try update { $0.removeAll { $0.date < cutoff } }
-        return entries.filter { $0.libraryID == libraryID }
-            .sorted { $0.date == $1.date ? $0.id.uuidString > $1.id.uuidString : $0.date > $1.date }
+        let scoped = entries.filter { $0.libraryID == libraryID }
+        if inRecordingOrder { return scoped }
+        return scoped.sorted { $0.date == $1.date ? $0.id.uuidString > $1.id.uuidString : $0.date > $1.date }
     }
 
     func append(libraryID: UUID, connectionID: UUID, grantID: UUID? = nil, requestID: UUID, operation: String, result: String) throws {

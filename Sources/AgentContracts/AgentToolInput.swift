@@ -211,6 +211,7 @@ package extension AgentOperationDescriptor {
         case "transfers.finishImport": "Finalize the upload and verify its length and digest."
         case "transfers.readChunk": "Read a bounded byte range from an export transfer."
         case "transfers.cancel": "Cancel a transfer owned by this connection."
+        case "activity.changes": "Read new activity in recording order. Keep nextCursor for the next poll. On version_conflict, list activity again and restart polling."
         case "activity.list": "Read activity records visible to this connection."
         default: "Request the named \(name) operation in Draftly."
         }

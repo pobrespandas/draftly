@@ -181,7 +181,7 @@ package enum AgentOperationCatalog {
         .init(name: "transfers.readChunk", owner: "AgentTransferStore", capabilities: [.filesWrite], targets: .one(.operation)),
         .init(name: "transfers.cancel", owner: "AgentTransferStore", capabilities: [], targets: .one(.operation)),
         .init(name: "activity.list", owner: "AgentActivityStore", capabilities: [], targets: .none, isReadOnly: true),
-        .init(name: "activity.changes", owner: "AgentActivityStore", capabilities: [], targets: .none),
+        .init(name: "activity.changes", owner: "AgentActivityStore", capabilities: [], targets: .none, isReadOnly: true),
         .init(name: "native.http", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
         .init(name: "native.xmlrpc", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
         .init(name: "native.fileRead", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),

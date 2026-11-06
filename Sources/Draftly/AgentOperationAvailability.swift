@@ -48,7 +48,7 @@ import AgentContracts
             handlers: [.operationControl, .actionDelete], optionalHostFeature: true),
         .init(operations: ["workspaces.delete", AgentMutationSchemas.name],
             handlers: [.operationControl, .workspaceDelete], optionalHostFeature: true),
-        .init(operations: ["activity.list"], handlers: [.activityRead], optionalHostFeature: true),
+        .init(operations: AgentActivitySchemas.operationNames, handlers: [.activityRead], optionalHostFeature: true),
         .init(operations: ["operations.get", "operations.cancel", "operations.wait"], handlers: [.operationControl], optionalHostFeature: true),
         .init(operations: AgentNativeSchemas.operationNames, handlers: [.nativeExecution, .operationControl], optionalHostFeature: true),
         .init(operations: ["actions.run"], handlers: [.operationControl, .actionExecution], optionalHostFeature: true)

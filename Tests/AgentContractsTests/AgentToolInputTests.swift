@@ -12,7 +12,7 @@ struct AgentToolInputTests {
         #expect(Set(AgentOperationCatalog.operations.filter(\.isReadOnly).map(\.name)) == AgentReadSchemas.operationNames.union([
             "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks",
             "actions.list", "actions.get", "actions.stepSchemas", "actions.validateShortcut",
-            "actions.groups", "actionGroups.get", "workspaces.list", "workspaces.get", "workspaces.query", "activity.list",
+            "actions.groups", "actionGroups.get", "workspaces.list", "workspaces.get", "workspaces.query", "activity.list", "activity.changes",
             "bookmarks.list", "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn", "syntaxes.exportBuiltIn"
         ]))
     }
