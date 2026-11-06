@@ -69,3 +69,11 @@ The client check used an isolated stdio fixture. It verifies pagination in
 both clients. Draftly's Swift bridge tests exercise its actual schemas and
 cursor validation separately. These checks do not establish installed
 catalog acceptance, deferred tool loading, or comparative token cost.
+
+Claude Code also passed with tool search enabled and the fixture server set
+to defer all its tools. The client requested all three pages. Its first tool
+call was `ToolSearch`. It then called the fixture tool from page three and
+returned the marker. With tool search disabled, it called the same fixture
+tool directly and returned the same marker. This establishes both discovery
+paths on the fixture. The single runs used different prompt caches, so they
+do not establish a token or latency advantage.
