@@ -36,7 +36,7 @@ package struct AgentAvailableTools: Sendable {
         }
         self.capabilities = allowed
         self.inputs = inputs
-        definitions = AgentOperationCatalog.operations.compactMap { operation in
+        definitions = AgentOperationCatalog.operations.sorted { $0.name < $1.name }.compactMap { operation in
             guard let input = inputs[operation.name] else { return nil }
             return Definition(operation: operation.name, name: AgentToolInput.name(for: operation.name),
                 summary: operation.summary, inputSchema: AgentToolInput.schema(for: operation, parameters: input),

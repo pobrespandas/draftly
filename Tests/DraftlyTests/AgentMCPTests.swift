@@ -21,6 +21,7 @@ struct AgentMCPTests {
         var hiddenAction: DraftAction?
         var allowedGroup: UUID?
         var activityRoot: URL?
+        var activityStore: AgentActivityStore?
         var activityRequestID: UUID?
         var editorModels: [WindowModel] = []
         var editorPreferences: TestPreferences?
@@ -81,6 +82,7 @@ struct AgentMCPTests {
                 try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
                 activityRoot = root
                 let store = try AgentActivityStore(parentDirectory: root), own = UUID()
+                activityStore = store
                 activityRequestID = own
                 try store.append(libraryID: libraryID, connectionID: record.id, grantID: record.grantID,
                                  requestID: own, operation: "server.status", result: "success")
@@ -89,7 +91,7 @@ struct AgentMCPTests {
                 try store.append(libraryID: libraryID, connectionID: UUID(), grantID: record.grantID,
                                  requestID: UUID(), operation: "drafts.get", result: "success")
                 let id = libraryID
-                activityReader = { _, _ in try store.entries(libraryID: id) }
+                activityReader = { _, _ in try store.entries(libraryID: id, inRecordingOrder: true) }
             } else { activityReader = nil }
             let service = try AgentCommandService(library: library, libraryID: libraryID, connections: registry, appVersion: "QA",
                 validateHost: {}, isLocked: { false }, editors: editors, pendingEditorGeneration: { _ in "" }, readActivity: activityReader)
@@ -112,9 +114,9 @@ struct AgentMCPTests {
                 return try JSONDecoder().decode(AgentResponse.self, from: bytes)
             } catch { await client.close(); throw error }
         }
-        func start() async throws {
+        func start(toolPageLimit: Int = AgentRequest.maximumBytes - 4096) async throws {
             let connection = try #require(helper)
-            let bridge = AgentMCPServer(backend: { try await connection.request($0) })
+            let bridge = AgentMCPServer(toolPageLimit: toolPageLimit, backend: { try await connection.request($0) })
             server = await bridge.makeServer()
             let a = Pipe(), b = Pipe()
             let serverIO = try AgentMCPStdioTransport(input: a.fileHandleForReading.fileDescriptor, output: b.fileHandleForWriting.fileDescriptor)
@@ -141,6 +143,70 @@ struct AgentMCPTests {
     private func response(_ contents: [Tool.Content]) throws -> AgentResponse {
         guard case .text(let text, _, _) = try #require(contents.first) else { throw AgentErrorCode.invalidInput }
         return try JSONDecoder().decode(AgentResponse.self, from: Data(text.utf8))
+    }
+
+    @Test func toolPagesKeepStableOrderAndRejectInvalidCursors() async throws {
+        let runtime = try Runtime(count: 1)
+        do {
+            try await runtime.start(toolPageLimit: 4_096)
+            let first = try await runtime.client.listTools()
+            var names = first.tools.map(\.name)
+            let firstCursor = try #require(first.nextCursor)
+            var cursor = firstCursor
+            while true {
+                let page = try await runtime.client.listTools(cursor: cursor)
+                names.append(contentsOf: page.tools.map(\.name))
+                guard let next = page.nextCursor else { break }
+                #expect(names.count < AgentReadSchemas.operationNames.count)
+                guard names.count < AgentReadSchemas.operationNames.count else { break }
+                cursor = next
+            }
+            #expect(names == AgentReadSchemas.operationNames.sorted().map(AgentToolInput.name))
+            await #expect(throws: MCPError.self) {
+                try await runtime.client.listTools(cursor: "1.invalid")
+            }
+            _ = try runtime.registry.revokeFromUserInterface(runtime.record.id)
+            await #expect(throws: MCPError.self) {
+                try await runtime.client.listTools(cursor: firstCursor)
+            }
+            await runtime.close()
+        } catch {
+            await runtime.close()
+            throw error
+        }
+    }
+
+    @Test func activityChangesResumesWithoutRepeatingAndRejectsExpiredAnchor() async throws {
+        try await run(activityAccess: true) { runtime in
+            let first = try await runtime.client.callTool(name: "draftly_activity_changes")
+            guard case .result(.object(let page)) = try response(first.content).outcome,
+                  case .array(let items) = page["items"], items.count == 1,
+                  case .string(let cursor) = page["nextCursor"] else {
+                Issue.record("Expected a scoped activity checkpoint"); return
+            }
+            let next = try await runtime.client.callTool(name: "draftly_activity_changes",
+                arguments: ["parameters": .object(["cursor": .string(cursor)])])
+            #expect(try response(next.content).outcome == .result(.object([
+                "items": .array([]), "nextCursor": .string(cursor)
+            ])))
+            let invalid = try await runtime.client.callTool(name: "draftly_activity_changes",
+                arguments: ["parameters": .object(["cursor": .string(cursor + "x")])])
+            #expect(try response(invalid.content).outcome == .error(.versionConflict))
+            let store = try #require(runtime.activityStore)
+            let newRequest = UUID()
+            try store.append(libraryID: runtime.libraryID, connectionID: runtime.record.id,
+                grantID: runtime.record.grantID, requestID: newRequest, operation: "drafts.get", result: "success")
+            let fresh = try await runtime.oneShotCall("activity.changes", arguments: ["parameters": .object(["cursor": .string(cursor)])])
+            guard case .result(.object(let freshPage)) = fresh.outcome,
+                  case .array(let newItems) = freshPage["items"], newItems.count == 1,
+                  case .object(let entry) = newItems.first else {
+                Issue.record("Expected one new activity entry"); return
+            }
+            #expect(entry["requestID"] == .string(newRequest.uuidString))
+            try store.clear(libraryID: runtime.libraryID)
+            let cleared = try await runtime.oneShotCall("activity.changes", arguments: ["parameters": .object(["cursor": .string(cursor)])])
+            #expect(cleared.outcome == .error(.versionConflict))
+        }
     }
 
     @Test func realSDKInitializesListsAuthorizedToolsAndCallsTheHost() async throws {

@@ -24,9 +24,13 @@ import DraftlyCore
         let operation: String
         let values: [String: AgentJSONValue]
         switch request.operation {
+        case "native.models":
+            operation = parameters["prompt"] == nil ? "modelModes" : "modelRespond"
+            values = parameters
         case "native.http": operation = "http"; values = parameters
         case "native.clipboardRead": operation = "getClipboard"; values = [:]
         case "native.clipboardWrite": operation = "clipboard"; values = parameters
+        case "native.htmlPreview": operation = "htmlPreview"; values = ["html": parameters["html"]!, "localContentOnly": .bool(true)]
         case "native.htmlToMarkdown": operation = "htmlToMarkdown"; values = ["text": parameters["html"]!]
         case "native.share": operation = "share"; values = parameters
         case "native.print": operation = "print"; values = parameters
@@ -85,6 +89,15 @@ import DraftlyCore
             let adapter = environment.makeHost()
             host = adapter
             try Task.checkCancellation(); try validateAuthority()
+            if current.operation == "modelRespond" {
+                let rawModes = try await adapter.performAsync("modelModes", payload: "{}")
+                let available = try decodedResult(rawModes, for: "native.models")
+                guard case .object(let model) = available["model"], case .array(let modes) = model["modes"],
+                      let mode = current.values["mode"], modes.contains(mode) else {
+                    throw AgentErrorCode.unavailable
+                }
+                try Task.checkCancellation(); try validateAuthority()
+            }
             let effect = UUID()
             try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
             submittedEffect = effect
@@ -125,7 +138,18 @@ import DraftlyCore
         guard let envelope = try? JSONDecoder().decode([String: AgentJSONValue].self, from: Data(raw.utf8)),
               envelope["error"] == nil, let value = envelope["value"] else { throw AgentErrorCode.outcomeUnknown }
         let result: [String: AgentJSONValue]
-        if let field = AgentNativeSchemas.transientResultField(for: operation) {
+        if operation == "native.models" {
+            switch value {
+            case .array: result = ["model": .object(["modes": value]), "resultAvailable": .bool(true)]
+            case .object(let reply):
+                guard case .string(let text) = reply["response"] else { throw AgentErrorCode.outcomeUnknown }
+                result = ["model": .object(["text": .string(text)]), "resultAvailable": .bool(true)]
+            default: throw AgentErrorCode.outcomeUnknown
+            }
+        } else if operation == "native.htmlPreview" {
+            guard case .object(let preview) = value, let success = preview["success"] else { throw AgentErrorCode.outcomeUnknown }
+            result = ["completed": success]
+        } else if let field = AgentNativeSchemas.transientResultField(for: operation) {
             result = [field: value, "resultAvailable": .bool(true)]
         } else { result = ["completed": value] }
         try AgentNativeSchemas.validateResult(result, for: operation)

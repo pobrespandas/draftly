@@ -63,6 +63,7 @@ import AgentContracts
     private let deletionApprovals: AgentApprovalStore?
     private let nativeExecution: AgentNativeExecution.Environment?
     private let submitAction: ((AgentRequest, AgentGrant) throws -> UUID)?
+    private let activityCursorKey = SymmetricKey(size: .bits256)
     private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?
     private let windowReadKey = SymmetricKey(size: .bits256)
@@ -272,7 +273,8 @@ import AgentContracts
         var authority: (connectionID: UUID, grantID: UUID)?
         var result = AgentErrorCode.storageError.rawValue
         defer {
-            if let authority, AgentOperationCatalog.operation(named: request.operation) != nil {
+            if let authority, AgentOperationCatalog.operation(named: request.operation) != nil,
+               request.operation != "activity.changes" {
                 recordActivity(authority.connectionID, authority.grantID, request.requestID, request.operation, result)
             }
         }
@@ -1011,18 +1013,46 @@ import AgentContracts
                         "order": workspace.order.map { .integer(Int64($0)) } ?? .null,
                         "versionToken": .string(try self.workspaces.version(workspace))])
                 }, revision: grant.scope == .library ? { try self.workspaces.orderVersion() } : nil)
-        case "activity.list":
+        case "activity.list", "activity.changes":
             guard let readActivity else { throw AgentErrorCode.unavailable }
             let entries = try readActivity(grant.connectionID, grant.grantID).filter {
                 $0.connectionID == grant.connectionID && $0.grantID == grant.grantID && $0.libraryID == libraryID
             }
-            let byID = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            func value(_ entry: AgentActivityStore.Entry) -> AgentJSONValue {
+                .object(["id": .string(entry.id.uuidString), "requestID": .string(entry.requestID.uuidString),
+                    "operation": .string(entry.operation), "date": .string(APIValues.date(entry.date)), "result": .string(entry.result)])
+            }
+            if request.operation == "activity.changes" {
+                // Discovery is part of polling through MCP. Do not feed it back to the client.
+                let changes = entries.filter { !["server.capabilities", "server.schemas"].contains($0.operation) }
+                func binding(_ anchor: String) -> Data {
+                    Data("\(libraryID).\(grant.connectionID).\(grant.grantID).\(anchor)".utf8)
+                }
+                var anchor = "start"
+                var start = changes.startIndex
+                if case .string(let cursor) = parameters["cursor"] {
+                    let parts = cursor.split(separator: ".", omittingEmptySubsequences: false)
+                    guard parts.count == 2, let proof = Data(base64Encoded: String(parts[1])),
+                          HMAC<SHA256>.isValidAuthenticationCode(proof, authenticating: binding(String(parts[0])),
+                              using: activityCursorKey) else { throw AgentErrorCode.versionConflict }
+                    anchor = String(parts[0])
+                    if anchor != "start" {
+                        guard let index = changes.firstIndex(where: { $0.id.uuidString == anchor }) else {
+                            throw AgentErrorCode.versionConflict
+                        }
+                        start = changes.index(after: index)
+                    }
+                }
+                let limit = Int(try AgentTextShapes.count(parameters["limit"]))
+                let page = changes[start...].prefix(limit)
+                if let last = page.last { anchor = last.id.uuidString }
+                let proof = Data(HMAC<SHA256>.authenticationCode(for: binding(anchor), using: activityCursorKey))
+                return ["items": .array(page.map(value)), "nextCursor": .string(anchor + "." + proof.base64EncodedString())]
+            }
+            let ordered = entries.sorted { $0.date == $1.date ? $0.id.uuidString > $1.id.uuidString : $0.date > $1.date }
+            let byID = Dictionary(ordered.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             return try pages.page(owner: .init(connectionID: grant.connectionID, grantID: grant.grantID), request: request,
-                parameters: parameters, expiresAt: grant.expiresAt, ids: { entries.map(\.id) }, value: { id in
-                    guard let entry = byID[id] else { return nil }
-                    return .object(["id": .string(entry.id.uuidString), "requestID": .string(entry.requestID.uuidString),
-                        "operation": .string(entry.operation), "date": .string(APIValues.date(entry.date)), "result": .string(entry.result)])
-                })
+                parameters: parameters, expiresAt: grant.expiresAt, ids: { ordered.map(\.id) }, value: { byID[$0].map(value) })
         case "actions.validateShortcut", "actions.stepSchemas", "actionGroups.get", "actions.groups", "actions.get", "actions.list":
             return try actions.read(request, parameters: parameters, grant: grant, sessionID: sessionID)
         case "server.status":
