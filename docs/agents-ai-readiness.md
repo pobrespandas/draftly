@@ -544,8 +544,8 @@ Draftly stops before modifying the library.
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-134 names in implemented or conditional handler sets in the catalog work. The
-other 3 names have no direct handler in those sets. Installed acceptance and
+136 names in implemented or conditional handler sets in the catalog work. The
+other name has no direct handler in those sets. Installed acceptance and
 connection-specific availability are tracked separately.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -556,7 +556,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Native operations | `native.calendar`, `native.reminders`, `native.scanDocument` |
+| Native operations | `native.scanDocument` |
 
 Keep the full [operation inventory](research/agent-operation-inventory.md) and
 [required manifest](../Tests/AgentContractsTests/required-operations.txt).

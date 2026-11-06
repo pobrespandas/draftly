@@ -27,6 +27,8 @@ import DraftlyCore
         case "native.models":
             operation = parameters["prompt"] == nil ? "modelModes" : "modelRespond"
             values = parameters
+        case "native.calendar": operation = "calendarCreate"; values = parameters
+        case "native.reminders": operation = "reminderCreate"; values = parameters
         case "native.mail": operation = "openMailComposer"; values = parameters
         case "native.messages": operation = "openMessagesComposer"; values = parameters
         case "native.fileRead": operation = "readBookmarkedFile"; values = parameters
@@ -128,7 +130,7 @@ import DraftlyCore
                 try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "completed")
                 return result
             }
-            let payload: String
+            var payload: String
             if request.operation == "native.appleScript" {
                 guard var values = try JSONSerialization.jsonObject(with: JSONEncoder().encode(current.values)) as? [String: Any] else { throw AgentErrorCode.invalidInput }
                 guard case .string(let arguments) = current.values["argumentsJSON"] else { throw AgentErrorCode.invalidInput }
@@ -148,13 +150,28 @@ import DraftlyCore
                 }
                 try Task.checkCancellation(); try validateAuthority()
             }
+            if ["native.calendar", "native.reminders"].contains(request.operation) {
+                let reminders = request.operation == "native.reminders"
+                let prepare = reminders ? "prepareReminderCreate" : "prepareCalendarCreate"
+                let raw = try await adapter.performAsync(prepare, payload: payload)
+                let envelope = try JSONDecoder().decode([String: AgentJSONValue].self, from: Data(raw.utf8))
+                guard case .string(let destination) = envelope["value"], !destination.isEmpty else {
+                    throw AgentErrorCode.unavailable
+                }
+                try Task.checkCancellation(); try validateAuthority()
+                var values = current.values
+                values[reminders ? "listID" : "calendarID"] = .string(destination)
+                payload = String(decoding: try JSONEncoder().encode(values), as: UTF8.self)
+            }
             let effect = UUID()
             try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
             submittedEffect = effect
             let raw = try await adapter.performAsync(current.operation, payload: payload)
             try Task.checkCancellation(); try validateAuthority()
-            let result = try decodedResult(raw, for: request.operation)
-            if result["handoffAccepted"] == .bool(false) {
+            let declinedEvent = ["native.calendar", "native.reminders"].contains(request.operation)
+                && (try? JSONDecoder().decode([String: AgentJSONValue].self, from: Data(raw.utf8)))?["value"] == .null
+            let result = declinedEvent ? [:] : try decodedResult(raw, for: request.operation)
+            if declinedEvent || result["handoffAccepted"] == .bool(false) {
                 try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "failed")
                 submittedEffect = nil
                 throw AgentOperationRegistry.FailureBeforeEffects(code: .unavailable, knownFailedEffects: true)
@@ -202,6 +219,8 @@ import DraftlyCore
                 result = ["model": .object(["text": .string(text)]), "resultAvailable": .bool(true)]
             default: throw AgentErrorCode.outcomeUnknown
             }
+        } else if ["native.calendar", "native.reminders"].contains(operation) {
+            result = ["identifier": value]
         } else if ["native.mail", "native.messages"].contains(operation) {
             result = ["handoffAccepted": value]
         } else if operation == "native.htmlPreview" {

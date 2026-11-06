@@ -68,6 +68,16 @@ package enum AgentNativeSchemas {
             "toRecipients": .init(shape: .array(.string(minimum: 1, maximum: 254), maximum: 32), defaultValue: .array([])),
             "body": r(text)
         ]), result: .init(fields: ["handoffAccepted": r(.boolean)])),
+        "native.calendar": .init(parameters: .init(fields: [
+            "title": r(.string(minimum: 1, maximum: 1024)), "notes": .init(shape: text, defaultValue: .string("")),
+            "startDate": r(.utcDate), "endDate": r(.utcDate),
+            "location": .init(shape: .string(maximum: 1024)),
+            "calendarID": .init(shape: .string(minimum: 1, maximum: 1024))
+        ]), result: .init(fields: ["identifier": r(.string(minimum: 1, maximum: 4096))])),
+        "native.reminders": .init(parameters: .init(fields: [
+            "title": r(.string(minimum: 1, maximum: 1024)), "notes": .init(shape: text, defaultValue: .string("")),
+            "dueDate": .init(shape: .utcDate), "listID": .init(shape: .string(minimum: 1, maximum: 1024))
+        ]), result: .init(fields: ["identifier": r(.string(minimum: 1, maximum: 4096))])),
         "native.clipboardRead": .init(parameters: .init(fields: [:]), result: textResult),
         "native.clipboardWrite": .init(parameters: .init(fields: ["text": r(text)]), result: completed),
         "native.htmlPreview": .init(parameters: .init(fields: ["html": r(text)]), result: completed),
@@ -149,6 +159,16 @@ package enum AgentNativeSchemas {
                 throw AgentSchemaError.invalidValue
             }
         }
+        if ["native.calendar", "native.reminders"].contains(request.operation) {
+            guard case .string(let title) = values["title"],
+                  !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentSchemaError.invalidValue }
+            if request.operation == "native.calendar" {
+                guard case .string(let start) = values["startDate"], case .string(let end) = values["endDate"],
+                      let startDate = eventDate(start), let endDate = eventDate(end), endDate > startDate else {
+                    throw AgentSchemaError.invalidValue
+                }
+            }
+        }
         if request.operation == "native.openURL" {
             guard case .string(let raw) = values["url"], let url = URL(string: raw),
                   let scheme = url.scheme?.lowercased(), !scheme.isEmpty,
@@ -200,6 +220,12 @@ package enum AgentNativeSchemas {
                 }
             } else if values[field] != .null { throw AgentSchemaError.invalidValue }
         }
+    }
+
+    private static func eventDate(_ text: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: text) ?? ISO8601DateFormatter().date(from: text)
     }
 
     private static func httpToken(_ value: String) -> Bool {

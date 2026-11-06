@@ -74,6 +74,11 @@ final class NativeActionHost: ActionHost {
         case .shortcut: result = try await NativeAutomationAdapter().runShortcutAsync(name: values["name"] as? String ?? "", input: values["text"] as? String ?? "", waitForResponse: values["waitForResponse"] as? Bool ?? true)
         case .eventAPI: result = try await eventAPIAsync(values)
         case .event: result = try await NativeSystemAdapter(events: events, reportError: onError).performAsync(operation, values: values)
+        case .reviewedEvent:
+            let adapter = NativeSystemAdapter(events: events, reportError: onError)
+            let reminders = operation == "prepareReminderCreate" || operation == "reminderCreate"
+            if operation.hasPrefix("prepare") { result = try await adapter.prepareReviewedItem(values, reminders: reminders) }
+            else { result = try adapter.saveReviewedItem(values, reminders: reminders) }
         case .location: result = try await NativeLocationRequest.current()
         case .speech: result = try await NativeSpeechRequest.run(values)
         case .transcription: result = try await NativeTranscriptionRequest.run(values)

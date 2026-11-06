@@ -89,6 +89,62 @@ struct NativeSystemAdapter {
         return true
     }
 
+    func reviewedDestination(_ values: [String: Any], reminders: Bool) -> EKCalendar? {
+        let entity: EKEntityType = reminders ? .reminder : .event
+        guard EKEventStore.authorizationStatus(for: entity) == .fullAccess else { return nil }
+        let calendar: EKCalendar?
+        if let identifier = values[reminders ? "listID" : "calendarID"] as? String {
+            calendar = events.calendars(for: entity).first { $0.calendarIdentifier == identifier }
+        } else {
+            calendar = reminders ? events.defaultCalendarForNewReminders() : events.defaultCalendarForNewEvents
+        }
+        guard calendar?.allowsContentModifications == true else { return nil }
+        return calendar
+    }
+
+    func prepareReviewedItem(_ values: [String: Any], reminders: Bool) async throws -> String? {
+        do { try await requestAccessAsync(reminders: reminders) }
+        catch let error as CancellationError { throw error }
+        catch let error as ActionExecutionInterruption { throw error }
+        catch { return nil }
+        return reviewedDestination(values, reminders: reminders)?.calendarIdentifier
+    }
+
+    func saveReviewedItem(_ values: [String: Any], reminders: Bool) throws -> String? {
+        try Task.checkCancellation()
+        guard let calendar = reviewedDestination(values, reminders: reminders),
+              let title = values["title"] as? String else { return nil }
+        let notes = values["notes"] as? String ?? ""
+        if reminders {
+            let reminder = EKReminder(eventStore: events)
+            reminder.title = title
+            reminder.notes = notes
+            reminder.calendar = calendar
+            if let dueDate = APIValues.parseDate(values["dueDate"]) {
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+                reminder.dueDateComponents = calendar.dateComponents(
+                    [.calendar, .timeZone, .year, .month, .day, .hour, .minute, .second], from: dueDate)
+            }
+            try events.save(reminder, commit: true)
+            return reminder.calendarItemIdentifier
+        }
+        guard let start = APIValues.parseDate(values["startDate"]), let end = APIValues.parseDate(values["endDate"]),
+              start < end else { return nil }
+        let event = EKEvent(eventStore: events)
+        event.title = title
+        event.notes = notes
+        event.location = values["location"] as? String
+        event.startDate = start
+        event.endDate = end
+        event.calendar = calendar
+        try events.save(event, span: .thisEvent, commit: true)
+        guard let identifier = event.eventIdentifier, !identifier.isEmpty else {
+            throw DraftlyError.message("Calendar did not return an identifier for the saved event.")
+        }
+        return identifier
+    }
+
     func requestAccessAsync(reminders: Bool, timeout: TimeInterval = 60) async throws {
         let authorization = EventKitAuthorizationRequest(
             status: { EKEventStore.authorizationStatus(for: $0) },

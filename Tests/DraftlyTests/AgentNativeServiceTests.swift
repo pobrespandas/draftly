@@ -183,6 +183,57 @@ struct AgentNativeServiceTests {
         #expect(recovered.outcome == .result(.object(recoveredResult)) && host.calls.count == 1)
     }
 
+    @Test(arguments: [false, true], [true, false])
+    func reviewedEventKitCreationChecksPermissionBeforeSaving(reminders: Bool, allowed: Bool) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) },
+            isLocked: { false })
+        defer { operations.cancelAll() }
+        let host = DirectNativeHost()
+        host.onCall = { [weak host] in
+            guard let host else { return }
+            host.response = host.calls.count == 1
+                ? (allowed ? #"{"value":"approved-destination"}"# : #"{"value":null}"#)
+                : #"{"value":"saved-item-id"}"#
+        }
+        f.operations = operations
+        f.nativeExecution = .init(makeHost: { host }, approvals: approvals)
+        f.service = try f.makeService(withoutEditors: true)
+        let (record, session) = try f.connect(capabilities: [.nativeUse])
+        var parameters: [String: AgentJSONValue] = ["title": .string("QA café 🐼")]
+        if !reminders {
+            parameters["startDate"] = .string("2026-11-07T12:00:00Z")
+            parameters["endDate"] = .string("2026-11-07T13:00:00Z")
+        }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID,
+            operation: reminders ? "native.reminders" : "native.calendar", parameters: parameters)
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else {
+            Issue.record("Missing EventKit operation"); return
+        }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(host.calls.isEmpty)
+        try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(host.calls.first?.0 == (reminders ? "prepareReminderCreate" : "prepareCalendarCreate"))
+        let result = try f.send(request, session: session).outcome
+        if allowed {
+            #expect(result == .result(.object(["identifier": .string("saved-item-id")])))
+            #expect(host.calls.map(\.0).last == (reminders ? "reminderCreate" : "calendarCreate"))
+            let payload = try JSONDecoder().decode([String: AgentJSONValue].self, from: Data(try #require(host.calls.last?.1).utf8))
+            #expect(payload[reminders ? "listID" : "calendarID"] == .string("approved-destination"))
+        } else {
+            #expect(result == .error(.unavailable) && host.calls.count == 1)
+            #expect(try operations.snapshot(id, connectionID: record.id).effects.isEmpty)
+        }
+        #expect(try f.send(request, session: session).outcome == result)
+        #expect(host.calls.count == (allowed ? 2 : 1))
+    }
+
     @Test(arguments: ["deny", "cancel", "session", "revokedAfterEffect", "malformedAfterEffect", "throwsAfterEffect", "declined"])
     func directNativeFailuresDoNotRepeatAnExternalEffect(decision: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
@@ -274,7 +325,7 @@ struct AgentNativeServiceTests {
         defer { tools.invalidate(revoke: false) }
         let names = Set(try await tools.tools().map(\.operation).filter { $0.hasPrefix("native.") })
         var expected: Set<String> = ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share",
-            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.models"]
+            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.calendar", "native.reminders", "native.models"]
         if allResources && unrestricted { expected.formUnion(["native.shell", "native.appleScript", "native.shortcut"]) }
         #expect(names == expected && host.calls.isEmpty && approvals.pendingFromUserInterface().isEmpty)
     }

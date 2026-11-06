@@ -15,6 +15,7 @@ enum NativeAsyncRoute: Equatable {
     case shortcut
     case eventAPI
     case event
+    case reviewedEvent
     case location
     case speech
     case transcription
@@ -40,6 +41,7 @@ enum NativeAsyncRoute: Equatable {
         case "shortcut": return .shortcut
         case "eventAPI": return .eventAPI
         case "reminder", "event": return .event
+        case "prepareCalendarCreate", "prepareReminderCreate", "calendarCreate", "reminderCreate": return .reviewedEvent
         case "location": return .location
         case "speak": return .speech
         case "transcribe": return .transcription

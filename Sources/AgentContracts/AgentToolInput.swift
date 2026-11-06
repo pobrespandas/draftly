@@ -132,6 +132,8 @@ package extension AgentOperationDescriptor {
         case "editor.listTasks": "List tasks and their state ranges in the current editor buffer."
         case "editor.setSelection": "Set the editor selection with a UTF-16 range. A zero-length range moves the insertion point."
         case "editor.tasks": "Change the state of a task in the editor. Use its state and range from editor.listTasks."
+        case "native.calendar": "Create a Calendar event after review. Supply its title and UTC start and end dates. Omit calendarID to use the default writable calendar."
+        case "native.reminders": "Create a reminder after review. Supply its title and optional UTC due date. Omit listID to use the default writable list."
         case "native.mail": "Open an email composer with the reviewed recipients, subject and plain-text body. The result confirms handoff to macOS. The person sends the email."
         case "native.messages": "Open a Messages composer with the reviewed recipients and body. The result confirms handoff to macOS. The person sends the message."
         case "native.fileRead": "Read a UTF-8 file of up to 64 KiB after approval. Target its authorized folder bookmark and give the relative path."

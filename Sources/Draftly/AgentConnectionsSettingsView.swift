@@ -170,6 +170,8 @@ private struct AgentOperationReviewSheet: View {
         switch operation {
         case "http": return "Make an HTTP request"
         case "xmlrpc": return "Make an XML-RPC request"
+        case "calendarCreate": return "Create Calendar Event"
+        case "reminderCreate": return "Create Reminder"
         case "openMailComposer": return "Open Mail Composer"
         case "openMessagesComposer": return "Open Messages Composer"
         case "readBookmarkedFile": return "Read a Bookmarked File"
@@ -251,7 +253,7 @@ private struct AgentOperationReviewSheet: View {
         guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
         let rows = fields.keys.sorted().map { key in
             let value = fields[key]!
-            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion", "method": "Method", "methodName": "Method", "paramsJSON": "Arguments", "path": "Relative path", "toRecipients": "Recipients", "subject": "Subject", "body": "Message", "headersJSON": "Headers", "bodyText": "Body", "bodyBase64": "Body (Base64)", "timeout": "Timeout (seconds)", "followRedirects": "Follow redirects on this origin", "maximumBytes": "Maximum download bytes", "purpose": "Purpose"][key] ?? key
+            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion", "method": "Method", "methodName": "Method", "paramsJSON": "Arguments", "path": "Relative path", "toRecipients": "Recipients", "subject": "Subject", "body": "Message", "calendarID": "Calendar ID", "listID": "Reminders list ID", "startDate": "Start (UTC)", "endDate": "End (UTC)", "dueDate": "Due (UTC)", "title": "Title", "notes": "Notes", "location": "Location", "headersJSON": "Headers", "bodyText": "Body", "bodyBase64": "Body (Base64)", "timeout": "Timeout (seconds)", "followRedirects": "Follow redirects on this origin", "maximumBytes": "Maximum download bytes", "purpose": "Purpose"][key] ?? key
             if case .string(let text) = value { return (label, text) }
             let data = try? JSONEncoder().encode(value)
             return (label, data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unavailable")
@@ -259,6 +261,12 @@ private struct AgentOperationReviewSheet: View {
         if case .string(let operation) = review.effects.snapshot["nativeOperation"],
            ["shellScript", "shell", "appleScript", "shortcut"].contains(operation) {
             return [("Access", "Uses your macOS permissions and full library access.")] + rows
+        }
+        if review.operation == "native.calendar", fields["calendarID"] == nil {
+            return [("Calendar", "Current default calendar")] + rows
+        }
+        if review.operation == "native.reminders", fields["listID"] == nil {
+            return [("Reminders list", "Current default list")] + rows
         }
         if ["native.mail", "native.messages"].contains(review.operation) {
             return [("Effect", "Open a composer so you can review and send the message.")] + rows
