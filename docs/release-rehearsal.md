@@ -812,3 +812,43 @@ Mac, and CloudKit synchronization were not retested in this lifecycle check.
 The tag-triggered publisher was not exercised: the tagged merge used [skip ci].
 Normal version-only rejection remains active. Local operation journals and
 screenshots stay outside Git.
+
+## Public 0.4.0 catalog release, 7 November 2026
+
+Tag `v0.4.0` identifies `42c094d0839290afcda22df7e0aa7f951485ecb6`.
+PR #116 integrated the complete local MCP catalog after installed CLI and MCP
+checks. PR #117 prepared version 0.4.0, build 14. Both PRs passed full CI.
+See [installed catalog and native acceptance](agent-codex-claude-acceptance.md),
+including first Calendar and Reminders permission checks in the signed VM app.
+
+The first release run, `42387069861`, rejected an incomplete app test report.
+The test process returned zero during a toolbar test without a test failure or
+crash report. The termination trace ended in `swift_task_asyncMainDrainQueue`.
+No candidate was signed in that run. The cause remains unconfirmed. A fresh
+execution on the same tag, `42388331689`, passed the complete report gate,
+with 1 consumer, 197 contract, 837 core and 1707 app tests. The script checks,
+website tests, matrix check and native build passed. Test scope and verification
+rules did not change.
+
+The successful workflow built and notarized the app with its helper, then
+published the ZIP and DMG. The app notary submission was
+`51fd0227-16af-4a5d-9531-b4d9d860baf4`. The DMG submission was
+`31a3b966-e290-4f24-8201-718a509e07d4`. The original candidate passed local
+verification after download. The public app and helper both contain arm64 and
+x86_64 code. Strict signatures, helper identity and profile, the Calendar
+entitlement, the stapled app ticket and Gatekeeper passed. The helper profile
+permits the shared agent Keychain group.
+
+Anonymous public downloads matched the original candidate bytes. The ZIP
+SHA-256 is `12c00dfbd8024886c8b6cf37b8875da0d9f89fd1993dc82e2955e4ffc4d0869e`.
+The DMG SHA-256 is `e372b4f447b31b5d1e1f884a7579fee52d408adaf364ca92066042f60332cc97`.
+The live signed appcast matched both the staged file and its GitHub release
+asset. Its first item identifies 0.4.0, build 14, and the public ZIP. The archive
+signature passed verification with the configured public Sparkle key.
+
+Firebase version `2c7ef5c8ccda0e30` preserves the staged file set and configuration.
+The served website module resolved both download controls to the public
+`Draftly-0.4.0.dmg`. The promotion journal is complete. The writer lock journal
+is released, and an independent read confirmed that the lock object is absent.
+The release keeps local agent access off by default. The temporary action catalog
+replacement remains active and is disclosed in the release notes.
