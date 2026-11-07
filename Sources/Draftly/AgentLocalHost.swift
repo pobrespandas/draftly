@@ -218,6 +218,7 @@ import AgentLocalSecurity
                 catch { onRevocationError(error) }
             }, validateContext: validateContext)
             tools.expiresAt = record.expiresAt
+            tools.followsDraftSelection = wholeLibrary
             chatSessions[record.id] = WeakChatSession(tools)
             return tools
         } catch {

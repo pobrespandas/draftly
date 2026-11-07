@@ -9,6 +9,21 @@ struct ChatConsoleModelTests {
         UserDefaults(suiteName: "ChatConsoleTests-\(UUID().uuidString)")!
     }
 
+    @Test(arguments: [false, true]) func changingDraftRetainsOnlyLibraryConnections(libraryScope: Bool) async throws {
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults(),
+            respondWithTools: { _, _, _ in "unused" })
+        await model.loadModels()
+        var revoked = false
+        let session = AgentChatToolSession(backend: { _ in throw AgentErrorCode.unavailable }, onDisconnect: { revoked = true })
+        session.followsDraftSelection = libraryScope
+        try model.connectTools(session)
+        model.draftSelectionChanged()
+        #expect(model.hasTools == libraryScope)
+        #expect(revoked == !libraryScope)
+        model.close()
+        #expect(revoked)
+    }
+
     @Test func expiryDisconnectsToolsAndExplainsHowToReconnect() async throws {
         let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults(),
             respondWithTools: { _, _, _ in "unused" })

@@ -254,6 +254,10 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         session.onInvalidated = { [weak self] in self?.disconnectTools() }
     }
 
+    func draftSelectionChanged() {
+        if toolSession?.followsDraftSelection != true { disconnectTools() }
+    }
+
     func disconnectTools() {
         guard let session = toolSession else { return }
         stopCurrentResponse()

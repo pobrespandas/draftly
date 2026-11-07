@@ -57,6 +57,20 @@ schemas no longer repeat every authorized name. The gateway still checks each
 name and the current permission. Public MCP operation schemas do not change.
 This correction still needs installed real-model acceptance.
 
+## ChatGPT installed acceptance
+
+Build 41 signed in to ChatGPT in the isolated QA namespace. A 15-minute
+library-wide connection created `QA ChatGPT café 🐼` with a second line,
+`El panda prepara café.`. Activity recorded successful `mutations.prepare`,
+`drafts.create` and `drafts.get`. The response confirmed the same text.
+Opening the new draft showed 40 characters and 8 words.
+
+Opening that draft also exposed a remaining view callback that disconnected
+all chat sessions on selection changes. The correction keeps library-wide
+sessions across draft changes. Resource-limited sessions still disconnect.
+Both QA connections were removed and local access was turned off after testing.
+The selection correction still needs installed acceptance.
+
 ## Remaining acceptance
 
 Check remaining Markdown block types, accessibility, scrolling, cancellation

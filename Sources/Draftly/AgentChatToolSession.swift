@@ -5,6 +5,7 @@ import AgentContracts
 @MainActor final class AgentChatToolSession {
     typealias Backend = @MainActor (AgentRequest) async throws -> AgentResponse
     var expiresAt: Date?
+    var followsDraftSelection = false
     private let draftID: UUID?
     var resolveCurrentDraftID: (() -> UUID?)?
     var currentDraftID: UUID? { resolveCurrentDraftID.map { $0() } ?? draftID }

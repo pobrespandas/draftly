@@ -129,6 +129,7 @@ struct AgentLocalHostTests {
         defer { tools.invalidate() }
         let record = try #require(host.connections.configurationForUserInterface().connections.first)
         #expect(record.scopeKind == .library && record.resources.isEmpty)
+        #expect(tools.followsDraftSelection)
         #expect(Set(record.capabilities) == host.service.availableCapabilities)
         #expect(try await tools.tools().contains { $0.name == "draftly_drafts_create" })
         var current: UUID?

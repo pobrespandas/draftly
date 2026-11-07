@@ -69,7 +69,7 @@ struct LibraryView: View {
         .onChange(of: typewriter) { _, enabled in model.editor.typewriterScrollingEnabled = enabled }
         .onChange(of: model.selectedDraftIDs) { _, ids in if ids.count == 1 { model.selectFromList(ids.first) } }
         .onChange(of: model.editor.noteID) { _, id in
-            model.chatConsole.disconnectTools()
+            model.chatConsole.draftSelectionChanged()
             restoredDraftID = id?.uuidString ?? ""
             hub.draftSelectionDidChange(id, for: model)
         }
