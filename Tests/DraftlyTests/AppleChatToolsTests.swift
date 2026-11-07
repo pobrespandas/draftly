@@ -23,64 +23,21 @@ struct AppleChatToolsTests {
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog(name: "draftly_drafts_create") }
     }
 
-    private func literalNames(_ value: AgentJSONValue, root: [String: AgentJSONValue],
-                              references: Set<String> = []) -> Set<String>? {
-        guard case .object(let fields) = value else { return nil }
-        if case .string(let reference) = fields["$ref"] {
-            guard reference.hasPrefix("#/$defs/"), !references.contains(reference),
-                  case .object(let definitions) = root["$defs"],
-                  let target = definitions[String(reference.dropFirst("#/$defs/".count))] else { return nil }
-            return literalNames(target, root: root, references: references.union([reference]))
-        }
-        if case .array(let values) = fields["enum"] {
-            let strings = values.compactMap { value -> String? in if case .string(let text) = value { return text }; return nil }
-            return strings.count == values.count ? Set(strings) : nil
-        }
-        if case .string(let value) = fields["const"] { return [value] }
-        if fields["type"] == .string("null") { return [] }
-        for keyword in ["anyOf", "oneOf"] {
-            if case .array(let alternatives) = fields[keyword], !alternatives.isEmpty {
-                var result: Set<String> = []
-                for alternative in alternatives {
-                    guard let names = literalNames(alternative, root: root, references: references) else { return nil }
-                    result.formUnion(names)
-                }
-                return result
-            }
-        }
-        return nil
-    }
-
-    @Test func nameConstraintReaderRejectsAnUnconstrainedAlternative() {
-        let names: AgentJSONValue = .object(["enum": .array([.string("allowed")])])
-        let reference: AgentJSONValue = .object(["$ref": .string("#/$defs/Names")])
-        let root: [String: AgentJSONValue] = ["$defs": .object(["Names": names])]
-        #expect(literalNames(reference, root: root) == ["allowed"])
-        #expect(literalNames(.object(["anyOf": .array([reference, .object(["type": .string("null")])])]), root: root) == ["allowed"])
-        #expect(literalNames(.object(["oneOf": .array([.object(["const": .string("allowed")])])]), root: [:]) == ["allowed"])
-        #expect(literalNames(.object(["anyOf": .array([names, .object(["type": .string("string")])])]), root: [:]) == nil)
-        #expect(literalNames(reference, root: ["$defs": .object(["Names": reference])]) == nil)
-    }
-
-    @Test func modelToolSchemasConstrainNamesButTheGatewayStillChecksCalls() async throws {
+    @Test func compactModelSchemasKeepGatewayAuthorization() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)
         defer { session.invalidate() }
         let bridge = try AppleChatToolBridge(session: session)
         let tools = try await bridge.modelTools()
-        let encoded = try JSONEncoder().encode(tools.filter { ["draftly_tools", "draftly_call"].contains($0.name) }.map(\.parameters))
-        guard case .array(let schemas) = try JSONDecoder().decode(AgentJSONValue.self, from: encoded) else {
-            Issue.record("Missing native schemas"); return
+        // Names are discovered at runtime, not repeated in both native schemas.
+        let encoded = try JSONEncoder().encode(tools.map(\.parameters))
+        #expect(!String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_get"))
+        let listing = try JSONDecoder().decode(AgentJSONValue.self, from: Data(try await bridge.catalog().utf8))
+        guard case .object(let fields) = listing, case .array(let names) = fields["tools"] else {
+            Issue.record("Missing compact catalog"); return
         }
-        for schema in schemas {
-            guard case .object(let root) = schema, case .object(let properties) = root["properties"],
-                  let field = properties["name"], let choices = literalNames(field, root: root) else {
-                Issue.record("Missing constrained tool names: \(String(decoding: try JSONEncoder().encode(schema), as: UTF8.self))"); return
-            }
-            let expected = Set(try await session.tools().map(\.name))
-            #expect(choices == expected && choices.contains("draftly_drafts_get"))
-            #expect(!choices.contains("draftly_drafts_create") && !choices.contains("draftly_tools"))
-        }
+        #expect(names.contains(.string("draftly_drafts_get")))
+        #expect(!names.contains(.string("draftly_drafts_create")))
         let catalog = try #require(tools.first { $0.name == "draftly_tools" } as? any Tool<GeneratedContent, String>)
         let description = try await catalog.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_get\"}"))
         #expect(description.contains("inputSchema"))
@@ -93,6 +50,33 @@ struct AppleChatToolsTests {
         await #expect(throws: AgentErrorCode.permissionDenied) {
             try await call.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
         }
+    }
+
+    @Test func libraryCatalogLoadsDescriptionsOnlyForTheChosenOperation() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let editors = AgentEditorRegistry(library: runtime.library, models: { [] })
+        defer { editors.invalidate() }
+        runtime.service = try AgentCommandService(library: runtime.library, libraryID: runtime.libraryID,
+            connections: runtime.registry, appVersion: "Catalog QA", validateHost: {}, isLocked: { false },
+            editors: editors, pendingEditorGeneration: { _ in "" })
+        let record = try runtime.registry.connectFromUserInterface(name: "Library catalog QA", libraryID: runtime.libraryID,
+            capabilities: runtime.service.availableCapabilities, scope: .library)
+        runtime.session = try runtime.service.authenticate(connectionID: record.id, credential: #require(runtime.secrets[record.id]))
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        let bridge = try AppleChatToolBridge(session: session)
+        let definitions = try await session.tools()
+        #expect(definitions.contains { $0.name == "draftly_drafts_update" })
+        let catalog = try await bridge.catalog()
+        #expect(!catalog.contains("inputSchema"))
+        let detail = try await bridge.catalog(name: "draftly_drafts_get")
+        #expect(detail.contains("inputSchema") && detail.contains("description"))
+        let nativeSchemas = try JSONEncoder().encode(try await bridge.modelTools().map(\.parameters))
+        // Bound transport bytes, not model tokens. Real-model QA checks context use.
+        #expect(catalog.utf8.count < 8_000)
+        #expect(nativeSchemas.count < 8_000)
+        _ = try runtime.registry.revokeFromUserInterface(record.id)
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog() }
     }
 
     #if DRAFTLY_APPLE_LIVE_QA

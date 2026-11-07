@@ -23,7 +23,18 @@ remains in its provider adapter.
 
 ## Evidence
 
-- Initial Markdown and migration run: 16 tests passed.
+- Commit `02bc32b`: the full inventory passed 2,749 tests (1 consumer,
+  197 contracts, 837 core, 1,714 app). The final focused run passed 37 tests.
+- Signed installed QA build 41 uses this commit and library
+  `A2E91C40-0C42-4F37-96B3-76E07449F8A0`. Combined notarization
+  `baa6293f-5098-4282-b70b-d4d3a8e1d0c8` was accepted and stapled.
+- In the installed QA, Apple Intelligence returned a list with bold names.
+  The chat rendered bullets and emphasis. Copy pasted the original Markdown
+  into the composer with accents intact. Create draft saved the response.
+  Insert increased its length from 326 to 652 characters. Undo restored 326.
+- Code fences remain literal code. The first request asked for a Markdown
+  example and the model wrapped it in a fence. A new conversation with a
+  normal writing request rendered as expected.
 - A 10,000-draft fixture fetched two pages and searched a Unicode title in
   67 milliseconds in the first measured run. This is a local measurement,
   not a fixed latency guarantee.
@@ -32,10 +43,24 @@ remains in its provider adapter.
 - Native QA build succeeded with the worktree package identity and inherited
   Swift compiler flags. The normal project identity remains unchanged.
 
+## Installed tool failure and correction
+
+Build 41 connected Apple Intelligence with library scope and all available
+capabilities. A create-and-read request failed with 8,503 input tokens against
+an 8,192-token runtime limit. The library still had two drafts. The chat showed
+the error and did not claim that it created the draft. Disconnect removed the
+connection. Settings then showed no approved connections and local access off.
+
+The Apple adapter now lists operation names without descriptions. It loads the
+full description and schema only for the selected operation. Its two generic
+schemas no longer repeat every authorized name. The gateway still checks each
+name and the current permission. Public MCP operation schemas do not change.
+This correction still needs installed real-model acceptance.
+
 ## Remaining acceptance
 
-Run the complete inventory after final edits. Check Markdown, accessibility,
-Copy, Create, Insert, Undo, scrolling and row actions in the signed installed QA.
+Check remaining Markdown block types, accessibility, scrolling, cancellation
+and row actions in the signed installed QA.
 Test creation, editing, confirmed readback, cancellation and failure reporting
 with ChatGPT and Apple Intelligence. Check a signed update from 0.4.0, including
 one-time grant migration. Record CI, artifact and publication evidence before
