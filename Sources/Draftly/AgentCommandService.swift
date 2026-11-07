@@ -905,7 +905,7 @@ import AgentContracts
         let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] id in
             guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
             return try await AgentNativeExecution.run(request, grant: grant, operationID: id, environment: nativeExecution,
-                operations: operationRegistry, validateAuthority: validateOperation)
+                operations: operationRegistry, fileDefaults: self.preferenceDefaults, validateAuthority: validateOperation)
         }
         return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }

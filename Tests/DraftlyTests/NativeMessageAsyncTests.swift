@@ -20,6 +20,24 @@ struct NativeMessageAsyncTests {
         func detach() { detachCount += 1; onFinish = nil }
     }
 
+    @Test(arguments: ["openMailComposer", "openMessagesComposer"], [true, false])
+    func composerOnlyHandsOffSupportedContent(operation: String, permitted: Bool) {
+        let driver = Driver()
+        driver.permitted = permitted
+        driver.result = nil
+        let accepted = NativeMessageAdapter().openComposition(operation, [
+            "toRecipients": ["neutral@example.invalid"], "subject": "QA", "body": "café 🐼"
+        ], makeDriver: { service in
+            #expect(service == (operation == "openMailComposer" ? .composeEmail : .composeMessage))
+            return driver
+        })
+        #expect(accepted == permitted)
+        #expect(driver.recipients == ["neutral@example.invalid"])
+        #expect(driver.body == (permitted ? "café 🐼" : nil))
+        #expect(driver.subject == (operation == "openMailComposer" ? "QA" : ""))
+        #expect(driver.late == nil && driver.detachCount == 1)
+    }
+
     @Test(arguments: ["composeMail", "composeMessage"])
     func recipientsSubjectAndUnicodeReachTheCorrectService(_ operation: String) async throws {
         let driver = Driver(); var requested: String?

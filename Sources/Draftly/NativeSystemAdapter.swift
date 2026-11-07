@@ -89,13 +89,71 @@ struct NativeSystemAdapter {
         return true
     }
 
+    func reviewedDestination(_ values: [String: Any], reminders: Bool) -> EKCalendar? {
+        let entity: EKEntityType = reminders ? .reminder : .event
+        guard EKEventStore.authorizationStatus(for: entity) == .fullAccess else { return nil }
+        let calendar: EKCalendar?
+        if let identifier = values[reminders ? "listID" : "calendarID"] as? String {
+            calendar = events.calendars(for: entity).first { $0.calendarIdentifier == identifier }
+        } else {
+            calendar = reminders ? events.defaultCalendarForNewReminders() : events.defaultCalendarForNewEvents
+        }
+        guard calendar?.allowsContentModifications == true else { return nil }
+        return calendar
+    }
+
+    func prepareReviewedItem(_ values: [String: Any], reminders: Bool) async throws -> String? {
+        do { try await requestAccessAsync(reminders: reminders) }
+        catch let error as CancellationError { throw error }
+        catch let error as ActionExecutionInterruption { throw error }
+        catch { return nil }
+        return try await EventKitDestinationRequest(resolve: {
+            reviewedDestination(values, reminders: reminders)?.calendarIdentifier
+        }).wait()
+    }
+
+    func saveReviewedItem(_ values: [String: Any], reminders: Bool) throws -> String? {
+        try Task.checkCancellation()
+        guard let calendar = reviewedDestination(values, reminders: reminders),
+              let title = values["title"] as? String else { return nil }
+        let notes = values["notes"] as? String ?? ""
+        if reminders {
+            let reminder = EKReminder(eventStore: events)
+            reminder.title = title
+            reminder.notes = notes
+            reminder.calendar = calendar
+            if let dueDate = APIValues.parseDate(values["dueDate"]) {
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+                reminder.dueDateComponents = calendar.dateComponents(
+                    [.calendar, .timeZone, .year, .month, .day, .hour, .minute, .second], from: dueDate)
+            }
+            try events.save(reminder, commit: true)
+            return reminder.calendarItemIdentifier
+        }
+        guard let start = APIValues.parseDate(values["startDate"]), let end = APIValues.parseDate(values["endDate"]),
+              start < end else { return nil }
+        let event = EKEvent(eventStore: events)
+        event.title = title
+        event.notes = notes
+        event.location = values["location"] as? String
+        event.startDate = start
+        event.endDate = end
+        event.calendar = calendar
+        try events.save(event, span: .thisEvent, commit: true)
+        guard let identifier = event.eventIdentifier, !identifier.isEmpty else {
+            throw DraftlyError.message("Calendar did not return an identifier for the saved event.")
+        }
+        return identifier
+    }
+
     func requestAccessAsync(reminders: Bool, timeout: TimeInterval = 60) async throws {
         let authorization = EventKitAuthorizationRequest(
             status: { EKEventStore.authorizationStatus(for: $0) },
             request: { reminders, completion in
                 if reminders { events.requestFullAccessToReminders(completion: completion) }
                 else { events.requestFullAccessToEvents(completion: completion) }
-            })
+            }, refreshAfterGrant: { events.reset() })
         try await authorization.requireFullAccess(reminders: reminders, timeout: timeout)
     }
 
@@ -107,6 +165,7 @@ struct NativeSystemAdapter {
         else { events.requestFullAccessToEvents { allowed, error in result.complete(allowed, error) } }
         while !result.finished { RunLoop.current.run(until: Date().addingTimeInterval(0.02)) }
         guard result.allowed else { throw DraftlyError.message(result.error?.localizedDescription ?? "Access was denied. Enable access in System Settings.") }
+        events.reset()
     }
 }
 
@@ -124,6 +183,8 @@ private final class AccessResult: @unchecked Sendable {
 struct EventKitAuthorizationRequest {
     var status: (EKEntityType) -> EKAuthorizationStatus
     var request: (Bool, @escaping @Sendable (Bool, Error?) -> Void) -> Void
+    var refreshAfterGrant: () -> Void = {}
+    var waitForAuthorizationUpdate: () async throws -> Void = { try await Task.sleep(for: .milliseconds(50)) }
 
     func requireFullAccess(reminders: Bool, timeout: TimeInterval = 60) async throws {
         try Task.checkCancellation()
@@ -139,7 +200,17 @@ struct EventKitAuthorizationRequest {
             return nil
         }
         try Task.checkCancellation()
-        guard allowed, status(entity) == .fullAccess else { throw denied() }
+        guard allowed else { throw denied() }
+        // Clear cached state before checking the new authorization.
+        refreshAfterGrant()
+        let deadline = ContinuousClock.now.advanced(by: .seconds(min(timeout, 5)))
+        var updated = status(entity)
+        while updated == .notDetermined, ContinuousClock.now < deadline {
+            try await waitForAuthorizationUpdate()
+            try Task.checkCancellation()
+            updated = status(entity)
+        }
+        guard updated == .fullAccess else { throw denied() }
     }
 
     private func denied() -> Error {
@@ -210,5 +281,21 @@ final class EventKitCallbackWait<Value: Sendable> {
         if cancelled { continuation.resume(throwing: CancellationError()) }
         else if expired { continuation.resume(throwing: ActionExecutionInterruption.timeout) }
         else { continuation.resume(with: result) }
+    }
+}
+
+@MainActor
+struct EventKitDestinationRequest {
+    var resolve: () -> String?
+    var waitForUpdate: () async throws -> Void = { try await Task.sleep(for: .milliseconds(50)) }
+
+    func wait(timeout: TimeInterval = 5) async throws -> String? {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(timeout))
+        while true {
+            try Task.checkCancellation()
+            if let destination = resolve() { return destination }
+            guard ContinuousClock.now < deadline else { return nil }
+            try await waitForUpdate()
+        }
     }
 }

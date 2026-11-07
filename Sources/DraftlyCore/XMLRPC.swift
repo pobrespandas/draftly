@@ -212,6 +212,12 @@ public enum ScriptXMLRPC {
             if let parent = stack.last { parent.children.append(node) } else { root = node }
             stack.append(node)
         }
+        func parser(_ parser: XMLParser, foundInternalEntityDeclarationWithName name: String, value: String?) {
+            parser.abortParsing()
+        }
+        func parser(_ parser: XMLParser, foundExternalEntityDeclarationWithName name: String, publicID: String?, systemID: String?) {
+            parser.abortParsing()
+        }
         func parser(_ parser: XMLParser, foundCharacters string: String) { stack.last?.text += string }
         func parser(_ parser: XMLParser, didEndElement name: String, namespaceURI: String?, qualifiedName: String?) { _ = stack.popLast() }
     }

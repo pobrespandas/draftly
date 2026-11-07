@@ -3,11 +3,11 @@ import Foundation
 // These contracts describe concrete native requests, not arbitrary host payloads.
 package enum AgentNativeSchemas {
     package static let operationNames: Set<String> = Set(schemas.keys)
-    package static let transientTextOperations: Set<String> = ["native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
+    package static let transientTextOperations: Set<String> = ["native.scanDocument", "native.fileRead", "native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
     package static let unrestrictedOperations: Set<String> = ["native.shell", "native.appleScript", "native.shortcut"]
     package static func transientResultField(for operation: String) -> String? {
         if transientTextOperations.contains(operation) { return "text" }
-        return ["native.http": "response", "native.location": "coordinates", "native.shell": "process", "native.appleScript": "valueJSON", "native.models": "model"][operation]
+        return ["native.http": "response", "native.xmlrpc": "response", "native.location": "coordinates", "native.shell": "process", "native.appleScript": "valueJSON", "native.models": "model"][operation]
     }
     package static func unavailableResult(for operation: String) -> [String: AgentJSONValue]? {
         guard let field = transientResultField(for: operation) else { return nil }
@@ -44,6 +44,41 @@ package enum AgentNativeSchemas {
             "timeout": .init(shape: .number(minimum: 0.001, maximum: 90), defaultValue: .integer(60)),
             "followRedirects": .init(shape: .boolean, defaultValue: .bool(false))
         ]), result: .init(fields: ["response": r(.nullable(.object(httpResponse))), "resultAvailable": r(.boolean)])),
+        "native.xmlrpc": .init(parameters: .init(fields: [
+            "url": r(.string(minimum: 1, maximum: 8192)),
+            "methodName": r(.string(minimum: 1, maximum: 256)),
+            "paramsJSON": .init(shape: text, defaultValue: .string("[]")),
+            "timeout": .init(shape: .number(minimum: 0.001, maximum: 90), defaultValue: .integer(60))
+        ]), result: .init(fields: ["response": r(.nullable(.object(.init(fields: [
+            "success": r(.boolean), "statusCode": r(.integer(minimum: 100, maximum: 999)),
+            "paramsJSON": r(text), "faultCode": .init(shape: .integer()), "error": .init(shape: text)
+        ])))), "resultAvailable": r(.boolean)])),
+        "native.fileRead": .init(parameters: .init(fields: [
+            "path": r(.string(minimum: 1, maximum: 4096))
+        ]), result: textResult),
+        "native.fileWrite": .init(parameters: .init(fields: [
+            "path": r(.string(minimum: 1, maximum: 4096)), "text": r(text)
+        ]), result: completed),
+        "native.mail": .init(parameters: .init(fields: [
+            "toRecipients": .init(shape: .array(.string(minimum: 1, maximum: 254), maximum: 32), defaultValue: .array([])),
+            "subject": .init(shape: .string(maximum: 998), defaultValue: .string("")),
+            "body": r(text)
+        ]), result: .init(fields: ["handoffAccepted": r(.boolean)])),
+        "native.messages": .init(parameters: .init(fields: [
+            "toRecipients": .init(shape: .array(.string(minimum: 1, maximum: 254), maximum: 32), defaultValue: .array([])),
+            "body": r(text)
+        ]), result: .init(fields: ["handoffAccepted": r(.boolean)])),
+        "native.calendar": .init(parameters: .init(fields: [
+            "title": r(.string(minimum: 1, maximum: 1024)), "notes": .init(shape: text, defaultValue: .string("")),
+            "startDate": r(.utcDate), "endDate": r(.utcDate),
+            "location": .init(shape: .string(maximum: 1024)),
+            "calendarID": .init(shape: .string(minimum: 1, maximum: 1024))
+        ]), result: .init(fields: ["identifier": r(.string(minimum: 1, maximum: 4096))])),
+        "native.reminders": .init(parameters: .init(fields: [
+            "title": r(.string(minimum: 1, maximum: 1024)), "notes": .init(shape: text, defaultValue: .string("")),
+            "dueDate": .init(shape: .utcDate), "listID": .init(shape: .string(minimum: 1, maximum: 1024))
+        ]), result: .init(fields: ["identifier": r(.string(minimum: 1, maximum: 4096))])),
+        "native.scanDocument": .init(parameters: .init(fields: [:]), result: textResult),
         "native.clipboardRead": .init(parameters: .init(fields: [:]), result: textResult),
         "native.clipboardWrite": .init(parameters: .init(fields: ["text": r(text)]), result: completed),
         "native.htmlPreview": .init(parameters: .init(fields: ["html": r(text)]), result: completed),
@@ -71,7 +106,8 @@ package enum AgentNativeSchemas {
     package static func schema(for operation: String) -> AgentOperationSchema? { schemas[operation] }
 
     package static func validatedParameters(for request: AgentRequest) throws -> [String: AgentJSONValue] {
-        guard request.apiVersion == AgentRequest.version, request.targets.isEmpty,
+        guard request.apiVersion == AgentRequest.version,
+              AgentOperationCatalog.operation(named: request.operation)?.acceptsTargets(request.targets) == true,
               let schema = schemas[request.operation], request.retryKey == nil else { throw AgentSchemaError.invalidValue }
         let values = try schema.validatedParameters(request.parameters)
         if request.operation == "native.models", (values["mode"] == nil) != (values["prompt"] == nil) {
@@ -92,6 +128,46 @@ package enum AgentNativeSchemas {
             if case .string(let body) = values["bodyText"], body.utf8.count > 65_536 { throw AgentSchemaError.invalidValue }
             if case .string(let body) = values["bodyBase64"] {
                 guard let data = Data(base64Encoded: body), data.count <= 65_536, data.base64EncodedString() == body else { throw AgentSchemaError.invalidValue }
+            }
+        }
+        if request.operation == "native.xmlrpc" {
+            guard case .string(let raw) = values["url"], let url = URLComponents(string: raw), url.url != nil,
+                  ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host?.isEmpty == false,
+                  url.user == nil, url.password == nil, url.fragment == nil,
+                  url.port.map({ (1...65535).contains($0) }) ?? true,
+                  case .string(let method) = values["methodName"],
+                  method.utf8.allSatisfy({ byte in
+                      (65...90).contains(byte) || (97...122).contains(byte) || (48...57).contains(byte)
+                          || [95, 46, 58, 47].contains(byte)
+                  }),
+                  case .string(let json) = values["paramsJSON"], let params = try boundedJSON(json) as? [Any],
+                  params.count <= 128 else { throw AgentSchemaError.invalidValue }
+        }
+        if ["native.fileRead", "native.fileWrite"].contains(request.operation) {
+            guard case .string(let path) = values["path"], AgentImportSource.isRelativePath(path) else {
+                throw AgentSchemaError.invalidValue
+            }
+            if case .string(let content) = values["text"], content.utf8.count > 65_536 { throw AgentSchemaError.invalidValue }
+        }
+        if ["native.mail", "native.messages"].contains(request.operation) {
+            guard case .array(let recipients) = values["toRecipients"],
+                  recipients.allSatisfy({ value in
+                      guard case .string(let recipient) = value else { return false }
+                      return recipient == recipient.trimmingCharacters(in: .whitespacesAndNewlines)
+                          && recipient.unicodeScalars.allSatisfy { $0.value >= 32 && $0.value != 127 }
+                  }) else { throw AgentSchemaError.invalidValue }
+            if case .string(let subject) = values["subject"], subject.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }) {
+                throw AgentSchemaError.invalidValue
+            }
+        }
+        if ["native.calendar", "native.reminders"].contains(request.operation) {
+            guard case .string(let title) = values["title"],
+                  !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentSchemaError.invalidValue }
+            if request.operation == "native.calendar" {
+                guard case .string(let start) = values["startDate"], case .string(let end) = values["endDate"],
+                      let startDate = eventDate(start), let endDate = eventDate(end), endDate > startDate else {
+                    throw AgentSchemaError.invalidValue
+                }
             }
         }
         if request.operation == "native.openURL" {
@@ -122,6 +198,12 @@ package enum AgentNativeSchemas {
                   case .string(let body) = response["bodyBase64"], let data = Data(base64Encoded: body),
                   data.count <= 65_536, data.base64EncodedString() == body else { throw AgentSchemaError.invalidValue }
         }
+        if operation == "native.xmlrpc", case .object(let response) = values["response"] {
+            guard case .string(let raw) = response["paramsJSON"], let params = try boundedJSON(raw) as? [Any],
+                  case .integer(let status) = response["statusCode"],
+                  response["success"] == .bool(false) || (status == 200 && response["error"] == nil && response["faultCode"] == nil),
+                  response["success"] == .bool(true) || params.isEmpty else { throw AgentSchemaError.invalidValue }
+        }
         if operation == "native.models", case .object(let model) = values["model"],
            (model["modes"] == nil) == (model["text"] == nil) { throw AgentSchemaError.invalidValue }
         if let field = transientResultField(for: operation) {
@@ -139,6 +221,12 @@ package enum AgentNativeSchemas {
                 }
             } else if values[field] != .null { throw AgentSchemaError.invalidValue }
         }
+    }
+
+    private static func eventDate(_ text: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: text) ?? ISO8601DateFormatter().date(from: text)
     }
 
     private static func httpToken(_ value: String) -> Bool {

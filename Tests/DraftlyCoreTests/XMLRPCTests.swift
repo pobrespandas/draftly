@@ -4,6 +4,15 @@ import Testing
 
 @Suite("XML-RPC contracts")
 struct XMLRPCTests {
+    @Test func responseRejectsEntityDeclarations() {
+        let xml = """
+        <!DOCTYPE methodResponse [<!ENTITY extra "untrusted">]>
+        <methodResponse><params><param><value><string>&extra;</string></value></param></params></methodResponse>
+        """
+        let result = ScriptXMLRPC.response(Data(xml.utf8), statusCode: 200)
+        #expect(result["success"] as? Bool == false)
+    }
+
     @Test func duplicateStructNamesDoNotSilentlyDiscardValues() {
         let member = "<member><name>key</name><value><string>value</string></value></member>"
         let record = "<value><struct>" + member + member + "</struct></value>"

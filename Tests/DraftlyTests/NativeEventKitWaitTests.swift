@@ -14,6 +14,71 @@ struct NativeEventKitWaitTests {
         #expect(requests == 0)
     }
 
+    @Test func newGrantRefreshesCachedDestinationsForBothEntities() async throws {
+        for reminders in [false, true] {
+            var status: EKAuthorizationStatus = .notDetermined
+            var cachedDestinations: [String] = []
+            var refreshes = 0
+            let request = EventKitAuthorizationRequest(status: { _ in status }, request: { _, completion in
+                completion(true, nil)
+            }, refreshAfterGrant: {
+                #expect(status == .notDetermined)
+                status = .fullAccess
+                refreshes += 1
+                cachedDestinations = ["QA destination"]
+            })
+            try await request.requireFullAccess(reminders: reminders)
+            #expect(cachedDestinations == ["QA destination"])
+            try await request.requireFullAccess(reminders: reminders)
+            #expect(refreshes == 1)
+        }
+    }
+
+    @Test func newGrantWaitsForTheSystemAuthorizationUpdate() async throws {
+        var status: EKAuthorizationStatus = .notDetermined
+        var waits = 0
+        let request = EventKitAuthorizationRequest(status: { _ in status }, request: { _, completion in
+            completion(true, nil)
+        }, waitForAuthorizationUpdate: {
+            waits += 1
+            status = .fullAccess
+        })
+        try await request.requireFullAccess(reminders: false)
+        #expect(waits == 1)
+    }
+
+    @Test func authorizationUpdateWaitCanBeCancelled() async {
+        let request = EventKitAuthorizationRequest(status: { _ in .notDetermined }, request: { _, completion in
+            completion(true, nil)
+        }, waitForAuthorizationUpdate: { throw CancellationError() })
+        do { try await request.requireFullAccess(reminders: false); Issue.record("Cancelled authorization succeeded.") }
+        catch { #expect(error is CancellationError) }
+    }
+
+    @Test func missingAuthorizationUpdateFailsWithinTheDeadline() async {
+        let request = EventKitAuthorizationRequest(status: { _ in .notDetermined }, request: { _, completion in
+            completion(true, nil)
+        })
+        do { try await request.requireFullAccess(reminders: false, timeout: 0.01); Issue.record("Missing authorization succeeded.") }
+        catch { #expect(error.localizedDescription == "Access was denied. Enable access in System Settings.") }
+    }
+
+    @Test func destinationWaitResolvesTheApprovedDestinationAfterLoading() async throws {
+        var destination: String?
+        let request = EventKitDestinationRequest(resolve: { destination }, waitForUpdate: { destination = "QA destination" })
+        #expect(try await request.wait() == "QA destination")
+    }
+
+    @Test func destinationWaitCanBeCancelledWithoutWriting() async {
+        let request = EventKitDestinationRequest(resolve: { nil }, waitForUpdate: { throw CancellationError() })
+        do { _ = try await request.wait(); Issue.record("Cancelled destination lookup succeeded.") }
+        catch { #expect(error is CancellationError) }
+    }
+
+    @Test func missingDestinationDoesNotWaitPastTheDeadline() async throws {
+        #expect(try await EventKitDestinationRequest(resolve: { nil }).wait(timeout: 0) == nil)
+    }
+
     @Test func deniedAndRestrictedAccessFailWithoutAPrompt() async {
         for status in [EKAuthorizationStatus.denied, .restricted] {
             var requested = false
@@ -40,9 +105,12 @@ struct NativeEventKitWaitTests {
     }
 
     @Test func completionCannotClaimFullAccessWithoutFullAuthorization() async {
-        let request = EventKitAuthorizationRequest(status: { _ in .writeOnly }, request: { _, completion in completion(true, nil) })
+        var refreshed = false
+        let request = EventKitAuthorizationRequest(status: { _ in .writeOnly }, request: { _, completion in completion(true, nil) },
+                                                   refreshAfterGrant: { refreshed = true })
         do { try await request.requireFullAccess(reminders: false); Issue.record("Write-only access was accepted as full access.") }
         catch { #expect(error.localizedDescription == "Access was denied. Enable access in System Settings.") }
+        #expect(refreshed)
     }
 
     @Test func authorizationFailurePreservesTheSystemError() async {
