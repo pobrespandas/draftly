@@ -13,6 +13,7 @@ struct ChatConsolePanel: View {
     @FocusState private var promptFocused: Bool
     @State private var showChatGPTAccount = false
     @State private var followsResponse = true
+    @State private var userIsScrolling = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -172,17 +173,37 @@ struct ChatConsolePanel: View {
                     }
                 }
                 .padding(14)
+                Color.clear.frame(height: 1).id("chat-bottom")
+            }
+            .onScrollPhaseChange { _, phase in
+                userIsScrolling = phase == .interacting || phase == .decelerating
             }
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 60
-            } action: { _, nearBottom in followsResponse = nearBottom }
+            } action: { _, nearBottom in
+                if userIsScrolling { followsResponse = nearBottom }
+            }
             .onChange(of: model.selectedConversation?.messages.count) { _, _ in
-                if followsResponse, let last = model.selectedConversation?.messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                if model.selectedConversation?.messages.last?.role == .user { followsResponse = true }
+                if followsResponse { proxy.scrollTo("chat-bottom", anchor: .bottom) }
             }
             .onChange(of: model.isResponding) { _, active in
-                if active && followsResponse { proxy.scrollTo("response", anchor: .bottom) }
+                if active && followsResponse { proxy.scrollTo("chat-bottom", anchor: .bottom) }
             }
-            .onChange(of: model.streamingText) { _, _ in if followsResponse { proxy.scrollTo("response", anchor: .bottom) } }
+            .onChange(of: model.streamingText) { _, _ in if followsResponse { proxy.scrollTo("chat-bottom", anchor: .bottom) } }
+            .onChange(of: model.selectedConversationID) { _, _ in
+                followsResponse = true
+                proxy.scrollTo("chat-bottom", anchor: .bottom)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if !followsResponse {
+                    Button {
+                        followsResponse = true
+                        proxy.scrollTo("chat-bottom", anchor: .bottom)
+                    } label: { Label("Latest message", systemImage: "arrow.down") }
+                    .buttonStyle(.bordered).padding(12)
+                }
+            }
         }
     }
 
