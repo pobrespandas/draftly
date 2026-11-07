@@ -1,7 +1,27 @@
 # Project progress
 
-Updated: 5 November 2026. This is the maintained continuation summary.
+Updated: 7 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
+
+## Public catalog release — 7 November
+
+Draftly 0.4.0, build 14, is public. PRs #112–#116 integrated the 137-operation
+local MCP catalog. PR #117 set the release version. The catalog and version PRs
+passed full CI. Installed acceptance covers CLI and MCP, post-update client
+discovery, and the native operations. First Calendar and Reminders system grants
+passed in the signed QA app. The final QA connection was revoked and access was
+turned off. See [catalog acceptance](agent-codex-claude-acceptance.md).
+
+Release run `42388331689` passed the full rehearsal, combined app/helper signing
+and notarization, public asset verification, and site promotion. Anonymous ZIP
+and DMG downloads match the original candidate. The signed public feed offers
+0.4.0 and both served website download controls resolve to its DMG. The writer
+lock is released. See [release evidence](release-rehearsal.md#public-040-catalog-release-7-november-2026).
+
+The earlier release rehearsal returned an incomplete XML report and was rejected.
+The successful fresh run retained the complete-report gate. Its cause remains
+unconfirmed. The app keeps agent access off by default. Catalog replacement during
+installation and update remains active and is disclosed in the release notes.
 
 ## Installed lock and sleep acceptance — 5 November
 
