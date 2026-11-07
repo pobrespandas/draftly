@@ -47,7 +47,8 @@ struct AppleChatToolsTests {
         let call = try #require(tools.first { $0.name == "draftly_call" } as? any Tool<GeneratedContent, String>)
         let arguments: AgentJSONValue = .object(["name": .string("draftly_drafts_get"),
             "targets": .array([.object(["kind": .string("draft"), "id": .string(runtime.allowed.id.uuidString)])]),
-            "parametersJSON": .null])
+            "parametersJSON": .string(""), "requestID": .string(""),
+            "expectedVersion": .string(""), "retryKey": .string("")])
         let json = String(decoding: try JSONEncoder().encode(arguments), as: UTF8.self)
         #expect(try await call.call(arguments: GeneratedContent(json: json)).contains(runtime.allowed.content))
         await #expect(throws: AgentErrorCode.permissionDenied) {

@@ -307,6 +307,11 @@ private struct AppleCallTool: Tool {
         var fields = try appleToolFields(arguments)
         guard case .string(let name) = fields.removeValue(forKey: "name") else { throw AgentErrorCode.invalidInput }
         fields = fields.filter { $0.value != .null }
+        // The local model can emit an empty string for an omitted optional field.
+        // Required write fields still fail validation when absent.
+        for key in ["requestID", "expectedVersion", "retryKey", "parametersJSON"] where fields[key] == .string("") {
+            fields.removeValue(forKey: key)
+        }
         let json = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(fields)), as: UTF8.self)
         do {
             return try await callback(name, json)

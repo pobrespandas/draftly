@@ -131,3 +131,9 @@ passed. Nine deterministic adapter tests passed. The forced generic-call read
 probe failed: the model reported request-ID and schema errors without calling
 `drafts.get`. This is an open acceptance failure, not a passing suite. Do not
 release on this evidence alone. The new adapters still need installed QA.
+
+The generic adapter now omits empty optional envelope strings before contract
+validation. The deterministic authorized-read and rejected-create test passed.
+The live forced generic read still failed, this time after exceeding the
+8,192-token context window (8,193 tokens). This path needs further work. No
+release acceptance is claimed for it. All installed QA access remains off.
