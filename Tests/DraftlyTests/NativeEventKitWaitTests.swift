@@ -34,6 +34,51 @@ struct NativeEventKitWaitTests {
         }
     }
 
+    @Test func newGrantWaitsForTheSystemAuthorizationUpdate() async throws {
+        var status: EKAuthorizationStatus = .notDetermined
+        var waits = 0
+        let request = EventKitAuthorizationRequest(status: { _ in status }, request: { _, completion in
+            completion(true, nil)
+        }, waitForAuthorizationUpdate: {
+            waits += 1
+            status = .fullAccess
+        })
+        try await request.requireFullAccess(reminders: false)
+        #expect(waits == 1)
+    }
+
+    @Test func authorizationUpdateWaitCanBeCancelled() async {
+        let request = EventKitAuthorizationRequest(status: { _ in .notDetermined }, request: { _, completion in
+            completion(true, nil)
+        }, waitForAuthorizationUpdate: { throw CancellationError() })
+        do { try await request.requireFullAccess(reminders: false); Issue.record("Cancelled authorization succeeded.") }
+        catch { #expect(error is CancellationError) }
+    }
+
+    @Test func missingAuthorizationUpdateFailsWithinTheDeadline() async {
+        let request = EventKitAuthorizationRequest(status: { _ in .notDetermined }, request: { _, completion in
+            completion(true, nil)
+        })
+        do { try await request.requireFullAccess(reminders: false, timeout: 0.01); Issue.record("Missing authorization succeeded.") }
+        catch { #expect(error.localizedDescription == "Access was denied. Enable access in System Settings.") }
+    }
+
+    @Test func destinationWaitResolvesTheApprovedDestinationAfterLoading() async throws {
+        var destination: String?
+        let request = EventKitDestinationRequest(resolve: { destination }, waitForUpdate: { destination = "QA destination" })
+        #expect(try await request.wait() == "QA destination")
+    }
+
+    @Test func destinationWaitCanBeCancelledWithoutWriting() async {
+        let request = EventKitDestinationRequest(resolve: { nil }, waitForUpdate: { throw CancellationError() })
+        do { _ = try await request.wait(); Issue.record("Cancelled destination lookup succeeded.") }
+        catch { #expect(error is CancellationError) }
+    }
+
+    @Test func missingDestinationDoesNotWaitPastTheDeadline() async throws {
+        #expect(try await EventKitDestinationRequest(resolve: { nil }).wait(timeout: 0) == nil)
+    }
+
     @Test func deniedAndRestrictedAccessFailWithoutAPrompt() async {
         for status in [EKAuthorizationStatus.denied, .restricted] {
             var requested = false

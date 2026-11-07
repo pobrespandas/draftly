@@ -107,7 +107,9 @@ struct NativeSystemAdapter {
         catch let error as CancellationError { throw error }
         catch let error as ActionExecutionInterruption { throw error }
         catch { return nil }
-        return reviewedDestination(values, reminders: reminders)?.calendarIdentifier
+        return try await EventKitDestinationRequest(resolve: {
+            reviewedDestination(values, reminders: reminders)?.calendarIdentifier
+        }).wait()
     }
 
     func saveReviewedItem(_ values: [String: Any], reminders: Bool) throws -> String? {
@@ -182,6 +184,7 @@ struct EventKitAuthorizationRequest {
     var status: (EKEntityType) -> EKAuthorizationStatus
     var request: (Bool, @escaping @Sendable (Bool, Error?) -> Void) -> Void
     var refreshAfterGrant: () -> Void = {}
+    var waitForAuthorizationUpdate: () async throws -> Void = { try await Task.sleep(for: .milliseconds(50)) }
 
     func requireFullAccess(reminders: Bool, timeout: TimeInterval = 60) async throws {
         try Task.checkCancellation()
@@ -200,7 +203,14 @@ struct EventKitAuthorizationRequest {
         guard allowed else { throw denied() }
         // Clear cached state before checking the new authorization.
         refreshAfterGrant()
-        guard status(entity) == .fullAccess else { throw denied() }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(min(timeout, 5)))
+        var updated = status(entity)
+        while updated == .notDetermined, ContinuousClock.now < deadline {
+            try await waitForAuthorizationUpdate()
+            try Task.checkCancellation()
+            updated = status(entity)
+        }
+        guard updated == .fullAccess else { throw denied() }
     }
 
     private func denied() -> Error {
@@ -271,5 +281,21 @@ final class EventKitCallbackWait<Value: Sendable> {
         if cancelled { continuation.resume(throwing: CancellationError()) }
         else if expired { continuation.resume(throwing: ActionExecutionInterruption.timeout) }
         else { continuation.resume(with: result) }
+    }
+}
+
+@MainActor
+struct EventKitDestinationRequest {
+    var resolve: () -> String?
+    var waitForUpdate: () async throws -> Void = { try await Task.sleep(for: .milliseconds(50)) }
+
+    func wait(timeout: TimeInterval = 5) async throws -> String? {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(timeout))
+        while true {
+            try Task.checkCancellation()
+            if let destination = resolve() { return destination }
+            guard ContinuousClock.now < deadline else { return nil }
+            try await waitForUpdate()
+        }
     }
 }
