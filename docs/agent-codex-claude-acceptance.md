@@ -110,6 +110,57 @@ result. Forgetting the bookmark left the file in place.
 
 Mail and Messages each opened a composer with neutral text and no
 recipient through both transports. The test text was discarded or cleared.
-No message was sent. Calendar and Reminders still need installed checks
-with isolated destinations. The connection was revoked and local access
-was turned off at the end.
+No message was sent. The connection was revoked and local access
+was turned off at the end. Calendar and Reminders passed the VM checks below.
+
+## EventKit VM acceptance
+
+On 7 November 2026, signed QA build 40 passed Calendar and Reminders
+creation through CLI and MCP in the `Draftly EventKit QA` VM. The app
+used the native adapter from 970a352 and the unchanged signed catalog
+helper. Apple accepted the combined bundle in notarization submission
+`3e482cb7-5760-4a43-b071-97d72e70f26e`. The stapled ticket and strict
+signature check passed. Launch Services started the installed app.
+The final checks did not use permissions inherited from Terminal.
+
+The app started with local access off. One approved connection had only
+native-operation permission. It had no draft, editor, file or library
+scope. MCP listed 28 unique tools for that permission. The Calendar
+destination was an exclusive local QA calendar. The Reminders destination
+was an exclusive QA list in the user's iCloud account, approved for this
+check. The checks did not read or change other list contents.
+
+The VM reset only the QA app's Calendar and Reminders OS permissions
+before the final launch. Both CLI checks passed on their first request
+after the person granted OS access. Both MCP checks then passed in the
+same app process.
+
+| Transport | Operation | Verified result identifier |
+| --- | --- | --- |
+| CLI | `native.calendar` | `E122E7F3-CDA7-4B58-A553-5145AD388C04:E18FCB03-C263-4C14-82E1-F18EA16500FD` |
+| CLI | `native.reminders` | `351F576D-C398-4A59-9EE2-D14420D00A82` |
+| MCP | `native.calendar` | `E122E7F3-CDA7-4B58-A553-5145AD388C04:6A03377C-55F0-4882-A81D-0C3268802C0B` |
+| MCP | `native.reminders` | `5F9E2667-96C4-4B63-9840-0614F851543A` |
+
+Each request used neutral text with `café 🐼`. Calendar requests had no
+guests or alarms. Reminders had no due date or alarms. Each check repeated
+the same request ID and parameters twice and recovered the same result.
+An independent EventKit reader checked the returned identifier, exact
+title, exact destination and a single matching item. It then removed only
+that test item and checked that no match remained.
+
+The VM checks found two release defects. The hardened app needed the
+Calendar entitlement. The signing verifier now rejects a release app
+that declares Calendar or Reminders access without that entitlement.
+The first Calendar grant also returned `allowed=true` while the class
+status was still `notDetermined`. The adapter now resets cached state,
+waits for full authorization and waits for the selected destination to
+load. Both waits are bounded and cancelable. Neither wait repeats a
+write. Denied, restricted and write-only access still fail.
+
+The focused EventKit suite passed 21 tests. The signing suite passed
+17 tests. Earlier failing QA requests reported no completed effects.
+After the final checks, the connection was revoked. CLI returned
+`permission_denied`. MCP returned `-32000` with `permission_denied`.
+The Agents pane showed `Revoked` and local access off. The temporary
+host-to-VM transfer server was stopped.
