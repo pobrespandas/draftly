@@ -21,6 +21,8 @@ struct AppleChatToolsTests {
         let hidden = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.hidden.id))
         #expect(hidden.contains("not_found") && !hidden.contains(runtime.hidden.content))
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog(name: "draftly_drafts_create") }
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.createDraft(content: "Denied") }
+        #expect(!runtime.library.notes.contains { $0.content == "Denied" })
     }
 
     @Test func compactModelSchemasKeepGatewayAuthorization() async throws {
@@ -29,9 +31,10 @@ struct AppleChatToolsTests {
         defer { session.invalidate() }
         let bridge = try AppleChatToolBridge(session: session)
         let tools = try await bridge.modelTools()
-        // Names are discovered at runtime, not repeated in both native schemas.
+        // Keep valid names constrained for the small local model.
         let encoded = try JSONEncoder().encode(tools.map(\.parameters))
-        #expect(!String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_get"))
+        #expect(String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_get"))
+        #expect(!String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_create"))
         let listing = try JSONDecoder().decode(AgentJSONValue.self, from: Data(try await bridge.catalog().utf8))
         guard case .object(let fields) = listing, case .array(let names) = fields["tools"] else {
             Issue.record("Missing compact catalog"); return
@@ -74,12 +77,41 @@ struct AppleChatToolsTests {
         let nativeSchemas = try JSONEncoder().encode(try await bridge.modelTools().map(\.parameters))
         // Bound transport bytes, not model tokens. Real-model QA checks context use.
         #expect(catalog.utf8.count < 8_000)
-        #expect(nativeSchemas.count < 8_000)
+        #expect(nativeSchemas.count < 32_000)
+        let created = try await bridge.createDraft(content: "Created café 🐼")
+        #expect(created.contains("result"))
+        #expect(runtime.library.notes.contains { $0.content == "Created café 🐼" })
         _ = try runtime.registry.revokeFromUserInterface(record.id)
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog() }
     }
 
     #if DRAFTLY_APPLE_LIVE_QA
+    @Test func onDeviceLibraryCatalogCreatesAndReadsNeutralDraft() async throws {
+        try #require(AppleModelAccess.modes().contains("onDevice"))
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let editors = AgentEditorRegistry(library: runtime.library, models: { [] })
+        defer { editors.invalidate() }
+        runtime.service = try AgentCommandService(library: runtime.library, libraryID: runtime.libraryID,
+            connections: runtime.registry, appVersion: "Catalog live QA", validateHost: {}, isLocked: { false },
+            editors: editors, pendingEditorGeneration: { _ in "" })
+        let record = try runtime.registry.connectFromUserInterface(name: "Live catalog QA", libraryID: runtime.libraryID,
+            capabilities: runtime.service.availableCapabilities, scope: .library)
+        runtime.session = try runtime.service.authenticate(connectionID: record.id, credential: #require(runtime.secrets[record.id]))
+        var operations: [String] = []
+        let session = AgentChatToolSession(backend: { request in
+            operations.append(request.operation)
+            return try runtime.backend(request)
+        })
+        defer { session.invalidate() }
+        let response = try await AppleChatResponder().respond(
+            prompt: "Creá una nota nueva con el texto exacto: QA Apple café 🐼. Usá las herramientas de Draftly y después leé la nota creada.",
+            mode: "onDevice", session: session)
+        #expect(runtime.library.notes.contains { $0.content == "QA Apple café 🐼" }, Comment(rawValue: "Operations: \(operations). Response: \(response)"))
+        #expect(operations.contains("drafts.create"))
+        #expect(operations.contains("drafts.get"), Comment(rawValue: "Operations: \(operations). Response: \(response)"))
+        #expect(!response.isEmpty)
+    }
+
     @Test
     func onDeviceModelEditsTheAuthorizedDraft() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()

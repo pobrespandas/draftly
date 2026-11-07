@@ -87,13 +87,16 @@ final class AppleChatToolLifetime: @unchecked Sendable {
         let names = try await session.tools(validateExecution: lifetime.requireActive).map(\.name)
         try lifetime.requireActive()
         guard !names.isEmpty else { throw AgentErrorCode.unavailable }
-        var tools: [any Tool] = [try AppleCatalogTool(callback: { [weak self] name in
+        var tools: [any Tool] = [try AppleCatalogTool(names: names, callback: { [weak self] name in
             guard let self else { throw CancellationError() }
             return try await self.catalog(name: name)
-        }), try AppleCallTool(callback: { [weak self] name, arguments in
+        }), try AppleCallTool(names: names, callback: { [weak self] name, arguments in
             guard let self else { throw CancellationError() }
             return try await self.execute(name: name, argumentsJSON: arguments)
         })]
+        if ["draftly_drafts_create", "draftly_mutations_prepare"].allSatisfy(names.contains) {
+            tools.append(AppleCreateDraftTool(bridge: self))
+        }
         if names.contains("draftly_drafts_get") {
             if let currentDraftID {
                 tools.append(AppleReadOpenDraftTool(draftID: currentDraftID, bridge: self))
@@ -109,6 +112,24 @@ final class AppleChatToolLifetime: @unchecked Sendable {
             }
         }
         return tools
+    }
+
+    func createDraft(content: String) async throws -> String {
+        func invoke(_ name: String, _ fields: [String: AgentJSONValue]) async throws -> String {
+            let bytes = try JSONEncoder().encode(AgentJSONValue.object(fields))
+            return try await execute(name: name, argumentsJSON: String(decoding: bytes, as: UTF8.self))
+        }
+        let requestID = AgentJSONValue.string(UUID().uuidString)
+        let parameters: AgentJSONValue = .object(["content": .string(content)])
+        let intent: AgentJSONValue = .object(["apiVersion": .integer(1), "requestID": requestID,
+            "operation": .string("drafts.create"), "targets": .array([]), "parameters": parameters])
+        let prepared = try await invoke("draftly_mutations_prepare", [
+            "requestID": .string(UUID().uuidString), "parameters": .object(["request": intent])])
+        let reply = try JSONDecoder().decode(AgentResponse.self, from: Data(prepared.utf8))
+        guard case .result(.object(let values)) = reply.outcome,
+              case .string(let key) = values["retryKey"] else { return prepared }
+        return try await invoke("draftly_drafts_create", ["requestID": requestID,
+            "retryKey": .string(key), "parameters": parameters])
     }
 
     private var readVersions: [UUID: String] = [:]
@@ -147,6 +168,20 @@ final class AppleChatToolLifetime: @unchecked Sendable {
               case .string(let key) = values["retryKey"] else { return prepared }
         return try await invoke("draftly_drafts_update", ["requestID": requestID, "targets": targets,
             "expectedVersion": .string(version), "retryKey": .string(key), "parameters": parameters])
+    }
+}
+
+private struct AppleCreateDraftTool: Tool {
+    @Generable struct Arguments {
+        @Guide(description: "Complete text to save in a new draft")
+        var content: String
+    }
+    let name = "draftly_create_draft"
+    let description = "Create and save a new Markdown draft. Pass its complete text. Do not use this to edit an existing draft."
+    weak var bridge: AppleChatToolBridge?
+    func call(arguments: Arguments) async throws -> String {
+        guard let bridge else { throw CancellationError() }
+        return try await bridge.createDraft(content: arguments.content)
     }
 }
 
@@ -230,11 +265,11 @@ private struct AppleCatalogTool: Tool {
     let description = "Omit name to list authorized operation names. Pass one exact name to load its description and input schema."
     let parameters: GenerationSchema
     let callback: @MainActor @Sendable (String?) async throws -> String
-    init(callback: @escaping @MainActor @Sendable (String?) async throws -> String) throws {
+    init(names: [String], callback: @escaping @MainActor @Sendable (String?) async throws -> String) throws {
         self.callback = callback
         parameters = try GenerationSchema(root: DynamicGenerationSchema(name: "DraftlyCatalogArguments", properties: [
             .init(name: "name", description: "An authorized target tool name. Omit to list tools.",
-                schema: DynamicGenerationSchema(type: String.self), isOptional: true)
+                schema: DynamicGenerationSchema(name: "AuthorizedTool", anyOf: names), isOptional: true)
         ]), dependencies: [])
     }
     func call(arguments: GeneratedContent) async throws -> String {
@@ -253,14 +288,14 @@ private struct AppleCallTool: Tool {
     let description = "Execute an authorized operation by its exact name from draftly_tools. Pass targets, requestID, expectedVersion, and retryKey as separate fields when needed. Encode only the schema’s parameters object in parametersJSON."
     let parameters: GenerationSchema
     let callback: @MainActor @Sendable (String, String) async throws -> String
-    init(callback: @escaping @MainActor @Sendable (String, String) async throws -> String) throws {
+    init(names: [String], callback: @escaping @MainActor @Sendable (String, String) async throws -> String) throws {
         self.callback = callback
         let reference = DynamicGenerationSchema(name: "DraftlyResource", properties: [
             .init(name: "kind", schema: DynamicGenerationSchema(name: "ResourceKind", anyOf: AgentResourceKind.allCases.map(\.rawValue))),
             .init(name: "id", description: "Exact authorized resource UUID.", schema: DynamicGenerationSchema(type: String.self))
         ])
         parameters = try GenerationSchema(root: DynamicGenerationSchema(name: "DraftlyCallArguments", properties: [
-            .init(name: "name", schema: DynamicGenerationSchema(type: String.self)),
+            .init(name: "name", schema: DynamicGenerationSchema(name: "AuthorizedTool", anyOf: names)),
             .init(name: "targets", description: "Resources used by this operation. A draft read needs kind draft and its exact UUID.", schema: DynamicGenerationSchema(arrayOf: reference), isOptional: true),
             .init(name: "requestID", description: "Fresh UUID for a write intent. Keep it unchanged when preparing and retrying that intent.", schema: DynamicGenerationSchema(type: String.self), isOptional: true),
             .init(name: "expectedVersion", description: "Exact versionToken from a read, or batchVersion for the exact target set.", schema: DynamicGenerationSchema(type: String.self), isOptional: true),

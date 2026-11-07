@@ -91,3 +91,43 @@ Test creation, editing, confirmed readback, cancellation and failure reporting
 with ChatGPT and Apple Intelligence. Check a signed update from 0.4.0, including
 one-time grant migration. Record CI, artifact and publication evidence before
 changing this status to released.
+
+## Build 43 follow-up
+
+Apple Intelligence kept library access when the selected draft changed. Three
+requests failed with the native tool-call error; no draft was created or edited.
+The error log reported `AgentContracts.AgentErrorCode (1)`. It did not identify
+the requested tool, so the exact cause is not yet confirmed. The adapter now
+restores schema constraints on operation names while retaining compact catalog
+results. Nine adapter tests passed. Real-model verification remains open.
+
+ChatGPT read the open editor, prepared a mutation, used `editor.replaceRange`,
+and read the editor again. The neutral draft grew from 40 to 71 characters.
+Its response matched the editor. Native Undo restored the original 40 characters.
+Stop response returned the composer to its idle state during a separate
+non-mutating generation. Both connections were removed and access was off.
+
+## Additional requested behavior
+
+The user requested default-on chat tools without the current 15-minute product
+workflow, while retaining manual Disconnect and Stop Work. This is not yet
+implemented. QA connections remain explicitly time-limited.
+
+The user also requested automatic downward scrolling. The new UI change follows
+new messages and streaming content, preserves deliberate upward scrolling, and
+adds Latest message. It compiled; installed visual verification remains open.
+
+## Local model regression probes
+
+The compact generic catalog still failed before dispatching a write. A live
+in-memory probe recorded only discovery calls and a schema-format refusal.
+The Apple adapter now keeps authorized name constraints and provides a direct
+`draftly_create_draft` adapter. It prepares the mutation and uses the existing
+create handler. Public MCP names and schemas do not change.
+
+With the real on-device model, the create-and-read probe passed, including
+observed `drafts.create` and `drafts.get`. The existing direct-edit probe also
+passed. Nine deterministic adapter tests passed. The forced generic-call read
+probe failed: the model reported request-ID and schema errors without calling
+`drafts.get`. This is an open acceptance failure, not a passing suite. Do not
+release on this evidence alone. The new adapters still need installed QA.
