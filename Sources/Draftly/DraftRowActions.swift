@@ -10,7 +10,7 @@ struct DraftRowCommand {
     let destructive: Bool
     func perform(on model: WindowModel) { model.moveDrafts([noteID], to: destination) }
     func nativeAction(model: WindowModel, table: NSTableView) -> NSTableViewRowAction {
-        let action = NSTableViewRowAction(style: destructive ? .destructive : .regular, title: title) { [weak model, weak table] _, _ in
+        let action = NSTableViewRowAction(style: destructive ? .destructive : .regular, title: "") { [weak model, weak table] _, _ in
             table?.rowActionsVisible = false
             guard let model else { return }
             perform(on: model)
