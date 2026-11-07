@@ -274,7 +274,7 @@ private struct AppleCatalogTool: Tool {
     }
     func call(arguments: GeneratedContent) async throws -> String {
         let fields = try appleToolFields(arguments)
-        if let name = fields["name"], name != .null {
+        if let name = fields["name"], name != .null, name != .string("") {
             guard case .string(let name) = name else { throw AgentErrorCode.invalidInput }
             return try await callback(name)
         }
@@ -312,11 +312,16 @@ private struct AppleCallTool: Tool {
         for key in ["requestID", "expectedVersion", "retryKey", "parametersJSON"] where fields[key] == .string("") {
             fields.removeValue(forKey: key)
         }
+        if let operation = AgentToolInput.operation(named: name), operation.isReadOnly {
+            fields.removeValue(forKey: "requestID")
+            fields.removeValue(forKey: "expectedVersion")
+            fields.removeValue(forKey: "retryKey")
+        }
         let json = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(fields)), as: UTF8.self)
         do {
             return try await callback(name, json)
         } catch AgentErrorCode.invalidInput {
-            return #"{"error":"invalid_input","hint":"Check the exact tool schema with draftly_tools. Supply a top-level requestID for every write and for mutations.prepare."}"#
+            return #"{"error":"invalid_input","hint":"Check the exact tool schema with draftly_tools. Reads need exact targets and operation parameters. Writes and mutations.prepare also need a top-level requestID. Omit unrelated optional fields."}"#
         }
     }
 }

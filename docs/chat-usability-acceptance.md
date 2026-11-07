@@ -137,3 +137,8 @@ validation. The deterministic authorized-read and rejected-create test passed.
 The live forced generic read still failed, this time after exceeding the
 8,192-token context window (8,193 tokens). This path needs further work. No
 release acceptance is claimed for it. All installed QA access remains off.
+
+The follow-up adapter treats an empty catalog name as a list request and omits
+write-envelope fields for read-only operations. The real-model forced generic
+read passed in 9.3 seconds. The deterministic gateway authorization test also
+passed. This is isolated-model evidence; installed acceptance is still open.
