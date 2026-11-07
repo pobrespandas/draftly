@@ -105,6 +105,7 @@ import AgentContracts
             : "Find approved draft IDs with draftly_server_capabilities. Read a draft before editing it."
         sessions[id] = try languageSession(mode: mode, tools: tools,
             instructions: """
+                \(ChatConsoleInstructions.identity)
                 \(draftContext)
                 For unsaved text or a selection, discover editor tools with draftly_tools.
                 For other operations, get the exact tool name and schema with draftly_tools. Call it through draftly_call. For editor edits or other writes that require a retryKey, inspect draftly_mutations_prepare and use its returned retryKey.

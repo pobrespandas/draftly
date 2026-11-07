@@ -34,6 +34,12 @@ struct AgentConnectionsSettingsView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            if model.configuration.libraryAccessMigration == 1 {
+                Section("Library access") {
+                    Text("This update expanded existing, unexpired connections to all available tools and the entire library. Expiry dates and the local access switch were kept. You can limit any connection below.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
             if !model.pending.isEmpty {
                 Section("Connection requests") {
                     ForEach(model.pending) { challenge in
@@ -401,6 +407,7 @@ private struct AgentConnectionGrantEditor: View {
     @ObservedObject var model: AgentConnectionsSettingsModel
     @State private var search = ""
     @State private var codesMatch = false
+    @State private var resourceOffset = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -461,8 +468,8 @@ private struct AgentConnectionGrantEditor: View {
             Section("Resources") {
                 Toggle("Entire library, including future resources", isOn: field(\.wholeLibrary, fallback: draft.wholeLibrary))
                 if !draft.wholeLibrary {
-                    TextField("Filter resources", text: $search)
-                    ForEach(model.resourceChoices().filter { search.isEmpty || $0.title.localizedCaseInsensitiveContains(search) || $0.reference.id.uuidString.localizedCaseInsensitiveContains(search) }) { choice in
+                    TextField("Filter resources", text: $search).onChange(of: search) { _, _ in resourceOffset = 0 }
+                    ForEach(model.resourcePage(search: search, offset: resourceOffset)) { choice in
                         Toggle(isOn: Binding(get: { model.draft?.targets.contains(choice.reference) == true }, set: { enabled in
                             guard var copy = model.draft else { return }
                             if enabled { copy.targets.insert(choice.reference) } else { copy.targets.remove(choice.reference) }
@@ -475,6 +482,12 @@ private struct AgentConnectionGrantEditor: View {
                             }
                         }.accessibilityLabel(choice.accessibilityTitle)
                     }
+                    HStack {
+                        Button("Previous") { resourceOffset = max(0, resourceOffset - 50) }.disabled(resourceOffset == 0)
+                        Text("Page \(resourceOffset / 50 + 1)").foregroundStyle(.secondary)
+                        Button("Next") { resourceOffset += 50 }
+                            .disabled(model.resourcePage(search: search, offset: resourceOffset + 50, limit: 1).isEmpty)
+                    }
                     Text("A Workspace is a saved query, not an access boundary. Future matches are not added to selected resources.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -483,7 +496,10 @@ private struct AgentConnectionGrantEditor: View {
     }
 
     private func reviewSummary(_ review: AgentPairingCoordinator.Review) -> some View {
-        let titles = Dictionary(model.resourceChoices().map { ($0.reference, $0.title) }, uniquingKeysWith: { first, _ in first })
+        let titles: [AgentResourceReference: String] = {
+            if case .library = review.scope { return [:] }
+            return Dictionary(model.resourceChoices().map { ($0.reference, $0.title) }, uniquingKeysWith: { first, _ in first })
+        }()
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 14) {
                 Text(review.name).font(.title2)

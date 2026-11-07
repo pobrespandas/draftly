@@ -9,6 +9,21 @@ struct ChatConsoleModelTests {
         UserDefaults(suiteName: "ChatConsoleTests-\(UUID().uuidString)")!
     }
 
+    @Test func expiryDisconnectsToolsAndExplainsHowToReconnect() async throws {
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults(),
+            respondWithTools: { _, _, _ in "unused" })
+        await model.loadModels()
+        var revoked = false
+        let session = AgentChatToolSession(backend: { _ in throw AgentErrorCode.unavailable }, onDisconnect: { revoked = true })
+        session.expiresAt = Date(timeIntervalSince1970: 100)
+        try model.connectTools(session)
+        model.refreshToolExpiry(now: Date(timeIntervalSince1970: 99))
+        #expect(model.hasTools && !revoked)
+        model.refreshToolExpiry(now: Date(timeIntervalSince1970: 100))
+        #expect(!model.hasTools && revoked)
+        #expect(model.errorMessage?.contains("expired") == true)
+    }
+
     @Test func restoresSelectedModelWithoutGrantingAccess() async {
         let defaults = isolatedDefaults()
         let first = ChatConsoleModel(loadModes: { ["onDevice", "pcc"] }, respond: { _, _ in "unused" }, defaults: defaults)

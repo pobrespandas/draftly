@@ -45,6 +45,36 @@ struct AgentConnectionRegistryTests {
         }
     }
 
+    @Test func libraryMigrationRunsOnceAndPreservesExpiryAndDisabledAccess() throws {
+        let fixture = Fixture(), live = try fixture.connect(), expired = try fixture.connect(), revoked = try fixture.connect()
+        _ = try fixture.registry.revokeFromUserInterface(revoked.id)
+        var configuration = try fixture.registry.configurationForUserInterface()
+        configuration.connections[1].expiresAt = fixture.wall.addingTimeInterval(1)
+        fixture.bytes = try configuration.encoded()
+        fixture.wall += 2
+        #expect(try fixture.registry.migrateLibraryAccess(capabilities: Set(AgentCapability.allCases)) == 1)
+        let result = try fixture.registry.configurationForUserInterface()
+        #expect(!result.enabled)
+        let migrated = try #require(result.connections.first { $0.id == live.id })
+        #expect(migrated.scopeKind == .library && migrated.resources.isEmpty)
+        #expect(Set(migrated.capabilities) == Set(AgentCapability.allCases))
+        #expect(migrated.expiresAt == live.expiresAt && migrated.grantID != live.grantID)
+        #expect(result.connections.first { $0.id == expired.id }?.scopeKind == .resources)
+        #expect(result.connections.first { $0.id == revoked.id }?.revoked == true)
+        let bytes = fixture.bytes
+        #expect(try fixture.makeRegistry().migrateLibraryAccess(capabilities: []) == 0)
+        #expect(fixture.bytes == bytes)
+    }
+
+    @Test func failedLibraryMigrationCanRetryWithoutChangingAccess() throws {
+        let fixture = Fixture(), live = try fixture.connect()
+        fixture.failWrite = true
+        #expect(throws: AgentErrorCode.storageError) { try fixture.registry.migrateLibraryAccess(capabilities: [.draftsRead]) }
+        #expect(try fixture.registry.configurationForUserInterface().connections.first?.grantID == live.grantID)
+        fixture.failWrite = false
+        #expect(try fixture.registry.migrateLibraryAccess(capabilities: [.draftsRead]) == 1)
+    }
+
     @Test func newAccessStartsDisabledAndGrantsDefaultToSelectedReadOnly() throws {
         let fixture = Fixture()
         #expect(try !fixture.registry.configurationForUserInterface().enabled)

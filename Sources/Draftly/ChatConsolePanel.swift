@@ -6,9 +6,13 @@ struct ChatConsolePanel: View {
     var connectTools: (@MainActor () throws -> AgentChatToolSession)? = nil
     var toolsUnavailableReason = "Local agent access is unavailable in this build."
     var openAgentSettings: (() -> Void)? = nil
+    var contentFont: Font = .body
+    var createDraft: ((String) -> Void)? = nil
+    var insertText: ((String) -> Void)? = nil
     var hasDraft = false
     @FocusState private var promptFocused: Bool
     @State private var showChatGPTAccount = false
+    @State private var followsResponse = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,6 +34,7 @@ struct ChatConsolePanel: View {
         .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
         .background(.background)
         .task { await model.loadModels() }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { model.refreshToolExpiry(now: $0) }
         .sheet(isPresented: $showChatGPTAccount) {
             if let account = model.chatGPTAccount { ChatGPTAccountView(model: account) }
         }
@@ -98,9 +103,9 @@ struct ChatConsolePanel: View {
                     Button("Disconnect") { model.disconnectTools() }
                 } else if let openAgentSettings {
                     Button("Agent Settings…", action: openAgentSettings)
-                } else if connectTools != nil && hasDraft && model.canConnectTools {
+                } else if connectTools != nil && model.canConnectTools {
                     Button("Connect…", action: connectDraftTools)
-                } else if connectTools != nil && hasDraft && model.selectedModel.hasPrefix("chatgpt:"),
+                } else if connectTools != nil && model.selectedModel.hasPrefix("chatgpt:"),
                           model.chatGPTAccount?.isSignedIn == false {
                     Button("Sign In…") { showChatGPTAccount = true }
                 }
@@ -118,15 +123,14 @@ struct ChatConsolePanel: View {
     }
 
     private var toolsStatusDetail: String {
-        if model.hasTools { return "Access is limited to this draft and editor." }
+        if model.hasTools { return "Connected to the library. Tools check your current permissions on every call." }
         if connectTools == nil { return toolsUnavailableReason }
-        if !hasDraft { return "Open or save a draft to connect its tools." }
         if model.isResponding { return "Wait for the response to finish before connecting." }
         if model.selectedModel.hasPrefix("chatgpt:"), model.chatGPTAccount?.isSignedIn == false {
-            return "Sign in to ChatGPT, then grant access to this draft."
+            return "Sign in to ChatGPT, then connect Draftly tools."
         }
         if !model.canConnectTools { return "Choose an available model to connect draft tools." }
-        return "Allow this chat to read or edit the open draft."
+        return "Connect tools to create, find and edit drafts in your library."
     }
 
     private func connectDraftTools() {
@@ -169,13 +173,16 @@ struct ChatConsolePanel: View {
                 }
                 .padding(14)
             }
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 60
+            } action: { _, nearBottom in followsResponse = nearBottom }
             .onChange(of: model.selectedConversation?.messages.count) { _, _ in
-                if let last = model.selectedConversation?.messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                if followsResponse, let last = model.selectedConversation?.messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
             }
             .onChange(of: model.isResponding) { _, active in
-                if active { proxy.scrollTo("response", anchor: .bottom) }
+                if active && followsResponse { proxy.scrollTo("response", anchor: .bottom) }
             }
-            .onChange(of: model.streamingText) { _, _ in proxy.scrollTo("response", anchor: .bottom) }
+            .onChange(of: model.streamingText) { _, _ in if followsResponse { proxy.scrollTo("response", anchor: .bottom) } }
         }
     }
 
@@ -190,21 +197,32 @@ struct ChatConsolePanel: View {
                     .padding(.top, 10)
                     .accessibilityHidden(true)
             }
-            Text(text)
-                .textSelection(.enabled)
+            VStack(alignment: .leading, spacing: 8) {
+                if role == .assistant { ChatMarkdown(text: text) }
+                else { Text(text).textSelection(.enabled) }
+                if role == .assistant, !model.isResponding {
+                    HStack {
+                        if let createDraft { Button("Create draft") { createDraft(text) } }
+                        if let insertText { Button("Insert") { insertText(text) } }
+                        Button("Copy") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string) }
+                    }.buttonStyle(.link).controlSize(.small)
+                }
+            }
+                .font(contentFont)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(role == .user ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.10),
                             in: RoundedRectangle(cornerRadius: 10))
             if role == .assistant { Spacer(minLength: 16) }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(role == .user ? "You: \(text)" : "Assistant: \(text)")
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(role == .user ? "You" : "Assistant")
     }
 
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 8) {
             TextField("Enter a prompt", text: $model.prompt, axis: .vertical)
                 .textFieldStyle(.plain)
+                .font(contentFont)
                 .lineLimit(1...5)
                 .focused($promptFocused)
                 .onSubmit { model.send() }
@@ -230,6 +248,9 @@ struct ChatConsolePanel: View {
 struct LocalChatConsolePanel: View {
     @ObservedObject var model: ChatConsoleModel
     @ObservedObject var settings: AgentConnectionsSettingsModel
+    var contentFont: Font = .body
+    var createDraft: ((String) -> Void)? = nil
+    var insertText: ((String) -> Void)? = nil
     let hasDraft: Bool
     let connectTools: @MainActor () throws -> AgentChatToolSession
     @Environment(\.openSettings) private var openSettings
@@ -241,6 +262,6 @@ struct LocalChatConsolePanel: View {
             openAgentSettings: settings.accessEnabled ? nil : {
                 selectedTab = "agents"
                 openSettings()
-            }, hasDraft: hasDraft)
+            }, contentFont: contentFont, createDraft: createDraft, insertText: insertText, hasDraft: hasDraft)
     }
 }

@@ -6,6 +6,21 @@ import AgentContracts
 
 @Suite("Agent draft resource choices") @MainActor
 struct AgentDraftResourceChoicesTests {
+    @Test func pagesLargeLibraryWithoutDuplicatesAndSearchesUnicode() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let notes = (0..<10_000).map { Note(content: "Draft \($0) café 🐼") }
+        try library.saveNotes(notes, preserveRevision: false)
+        let choices = AgentLibraryResourceChoices(library: library)
+        let start = ContinuousClock.now
+        let first = choices.page(search: "", offset: 0, limit: 50)
+        let second = choices.page(search: "", offset: 50, limit: 50)
+        let found = choices.page(search: "Draft 9999 café", offset: 0, limit: 50)
+        print("Resource pages and search, 10000 drafts: \(start.duration(to: .now))")
+        #expect(first.count == 50 && second.count == 50)
+        #expect(Set(first.map(\.id)).isDisjoint(with: second.map(\.id)))
+        #expect(found.map(\.reference.id) == [notes[9999].id])
+    }
+
     @Test func choicesAndResolutionFollowLiveLibrary() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let first = try library.createNote(content: "First 🐼")

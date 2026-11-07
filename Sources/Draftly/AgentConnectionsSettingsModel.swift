@@ -35,6 +35,7 @@ import AgentContracts
     private let pairing: AgentPairingCoordinator
     private let now: () -> Date
     private let choices: () -> [ResourceChoice]
+    var pagedChoices: ((String, Int, Int) -> [ResourceChoice])?
     private let initialTargets: () -> Set<AgentResourceReference>
     private let resolveTargets: (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>
     // The host owns broker startup, shutdown, provisioning and lock observation.
@@ -83,6 +84,13 @@ import AgentContracts
     var canReviewPairing: Bool {
         guard case .pairing(let challenge) = context else { return false }
         return readable && pending.contains { $0.id == challenge.id }
+    }
+
+    func resourcePage(search: String, offset: Int, limit: Int = 50) -> [ResourceChoice] {
+        if let pagedChoices { return pagedChoices(search, offset, limit) }
+        return Array(resourceChoices().lazy.filter {
+            search.isEmpty || $0.title.localizedCaseInsensitiveContains(search) || $0.reference.id.uuidString.localizedCaseInsensitiveContains(search)
+        }.dropFirst(offset).prefix(limit))
     }
 
     func resourceChoices() -> [ResourceChoice] {

@@ -139,7 +139,7 @@ import AgentLocalSecurity
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
             validateHost: validateOwner, isLocked: isLocked, resolveTargets: resolveTargets)
         owner = self
-        do { _ = try registry.configurationForUserInterface() }
+        do { _ = try registry.migrateLibraryAccess(capabilities: service.availableCapabilities) }
         catch { close(); throw error }
     }
 
@@ -194,16 +194,16 @@ import AgentLocalSecurity
     }
 
     func makeChatToolsFromUserInterface(capabilities: Set<AgentCapability>, targets: Set<AgentResourceReference>,
-                                       providerName: String = "ChatGPT",
+                                       providerName: String = "ChatGPT", wholeLibrary: Bool = false,
                                        onRevocationError: @escaping @MainActor (Error) -> Void,
                                        validateContext: @escaping @MainActor () throws -> Void = {}) throws -> AgentChatToolSession {
         try requireReady()
-        guard broker != nil, try service.permitsTransportStart(), !targets.isEmpty,
-              try resolveTargets(targets) == targets else { throw AgentErrorCode.permissionDenied }
+        guard broker != nil, try service.permitsTransportStart(), (wholeLibrary || !targets.isEmpty),
+              try (wholeLibrary || resolveTargets(targets) == targets) else { throw AgentErrorCode.permissionDenied }
         let permitted: Set<AgentCapability> = [.draftsRead, .draftsWrite, .editorRead, .editorWrite]
-        guard capabilities.isSubset(of: permitted) else { throw AgentErrorCode.invalidInput }
+        guard capabilities.isSubset(of: wholeLibrary ? service.availableCapabilities : permitted) else { throw AgentErrorCode.invalidInput }
         let record = try connections.connectFromUserInterface(name: "Draftly Chat · " + String(providerName.prefix(80)), libraryID: libraryID,
-            capabilities: capabilities, scope: .resources(targets), expiresAt: Date().addingTimeInterval(900))
+            capabilities: capabilities, scope: wholeLibrary ? .library : .resources(targets), expiresAt: Date().addingTimeInterval(900))
         do {
             guard let credential = try readCredential(record.id) else { throw AgentErrorCode.permissionDenied }
             let authenticated = try service.authenticate(connectionID: record.id, credential: credential, expectedLibraryID: libraryID)
@@ -217,6 +217,7 @@ import AgentLocalSecurity
                 }
                 catch { onRevocationError(error) }
             }, validateContext: validateContext)
+            tools.expiresAt = record.expiresAt
             chatSessions[record.id] = WeakChatSession(tools)
             return tools
         } catch {
@@ -371,7 +372,9 @@ import AgentLocalSecurity
 
     func makeLibrarySettingsModel() throws -> AgentConnectionsSettingsModel {
         let resources = AgentLibraryResourceChoices(library: library, editors: editors, bookmarkDefaults: preferenceDefaults)
-        return try makeSettingsModel(choices: { resources.choices() })
+        let model = try makeSettingsModel(choices: { resources.choices() })
+        model.pagedChoices = { resources.page(search: $0, offset: $1, limit: $2) }
+        return model
     }
 
     private func requireReady() throws {

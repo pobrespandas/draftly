@@ -23,6 +23,7 @@ struct AgentConnectionRecord: Codable, Identifiable {
 
 struct AgentConnectionMetadata: Codable {
     var version = 1
+    var libraryAccessMigration: Int?
     var enabled = false
     var connections: [AgentConnectionRecord] = []
 
@@ -30,7 +31,7 @@ struct AgentConnectionMetadata: Codable {
         guard let data else { return Self() }
         guard data.count <= AgentRequest.maximumBytes,
               case .object(let root) = try JSONDecoder().decode(AgentJSONValue.self, from: data),
-              Set(root.keys).isSubset(of: ["version", "enabled", "connections"]),
+              Set(root.keys).isSubset(of: ["version", "enabled", "connections", "libraryAccessMigration"]),
               case .array(let records) = root["connections"] else { throw AgentErrorCode.storageError }
         let keys: Set<String> = ["id", "name", "createdAt", "grantID", "libraryID", "expiresAt", "revoked",
             "renewable", "capabilities", "scopeKind", "resources"]
@@ -44,7 +45,7 @@ struct AgentConnectionMetadata: Codable {
             }
         }
         let metadata = try JSONDecoder().decode(Self.self, from: data)
-        guard metadata.version == 1, metadata.connections.count <= 256,
+        guard metadata.version == 1, metadata.libraryAccessMigration == nil || metadata.libraryAccessMigration == 1, metadata.connections.count <= 256,
               Set(metadata.connections.map(\.id)).count == metadata.connections.count,
               Set(metadata.connections.map(\.grantID)).count == metadata.connections.count else { throw AgentErrorCode.storageError }
         for record in metadata.connections {
