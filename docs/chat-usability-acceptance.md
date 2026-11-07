@@ -71,6 +71,18 @@ sessions across draft changes. Resource-limited sessions still disconnect.
 Both QA connections were removed and local access was turned off after testing.
 The selection correction still needs installed acceptance.
 
+## Corrected QA package
+
+Build 43 contains commit `7d45e20`. Notarization
+`06112c98-9a84-4437-b28f-5a807e991e80` was accepted and stapled.
+The installed app retained the three QA drafts. Settings showed no approved
+connections and local access off. ChatGPT sign-in was completed in the isolated
+QA namespace before the update.
+
+The compact catalog commit `d0708a3` passed the complete 2,749-test inventory.
+The selection correction passed 12 Chat Console tests, including both library
+and resource scope. Installed model acceptance remains pending.
+
 ## Remaining acceptance
 
 Check remaining Markdown block types, accessibility, scrolling, cancellation
