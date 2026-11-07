@@ -20,10 +20,10 @@ struct NativeEventKitWaitTests {
             var cachedDestinations: [String] = []
             var refreshes = 0
             let request = EventKitAuthorizationRequest(status: { _ in status }, request: { _, completion in
-                status = .fullAccess
                 completion(true, nil)
             }, refreshAfterGrant: {
-                #expect(status == .fullAccess)
+                #expect(status == .notDetermined)
+                status = .fullAccess
                 refreshes += 1
                 cachedDestinations = ["QA destination"]
             })
@@ -65,7 +65,7 @@ struct NativeEventKitWaitTests {
                                                    refreshAfterGrant: { refreshed = true })
         do { try await request.requireFullAccess(reminders: false); Issue.record("Write-only access was accepted as full access.") }
         catch { #expect(error.localizedDescription == "Access was denied. Enable access in System Settings.") }
-        #expect(!refreshed)
+        #expect(refreshed)
     }
 
     @Test func authorizationFailurePreservesTheSystemError() async {

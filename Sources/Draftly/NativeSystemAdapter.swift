@@ -197,8 +197,10 @@ struct EventKitAuthorizationRequest {
             return nil
         }
         try Task.checkCancellation()
-        guard allowed, status(entity) == .fullAccess else { throw denied() }
+        guard allowed else { throw denied() }
+        // Clear cached state before checking the new authorization.
         refreshAfterGrant()
+        guard status(entity) == .fullAccess else { throw denied() }
     }
 
     private func denied() -> Error {
