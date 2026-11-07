@@ -27,7 +27,26 @@ import DraftlyCore
         case "native.models":
             operation = parameters["prompt"] == nil ? "modelModes" : "modelRespond"
             values = parameters
+        case "native.scanDocument": operation = "recognizeSelectedDocument"; values = [:]
+        case "native.calendar": operation = "calendarCreate"; values = parameters
+        case "native.reminders": operation = "reminderCreate"; values = parameters
+        case "native.mail": operation = "openMailComposer"; values = parameters
+        case "native.messages": operation = "openMessagesComposer"; values = parameters
+        case "native.fileRead": operation = "readBookmarkedFile"; values = parameters
+        case "native.fileWrite": operation = "createBookmarkedFile"; values = parameters
         case "native.http": operation = "http"; values = parameters
+        case "native.xmlrpc":
+            guard let url = parameters["url"], let timeout = parameters["timeout"],
+                  case .string(let method) = parameters["methodName"],
+                  case .string(let raw) = parameters["paramsJSON"], let params = try AgentNativeSchemas.boundedJSON(raw) as? [Any],
+                  let body = try? ScriptXMLRPC.requestBody(method: method, params: params),
+                  body.utf8.count <= 65_536,
+                  body.unicodeScalars.allSatisfy({ [9, 10, 13].contains($0.value) || (32...0xD7FF).contains($0.value)
+                      || (0xE000...0xFFFD).contains($0.value) || (0x10000...0x10FFFF).contains($0.value) }) else {
+                throw AgentErrorCode.invalidInput
+            }
+            operation = "xmlrpc"
+            values = ["url": url, "bodyText": .string(body), "timeout": timeout]
         case "native.clipboardRead": operation = "getClipboard"; values = [:]
         case "native.clipboardWrite": operation = "clipboard"; values = parameters
         case "native.htmlPreview": operation = "htmlPreview"; values = ["html": parameters["html"]!, "localContentOnly": .bool(true)]
@@ -52,17 +71,18 @@ import DraftlyCore
            let scheme = URL(string: raw)?.scheme?.lowercased(), !["http", "https"].contains(scheme) {
             capabilities.insert(.scriptsUnrestricted); libraryScope = true
         }
-        guard grant.capabilities.isSuperset(of: capabilities), !libraryScope || grant.scope == .library else {
+        guard grant.capabilities.isSuperset(of: capabilities), request.targets.allSatisfy(grant.scope.permits),
+              !libraryScope || grant.scope == .library else {
             throw AgentErrorCode.permissionDenied
         }
         return Plan(operation: operation, values: values,
-            effects: .init(capabilities: capabilities, targets: [], requiresLibraryScope: libraryScope,
-                snapshot: ["nativeOperation": .string(operation), "nativeParameters": .object(values)]))
+            effects: .init(capabilities: capabilities, targets: Set(request.targets), requiresLibraryScope: libraryScope,
+                snapshot: ["nativeOperation": .string(operation), "nativeParameters": .object(operation == "xmlrpc" ? parameters : values)]))
     }
 
     static func run(_ request: AgentRequest, grant: AgentGrant, operationID: UUID,
-                    environment: Environment, operations: AgentOperationRegistry,
-                    validateAuthority: () throws -> Void) async throws -> [String: AgentJSONValue] {
+                    environment: Environment, operations: AgentOperationRegistry, fileDefaults: UserDefaults = .standard,
+                    validateAuthority: @escaping () throws -> Void) async throws -> [String: AgentJSONValue] {
         var submittedEffect: UUID?
         var host: (any ActionHost)?
         defer { host?.finishAction() }
@@ -72,13 +92,46 @@ import DraftlyCore
             try operations.setWaitingForUser(operationID, waiting: true)
             try await environment.approvals.waitForApproval(request, connectionID: grant.connectionID, resolveEffects: {
                 try Task.checkCancellation(); try validateAuthority()
-                return try plan(request, grant: grant).effects
+                let effects = try plan(request, grant: grant).effects
+                guard let target = request.targets.first, target.kind == .bookmark else { return effects }
+                guard let record = try BookmarkPreferences.agentRecords(defaults: fileDefaults).first(where: { $0.id == target.id }) else {
+                    throw AgentErrorCode.notFound
+                }
+                var snapshot = effects.snapshot
+                snapshot["bookmarkName"] = .string(record.name)
+                return .init(capabilities: effects.capabilities, targets: effects.targets,
+                    requiresLibraryScope: effects.requiresLibraryScope, snapshot: snapshot)
             })
             try operations.setWaitingForUser(operationID, waiting: false)
             try Task.checkCancellation(); try validateAuthority()
             let current = try plan(request, grant: grant)
             guard current.operation == initial.operation, current.values == initial.values else { throw AgentErrorCode.versionConflict }
-            let payload: String
+            if ["native.fileRead", "native.fileWrite"].contains(request.operation) {
+                guard let bookmark = request.targets.first, case .string(let path) = current.values["path"] else {
+                    throw AgentErrorCode.invalidInput
+                }
+                let effect = UUID()
+                @MainActor func submit() throws {
+                    try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
+                    submittedEffect = effect
+                }
+                let result: [String: AgentJSONValue]
+                if request.operation == "native.fileRead" {
+                    let text = try AgentImportReading.readText(path, bookmarkID: bookmark.id, defaults: fileDefaults,
+                        authorize: validateAuthority)
+                    result = ["text": .string(text), "resultAvailable": .bool(true)]
+                    try submit()
+                } else {
+                    guard case .string(let text) = current.values["text"] else { throw AgentErrorCode.invalidInput }
+                    try AgentImportReading.writeText(text, path: path, bookmarkID: bookmark.id, defaults: fileDefaults,
+                        authorize: validateAuthority, beforePublish: submit)
+                    result = ["completed": .bool(true)]
+                }
+                try AgentNativeSchemas.validateResult(result, for: request.operation)
+                try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "completed")
+                return result
+            }
+            var payload: String
             if request.operation == "native.appleScript" {
                 guard var values = try JSONSerialization.jsonObject(with: JSONEncoder().encode(current.values)) as? [String: Any] else { throw AgentErrorCode.invalidInput }
                 guard case .string(let arguments) = current.values["argumentsJSON"] else { throw AgentErrorCode.invalidInput }
@@ -98,17 +151,45 @@ import DraftlyCore
                 }
                 try Task.checkCancellation(); try validateAuthority()
             }
+            if ["native.calendar", "native.reminders"].contains(request.operation) {
+                let reminders = request.operation == "native.reminders"
+                let prepare = reminders ? "prepareReminderCreate" : "prepareCalendarCreate"
+                let raw = try await adapter.performAsync(prepare, payload: payload)
+                let envelope = try JSONDecoder().decode([String: AgentJSONValue].self, from: Data(raw.utf8))
+                guard case .string(let destination) = envelope["value"], !destination.isEmpty else {
+                    throw AgentErrorCode.unavailable
+                }
+                try Task.checkCancellation(); try validateAuthority()
+                var values = current.values
+                values[reminders ? "listID" : "calendarID"] = .string(destination)
+                payload = String(decoding: try JSONEncoder().encode(values), as: UTF8.self)
+            }
             let effect = UUID()
-            try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
-            submittedEffect = effect
-            let raw = try await adapter.performAsync(current.operation, payload: payload)
+            let raw: String
+            if request.operation == "native.scanDocument" {
+                raw = try await adapter.performAsync(current.operation, payload: payload)
+                try Task.checkCancellation(); try validateAuthority()
+                try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
+                submittedEffect = effect
+            } else {
+                try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "submitted")
+                submittedEffect = effect
+                raw = try await adapter.performAsync(current.operation, payload: payload)
+            }
             try Task.checkCancellation(); try validateAuthority()
-            let result = try decodedResult(raw, for: request.operation)
+            let declinedEvent = ["native.calendar", "native.reminders"].contains(request.operation)
+                && (try? JSONDecoder().decode([String: AgentJSONValue].self, from: Data(raw.utf8)))?["value"] == .null
+            let result = declinedEvent ? [:] : try decodedResult(raw, for: request.operation)
+            if declinedEvent || result["handoffAccepted"] == .bool(false) {
+                try operations.recordEffect(operationID, effectID: effect, kind: request.operation, outcome: "failed")
+                submittedEffect = nil
+                throw AgentOperationRegistry.FailureBeforeEffects(code: .unavailable, knownFailedEffects: true)
+            }
             let outcome: String
             if case .bool(let completed) = result["completed"] { outcome = completed ? "completed" : "failed" }
             else if request.operation == "native.shell", case .object(let process) = result["process"] {
                 outcome = process["status"] == .integer(0) ? "completed" : "failed"
-            } else if request.operation == "native.http", case .object(let response) = result["response"] {
+            } else if ["native.http", "native.xmlrpc"].contains(request.operation), case .object(let response) = result["response"] {
                 outcome = response["success"] == .bool(true) ? "completed" : "failed"
             } else { outcome = "completed" }
             try AgentNativeSchemas.validateResult(result, for: request.operation)
@@ -120,6 +201,7 @@ import DraftlyCore
                 try? operations.recordEffect(operationID, effectID: submittedEffect, kind: request.operation, outcome: "unknown")
                 throw AgentErrorCode.outcomeUnknown
             }
+            if let failure = error as? AgentOperationRegistry.FailureBeforeEffects { throw failure }
             let code = error is CancellationError ? AgentErrorCode.cancelled : (error as? AgentErrorCode ?? .storageError)
             throw AgentOperationRegistry.FailureBeforeEffects(code: code)
         }
@@ -146,6 +228,10 @@ import DraftlyCore
                 result = ["model": .object(["text": .string(text)]), "resultAvailable": .bool(true)]
             default: throw AgentErrorCode.outcomeUnknown
             }
+        } else if ["native.calendar", "native.reminders"].contains(operation) {
+            result = ["identifier": value]
+        } else if ["native.mail", "native.messages"].contains(operation) {
+            result = ["handoffAccepted": value]
         } else if operation == "native.htmlPreview" {
             guard case .object(let preview) = value, let success = preview["success"] else { throw AgentErrorCode.outcomeUnknown }
             result = ["completed": success]

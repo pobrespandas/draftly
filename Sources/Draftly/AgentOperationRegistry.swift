@@ -5,9 +5,10 @@ import DraftlyCore
 
 // The optional private journal preserves request identity across restarts.
 @MainActor final class AgentOperationRegistry {
-    // Only app-owned handlers can report failure before they submit an effect.
+    // App-owned handlers can report failure before an effect or a known native refusal.
     struct FailureBeforeEffects: Error {
         let code: AgentErrorCode
+        var knownFailedEffects = false
     }
 
     struct Effect {
@@ -260,7 +261,10 @@ import DraftlyCore
             } catch let failure as FailureBeforeEffects {
                 let effects = self.entries[id]?.effects
                 // A completed download cannot have changed the library.
-                let noUncertainEffects = effects?.allSatisfy { $0.kind == "input.https" && $0.outcome == "completed" } == true
+                let noUncertainEffects = effects?.allSatisfy {
+                    ($0.kind == "input.https" && $0.outcome == "completed")
+                        || (failure.knownFailedEffects && $0.outcome == "failed")
+                } == true
                 self.finish(id, error: noUncertainEffects ? failure.code : .outcomeUnknown)
             } catch is CancellationError {
                 self.finishInterrupted(id, queuedError: .cancelled)

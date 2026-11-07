@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Darwin
 import Testing
 import AgentContracts
@@ -23,7 +24,83 @@ struct AgentNativeServiceTests {
         func finishAction() { finishes += 1 }
     }
 
-    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.models"])
+    @Test func documentRecognitionUsesOnlyTheSelectedFileAndSupportsCancellation() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".png")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let image = NSImage(size: NSSize(width: 960, height: 300), flipped: false) { rect in
+            NSColor.white.setFill()
+            rect.fill()
+            ("Draftly scan 12345" as NSString).draw(at: NSPoint(x: 45, y: 100), withAttributes: [
+                .font: NSFont.systemFont(ofSize: 72), .foregroundColor: NSColor.black
+            ])
+            return true
+        }
+        let bitmap = try #require(image.cgImage(forProposedRect: nil, context: nil, hints: nil))
+        let png = try #require(NSBitmapImageRep(cgImage: bitmap).representation(using: .png, properties: [:]))
+        try png.write(to: url)
+        let result = try await NativeDocumentRecognition.selectAndRecognize { selection in
+            #expect(selection == .document)
+            return url
+        }
+        #expect(result.contains("Draftly scan 12345"))
+        await #expect(throws: ActionExecutionInterruption.self) {
+            _ = try await NativeDocumentRecognition.selectAndRecognize { _ in nil }
+        }
+    }
+
+    @Test func nativeFilesRequireAnAuthorizedBookmarkAndNeverOverwrite() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let root = base.appendingPathComponent("folder")
+        let outside = base.appendingPathComponent("outside")
+        for url in [root, outside] { try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true) }
+        defer { try? FileManager.default.removeItem(at: base) }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        BookmarkPreferences.store(try BookmarkPreferences.data(for: root), named: "QA folder", defaults: defaults)
+        let bookmark = try #require(try BookmarkPreferences.agentRecords(defaults: defaults).first)
+        try FileManager.default.createSymbolicLink(at: root.appendingPathComponent("link"), withDestinationURL: outside)
+        let target = AgentResourceReference(kind: .bookmark, id: bookmark.id)
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations
+        f.nativeExecution = .init(makeHost: { DirectNativeHost() }, approvals: approvals)
+        f.service = try f.makeService()
+        let capabilities: Set<AgentCapability> = [.nativeUse, .filesRead, .filesWrite]
+        let (record, session) = try f.connect(scope: .resources([target]), capabilities: capabilities)
+        let (_, excluded) = try f.connect(scope: .resources([]), capabilities: capabilities)
+        func write(_ path: String, text: String) -> AgentRequest {
+            .init(requestID: UUID(), libraryID: f.libraryID, operation: "native.fileWrite", targets: [target],
+                  parameters: ["path": .string(path), "text": .string(text)])
+        }
+        func approve(_ request: AgentRequest) async throws -> AgentResponse.Outcome {
+            let reply = try f.send(request, session: session)
+            guard case .accepted(let id, _) = reply.outcome else { return reply.outcome }
+            for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+            let review = try #require(approvals.pendingFromUserInterface().first)
+            #expect(review.effects.targets == [target])
+            try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+            for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(1))
+            }
+            return try f.send(request, session: session).outcome
+        }
+        let request = write("café.txt", text: "QA café 🐼")
+        #expect(try f.send(request, session: excluded).outcome == .error(.notFound))
+        #expect(try f.send(write("../outside.txt", text: "never"), session: session).outcome == .error(.invalidInput))
+        #expect(try await approve(write("link/outside.txt", text: "never")) == .error(.permissionDenied))
+        #expect(try await approve(request) == .result(.object(["completed": .bool(true)])))
+        #expect(try f.send(request, session: session).outcome == .result(.object(["completed": .bool(true)])))
+        #expect(try await approve(write("café.txt", text: "never replace")) == .error(.versionConflict))
+        let read = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "native.fileRead",
+            targets: [target], parameters: ["path": .string("café.txt")])
+        #expect(try await approve(read) == .result(.object(["text": .string("QA café 🐼"), "resultAvailable": .bool(true)])))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: outside.path).isEmpty)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).count == 2)
+    }
+
+    @Test(arguments: ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share", "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.shell", "native.appleScript", "native.shortcut", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.scanDocument", "native.models"])
     func directNativeRequestsRequireReviewAndNeverReplay(operation: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -35,7 +112,7 @@ struct AgentNativeServiceTests {
         let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
         defer { operations.cancelAll() }
         let host = DirectNativeHost()
-        let textOperations: Set<String> = ["native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
+        let textOperations: Set<String> = ["native.scanDocument", "native.clipboardRead", "native.htmlToMarkdown", "native.dictate", "native.transcribe", "native.shortcut"]
         let unrestricted: Set<String> = ["native.shell", "native.appleScript", "native.shortcut"]
         let isText = textOperations.contains(operation)
         var expected: [String: AgentJSONValue] = ["completed": .bool(true)]
@@ -43,12 +120,19 @@ struct AgentNativeServiceTests {
         if isText {
             host.response = "{\"value\":\"PRIVATE native café 🐼\"}"
             expected = ["text": .string("PRIVATE native café 🐼"), "resultAvailable": .bool(true)]; resultField = "text"
+        } else if ["native.mail", "native.messages"].contains(operation) {
+            expected = ["handoffAccepted": .bool(true)]
         } else if operation == "native.htmlPreview" {
             host.response = #"{"value":{"success":true,"values":{}}}"#
         } else if operation == "native.models" {
             host.response = #"{"value":["onDevice"]}"#
             expected = ["model": .object(["modes": .array([.string("onDevice")])]), "resultAvailable": .bool(true)]
             resultField = "model"
+        } else if operation == "native.xmlrpc" {
+            let response: AgentJSONValue = .object(["success": .bool(false), "statusCode": .integer(200),
+                "paramsJSON": .string("[]"), "faultCode": .integer(23), "error": .string("PRIVATE fault")])
+            host.response = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(["value": response])), as: UTF8.self)
+            expected = ["response": response, "resultAvailable": .bool(true)]; resultField = "response"
         } else if operation == "native.http" {
             let response: AgentJSONValue = .object(["success": .bool(false), "statusCode": .integer(503), "headersJSON": .string("{}"), "responseText": .string("PRIVATE HTTP café 🐼"), "bodyBase64": .string(Data("PRIVATE HTTP café 🐼".utf8).base64EncodedString())])
             host.response = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(["value": response])), as: UTF8.self)
@@ -68,8 +152,11 @@ struct AgentNativeServiceTests {
             capabilities: unrestricted.contains(operation) ? [.nativeUse, .scriptsUnrestricted] : [.nativeUse])
         let parameters: [String: AgentJSONValue]
         switch operation {
+        case "native.mail", "native.messages": parameters = ["body": .string("PRIVATE draft café 🐼")]
+        case "native.xmlrpc": parameters = ["url": .string("http://127.0.0.1:8080/RPC2"),
+            "methodName": .string("fixture.echo"), "paramsJSON": .string(#"["PRIVATE <text> café 🐼"]"#)]
         case "native.http": parameters = ["url": .string("https://example.invalid/qa"), "method": .string("POST"), "bodyText": .string("PRIVATE request")]
-        case "native.clipboardRead", "native.location", "native.models": parameters = [:]
+        case "native.clipboardRead", "native.location", "native.scanDocument", "native.models": parameters = [:]
         case "native.dictate", "native.transcribe": parameters = ["locale": .string("es-AR")]
         case "native.openURL": parameters = ["url": .string("https://example.com/qa")]
         case "native.htmlToMarkdown", "native.htmlPreview": parameters = ["html": .string("<b>PRIVATE input</b>")]
@@ -91,7 +178,7 @@ struct AgentNativeServiceTests {
         #expect(reply.outcome == .result(.object(expected)) && host.calls.count == 1 && host.finishes == 1 && host.constructions == 1)
         let mappings = ["native.clipboardRead": "getClipboard", "native.clipboardWrite": "clipboard", "native.htmlToMarkdown": "htmlToMarkdown",
             "native.share": "share", "native.print": "print", "native.openURL": "openURL", "native.speak": "speak", "native.dictate": "dictate",
-            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut", "native.http": "http", "native.models": "modelModes", "native.htmlPreview": "htmlPreview"]
+            "native.transcribe": "transcribe", "native.location": "location", "native.shell": "shellScript", "native.appleScript": "appleScript", "native.shortcut": "shortcut", "native.http": "http", "native.xmlrpc": "xmlrpc", "native.mail": "openMailComposer", "native.messages": "openMessagesComposer", "native.models": "modelModes", "native.scanDocument": "recognizeSelectedDocument", "native.htmlPreview": "htmlPreview"]
         #expect(host.calls.first?.0 == mappings[operation])
         let payload = try JSONDecoder().decode([String: AgentJSONValue].self, from: Data(try #require(host.calls.first?.1).utf8))
         if operation == "native.htmlPreview" { #expect(payload["localContentOnly"] == .bool(true)) }
@@ -99,7 +186,11 @@ struct AgentNativeServiceTests {
         if operation == "native.appleScript" {
             #expect(payload["argumentsJSON"] == nil && payload["arguments"] == .array([.string("café 🐼"), .object(["record": .array([.bool(true), .null])])]))
         }
-        if ["native.shell", "native.http"].contains(operation) { #expect(try operations.snapshot(id, connectionID: record.id).effects.map(\.outcome) == ["failed"]) }
+        if operation == "native.xmlrpc", case .string(let body) = payload["bodyText"] {
+            #expect(body.contains("<methodName>fixture.echo</methodName>"))
+            #expect(body.contains("PRIVATE &lt;text&gt; café 🐼"))
+        }
+        if ["native.shell", "native.http", "native.xmlrpc"].contains(operation) { #expect(try operations.snapshot(id, connectionID: record.id).effects.map(\.outcome) == ["failed"]) }
         #expect(try f.send(request, session: session) == reply && host.calls.count == 1)
         let changed = AgentRequest(requestID: request.requestID, libraryID: f.libraryID,
             operation: "native.clipboardWrite", parameters: ["text": .string("Changed intent")])
@@ -115,6 +206,57 @@ struct AgentNativeServiceTests {
         let recovered = try f.send(request, session: nextSession)
         let recoveredResult: [String: AgentJSONValue] = resultField.map { [$0: .null, "resultAvailable": .bool(false)] } ?? expected
         #expect(recovered.outcome == .result(.object(recoveredResult)) && host.calls.count == 1)
+    }
+
+    @Test(arguments: [false, true], [true, false])
+    func reviewedEventKitCreationChecksPermissionBeforeSaving(reminders: Bool, allowed: Bool) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) },
+            isLocked: { false })
+        defer { operations.cancelAll() }
+        let host = DirectNativeHost()
+        host.onCall = { [weak host] in
+            guard let host else { return }
+            host.response = host.calls.count == 1
+                ? (allowed ? #"{"value":"approved-destination"}"# : #"{"value":null}"#)
+                : #"{"value":"saved-item-id"}"#
+        }
+        f.operations = operations
+        f.nativeExecution = .init(makeHost: { host }, approvals: approvals)
+        f.service = try f.makeService(withoutEditors: true)
+        let (record, session) = try f.connect(capabilities: [.nativeUse])
+        var parameters: [String: AgentJSONValue] = ["title": .string("QA café 🐼")]
+        if !reminders {
+            parameters["startDate"] = .string("2026-11-07T12:00:00Z")
+            parameters["endDate"] = .string("2026-11-07T13:00:00Z")
+        }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID,
+            operation: reminders ? "native.reminders" : "native.calendar", parameters: parameters)
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else {
+            Issue.record("Missing EventKit operation"); return
+        }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(host.calls.isEmpty)
+        try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(host.calls.first?.0 == (reminders ? "prepareReminderCreate" : "prepareCalendarCreate"))
+        let result = try f.send(request, session: session).outcome
+        if allowed {
+            #expect(result == .result(.object(["identifier": .string("saved-item-id")])))
+            #expect(host.calls.map(\.0).last == (reminders ? "reminderCreate" : "calendarCreate"))
+            let payload = try JSONDecoder().decode([String: AgentJSONValue].self, from: Data(try #require(host.calls.last?.1).utf8))
+            #expect(payload[reminders ? "listID" : "calendarID"] == .string("approved-destination"))
+        } else {
+            #expect(result == .error(.unavailable) && host.calls.count == 1)
+            #expect(try operations.snapshot(id, connectionID: record.id).effects.isEmpty)
+        }
+        #expect(try f.send(request, session: session).outcome == result)
+        #expect(host.calls.count == (allowed ? 2 : 1))
     }
 
     @Test(arguments: ["deny", "cancel", "session", "revokedAfterEffect", "malformedAfterEffect", "throwsAfterEffect", "declined"])
@@ -208,7 +350,7 @@ struct AgentNativeServiceTests {
         defer { tools.invalidate(revoke: false) }
         let names = Set(try await tools.tools().map(\.operation).filter { $0.hasPrefix("native.") })
         var expected: Set<String> = ["native.clipboardRead", "native.clipboardWrite", "native.htmlToMarkdown", "native.htmlPreview", "native.share",
-            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.models"]
+            "native.print", "native.openURL", "native.speak", "native.dictate", "native.transcribe", "native.location", "native.http", "native.xmlrpc", "native.mail", "native.messages", "native.calendar", "native.reminders", "native.scanDocument", "native.models"]
         if allResources && unrestricted { expected.formUnion(["native.shell", "native.appleScript", "native.shortcut"]) }
         #expect(names == expected && host.calls.isEmpty && approvals.pendingFromUserInterface().isEmpty)
     }

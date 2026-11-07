@@ -313,6 +313,16 @@ struct AgentLocalHostTests {
         ]
         #expect(await bridge.call("draftly_operations_answerPrompt", arguments: arguments).isError == true)
         arguments["expectedVersion"] = .string(promptVersion)
+        arguments["retryKey"] = .string("unrelated-retry-key")
+        let retry = await bridge.call("draftly_operations_answerPrompt", arguments: arguments)
+        #expect(retry.isError == true)
+        if case .text(let text, _, _) = try #require(retry.content.first) {
+            let response = try JSONDecoder().decode(AgentResponse.self, from: Data(text.utf8))
+            #expect(response.outcome == .error(.invalidInput))
+        } else {
+            Issue.record("Expected a structured prompt answer rejection")
+        }
+        arguments.removeValue(forKey: "retryKey")
         #expect(await bridge.call("draftly_operations_answerPrompt", arguments: arguments).isError == false)
         #expect(await bridge.call("draftly_operations_answerPrompt", arguments: arguments).isError == true)
         for _ in 0..<200 where try !host.operations.snapshot(id, connectionID: record.id).state.isTerminal {

@@ -35,22 +35,10 @@ import AgentContracts
             guard grant.capabilities.contains(.filesRead), case .string(let raw) = fields["bookmarkID"],
                   let id = UUID(uuidString: raw), grant.scope.permits(.init(kind: .bookmark, id: id)),
                   case .string(let path) = fields["path"] else { throw AgentErrorCode.permissionDenied }
-            guard let record = try BookmarkPreferences.agentRecords(defaults: defaults).first(where: { $0.id == id }) else {
-                throw AgentErrorCode.notFound
+            let snapshot = try withBookmark(id, defaults: defaults, authorize: authorize) { root, check in
+                try read(path, under: root, limit: maximumBytes, captureFilePermission: captureFilePermission, authorize: check)
             }
-            var stale = false
-            let root: URL
-            do { root = try URL(resolvingBookmarkData: record.data, options: [.withSecurityScope, .withoutUI],
-                                relativeTo: nil, bookmarkDataIsStale: &stale) }
-            catch { throw AgentErrorCode.permissionDenied }
-            guard root.isFileURL else { throw AgentErrorCode.permissionDenied }
-            let active = root.startAccessingSecurityScopedResource()
-            defer { if active { root.stopAccessingSecurityScopedResource() } }
-            let snapshot = try read(path, under: root, limit: maximumBytes, captureFilePermission: captureFilePermission, authorize: authorize)
             data = snapshot.data; filePermission = snapshot.filePermission
-            guard try BookmarkPreferences.agentRecords(defaults: defaults).contains(where: { $0.id == id && $0.data == record.data }) else {
-                throw AgentErrorCode.permissionDenied
-            }
         case "https": throw AgentErrorCode.interactionRequired
         default: throw AgentErrorCode.invalidInput
         }
@@ -59,7 +47,77 @@ import AgentContracts
         return Snapshot(data: data, filePermission: filePermission)
     }
 
-    private static func read(_ path: String, under root: URL, limit: Int, captureFilePermission: Bool, authorize: () throws -> Void) throws -> Snapshot {
+    static func readText(_ path: String, bookmarkID: UUID, defaults: UserDefaults,
+                         authorize: () throws -> Void) throws -> String {
+        let snapshot = try withBookmark(bookmarkID, defaults: defaults, authorize: authorize) { root, check in
+            try read(path, under: root, limit: 65_536, captureFilePermission: false, authorize: check)
+        }
+        guard let text = String(data: snapshot.data, encoding: .utf8) else { throw AgentErrorCode.invalidInput }
+        return text
+    }
+
+    static func writeText(_ text: String, path: String, bookmarkID: UUID, defaults: UserDefaults,
+                          authorize: () throws -> Void, beforePublish: () throws -> Void) throws {
+        let bytes = Data(text.utf8)
+        guard bytes.count <= 65_536, AgentImportSource.isRelativePath(path) else { throw AgentErrorCode.invalidInput }
+        try withBookmark(bookmarkID, defaults: defaults, authorize: authorize) { root, check in
+            var components = path.split(separator: "/", omittingEmptySubsequences: false)
+            let name = String(components.removeLast())
+            var descriptor = try openRoot(root, authorize: check)
+            defer { Darwin.close(descriptor) }
+            for component in components {
+                try check()
+                let next = openat(descriptor, String(component), O_RDONLY | O_DIRECTORY | O_NOFOLLOW_ANY | O_CLOEXEC)
+                guard next >= 0 else { throw AgentErrorCode.permissionDenied }
+                Darwin.close(descriptor)
+                descriptor = next
+            }
+            var status = stat()
+            guard fstatat(descriptor, name, &status, AT_SYMLINK_NOFOLLOW) != 0, errno == ENOENT else {
+                throw AgentErrorCode.versionConflict
+            }
+            let temporary = ".draftly-write-" + UUID().uuidString
+            let output = openat(descriptor, temporary, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW_ANY | O_CLOEXEC, 0o600)
+            guard output >= 0 else { throw AgentErrorCode.storageError }
+            let handle = FileHandle(fileDescriptor: output, closeOnDealloc: true)
+            defer { try? handle.close(); unlinkat(descriptor, temporary, 0) }
+            try handle.write(contentsOf: bytes)
+            try handle.synchronize()
+            try check()
+            try beforePublish()
+            guard renameatx_np(descriptor, temporary, descriptor, name, UInt32(RENAME_EXCL)) == 0,
+                  fsync(descriptor) == 0 else { throw AgentErrorCode.outcomeUnknown }
+        }
+    }
+
+    private static func withBookmark<T>(_ id: UUID, defaults: UserDefaults, authorize: () throws -> Void,
+                                        use: (URL, () throws -> Void) throws -> T) throws -> T {
+        try Task.checkCancellation(); try authorize()
+        guard let record = try BookmarkPreferences.agentRecords(defaults: defaults).first(where: { $0.id == id }) else {
+            throw AgentErrorCode.notFound
+        }
+        var stale = false
+        let root: URL
+        do { root = try URL(resolvingBookmarkData: record.data, options: [.withSecurityScope, .withoutUI],
+                            relativeTo: nil, bookmarkDataIsStale: &stale) }
+        catch { throw AgentErrorCode.permissionDenied }
+        guard root.isFileURL else { throw AgentErrorCode.permissionDenied }
+        let active = root.startAccessingSecurityScopedResource()
+        defer { if active { root.stopAccessingSecurityScopedResource() } }
+        return try withoutActuallyEscaping(authorize) { authorize in
+            func check() throws {
+                try Task.checkCancellation(); try authorize()
+                guard try BookmarkPreferences.agentRecords(defaults: defaults).contains(where: { $0.id == id && $0.data == record.data }) else {
+                    throw AgentErrorCode.permissionDenied
+                }
+            }
+            let result = try use(root, check)
+            try check()
+            return result
+        }
+    }
+
+    private static func openRoot(_ root: URL, authorize: () throws -> Void) throws -> Int32 {
         // Resolve the granted root once. Descendants never follow a symbolic link.
         var rootInfo = stat()
         guard lstat(root.path, &rootInfo) == 0, rootInfo.st_mode & S_IFMT == S_IFDIR else {
@@ -68,12 +126,18 @@ import AgentContracts
         try Task.checkCancellation(); try authorize()
         guard let physical = realpath(root.path, nil) else { throw AgentErrorCode.permissionDenied }
         defer { free(physical) }
-        var descriptor = Darwin.open(physical, O_RDONLY | O_DIRECTORY | O_NOFOLLOW_ANY | O_NONBLOCK | O_CLOEXEC)
+        let descriptor = Darwin.open(physical, O_RDONLY | O_DIRECTORY | O_NOFOLLOW_ANY | O_NONBLOCK | O_CLOEXEC)
         guard descriptor >= 0 else { throw AgentErrorCode.permissionDenied }
-        defer { Darwin.close(descriptor) }
         var openedRoot = stat()
         guard fstat(descriptor, &openedRoot) == 0, rootInfo.st_dev == openedRoot.st_dev,
-              rootInfo.st_ino == openedRoot.st_ino else { throw AgentErrorCode.versionConflict }
+              rootInfo.st_ino == openedRoot.st_ino else { Darwin.close(descriptor); throw AgentErrorCode.versionConflict }
+        return descriptor
+    }
+
+    private static func read(_ path: String, under root: URL, limit: Int, captureFilePermission: Bool, authorize: () throws -> Void) throws -> Snapshot {
+        guard AgentImportSource.isRelativePath(path) else { throw AgentErrorCode.invalidInput }
+        var descriptor = try openRoot(root, authorize: authorize)
+        defer { Darwin.close(descriptor) }
         let components = path.split(separator: "/", omittingEmptySubsequences: false)
         for (index, component) in components.enumerated() {
             try Task.checkCancellation(); try authorize()
@@ -83,7 +147,7 @@ import AgentContracts
             Darwin.close(descriptor); descriptor = next
         }
         var before = stat()
-        guard fstat(descriptor, &before) == 0, before.st_mode & S_IFMT == S_IFREG else { throw AgentErrorCode.permissionDenied }
+        guard fstat(descriptor, &before) == 0, before.st_mode & S_IFMT == S_IFREG, before.st_nlink == 1 else { throw AgentErrorCode.permissionDenied }
         guard before.st_size >= 0, before.st_size <= limit else { throw AgentErrorCode.invalidInput }
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: false)
         var data = Data()

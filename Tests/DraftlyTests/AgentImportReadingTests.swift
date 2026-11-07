@@ -42,7 +42,8 @@ struct AgentImportReadingTests {
             let snapshot = try AgentImportReading.snapshot(source, grant: grant, defaults: defaults, transfers: transfers,
                 maximumBytes: mode == "size" ? bytes.count - 1 : bytes.count, captureFilePermission: capture, authorize: {
                     checks += 1
-                    if mode == "rootChanged", checks == 2 {
+                    // Move the root after bookmark resolution and the initial lstat.
+                    if mode == "rootChanged", checks == 3 {
                         try FileManager.default.moveItem(at: directory, to: root.appendingPathComponent("held"))
                         try FileManager.default.createSymbolicLink(at: directory, withDestinationURL: root)
                     }

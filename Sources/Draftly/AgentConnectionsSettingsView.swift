@@ -169,6 +169,14 @@ private struct AgentOperationReviewSheet: View {
         guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
         switch operation {
         case "http": return "Make an HTTP request"
+        case "xmlrpc": return "Make an XML-RPC request"
+        case "recognizeSelectedDocument": return "Recognize a Scanned Document"
+        case "calendarCreate": return "Create Calendar Event"
+        case "reminderCreate": return "Create Reminder"
+        case "openMailComposer": return "Open Mail Composer"
+        case "openMessagesComposer": return "Open Messages Composer"
+        case "readBookmarkedFile": return "Read a Bookmarked File"
+        case "createBookmarkedFile": return "Create a Bookmarked File"
         case "clipboard": return "Copy text to the clipboard"
         case "getClipboard": return "Read the current clipboard"
         case "htmlToMarkdown": return "Convert HTML to Markdown"
@@ -246,7 +254,7 @@ private struct AgentOperationReviewSheet: View {
         guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
         let rows = fields.keys.sorted().map { key in
             let value = fields[key]!
-            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion", "method": "Method", "headersJSON": "Headers", "bodyText": "Body", "bodyBase64": "Body (Base64)", "timeout": "Timeout (seconds)", "followRedirects": "Follow redirects on this origin", "maximumBytes": "Maximum download bytes", "purpose": "Purpose"][key] ?? key
+            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion", "method": "Method", "methodName": "Method", "paramsJSON": "Arguments", "path": "Relative path", "toRecipients": "Recipients", "subject": "Subject", "body": "Message", "calendarID": "Calendar ID", "listID": "Reminders list ID", "startDate": "Start (UTC)", "endDate": "End (UTC)", "dueDate": "Due (UTC)", "title": "Title", "notes": "Notes", "location": "Location", "headersJSON": "Headers", "bodyText": "Body", "bodyBase64": "Body (Base64)", "timeout": "Timeout (seconds)", "followRedirects": "Follow redirects on this origin", "maximumBytes": "Maximum download bytes", "purpose": "Purpose"][key] ?? key
             if case .string(let text) = value { return (label, text) }
             let data = try? JSONEncoder().encode(value)
             return (label, data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unavailable")
@@ -254,6 +262,20 @@ private struct AgentOperationReviewSheet: View {
         if case .string(let operation) = review.effects.snapshot["nativeOperation"],
            ["shellScript", "shell", "appleScript", "shortcut"].contains(operation) {
             return [("Access", "Uses your macOS permissions and full library access.")] + rows
+        }
+        if review.operation == "native.scanDocument" { return [("Effect", "Choose a scanned image or PDF to share its recognized text with this connection.")] }
+        if review.operation == "native.calendar", fields["calendarID"] == nil {
+            return [("Calendar", "Current default calendar")] + rows
+        }
+        if review.operation == "native.reminders", fields["listID"] == nil {
+            return [("Reminders list", "Current default list")] + rows
+        }
+        if ["native.mail", "native.messages"].contains(review.operation) {
+            return [("Effect", "Open a composer so you can review and send the message.")] + rows
+        }
+        if ["native.fileRead", "native.fileWrite"].contains(review.operation),
+           case .string(let name) = review.effects.snapshot["bookmarkName"] {
+            return [("Bookmark", name)] + rows
         }
         return rows
     }

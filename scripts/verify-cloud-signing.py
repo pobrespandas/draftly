@@ -71,6 +71,9 @@ def verify(app, *, expected_bundle_identifier=None, expected_team=None, expected
     if require_developer_id:
         if rights.get("com.apple.security.get-task-allow", False):
             raise ValueError("A Developer ID distribution cannot enable get-task-allow.")
+        eventkit_usage = ("NSCalendarsFullAccessUsageDescription", "NSRemindersFullAccessUsageDescription")
+        if any(info.get(key) for key in eventkit_usage) and rights.get("com.apple.security.personal-information.calendars") is not True:
+            raise ValueError("EventKit access requires the calendars entitlement in a hardened app.")
         signature = subprocess.run(["codesign", "-d", "--verbose=4", str(app)], check=True,
                                    capture_output=True, text=True)
         verify_developer_id(signature.stdout + "\n" + signature.stderr, team)

@@ -125,6 +125,21 @@ class SigningTests(unittest.TestCase):
         self.assertEqual(run.call_count, 2)
         self.assertIn("--verbose=4", run.call_args.args[0])
 
+    def test_developer_id_eventkit_usage_requires_calendar_access(self):
+        for usage in ("NSCalendarsFullAccessUsageDescription", "NSRemindersFullAccessUsageDescription"):
+            with self.subTest(usage=usage):
+                info = dict(self.info, **{usage: "Create a reviewed test item."})
+                (self.app / "Contents/Info.plist").write_bytes(plistlib.dumps(info))
+                for value in (None, False, "true"):
+                    self.rights["com.apple.security.personal-information.calendars"] = value
+                    with self.assertRaisesRegex(ValueError, "EventKit.*calendars entitlement"):
+                        module.verify(self.app, require_developer_id=True)
+                self.rights["com.apple.security.personal-information.calendars"] = True
+                metadata = subprocess.CompletedProcess([], 0, stdout="", stderr=(
+                    "Authority=Developer ID Application: Example (TEAM)\nCodeDirectory flags=0x10000(runtime)\n"))
+                with patch.object(module.subprocess, "run", side_effect=[None, metadata]):
+                    module.verify(self.app, require_developer_id=True)
+
     def test_command_line_passes_developer_id_requirement(self):
         with patch.object(module, "verify", return_value={}) as verify, contextlib.redirect_stdout(io.StringIO()):
             module.main([str(self.app), "--require-developer-id"])
