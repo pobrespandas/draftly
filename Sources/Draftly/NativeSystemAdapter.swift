@@ -151,7 +151,7 @@ struct NativeSystemAdapter {
             request: { reminders, completion in
                 if reminders { events.requestFullAccessToReminders(completion: completion) }
                 else { events.requestFullAccessToEvents(completion: completion) }
-            })
+            }, refreshAfterGrant: { events.reset() })
         try await authorization.requireFullAccess(reminders: reminders, timeout: timeout)
     }
 
@@ -163,6 +163,7 @@ struct NativeSystemAdapter {
         else { events.requestFullAccessToEvents { allowed, error in result.complete(allowed, error) } }
         while !result.finished { RunLoop.current.run(until: Date().addingTimeInterval(0.02)) }
         guard result.allowed else { throw DraftlyError.message(result.error?.localizedDescription ?? "Access was denied. Enable access in System Settings.") }
+        events.reset()
     }
 }
 
@@ -180,6 +181,7 @@ private final class AccessResult: @unchecked Sendable {
 struct EventKitAuthorizationRequest {
     var status: (EKEntityType) -> EKAuthorizationStatus
     var request: (Bool, @escaping @Sendable (Bool, Error?) -> Void) -> Void
+    var refreshAfterGrant: () -> Void = {}
 
     func requireFullAccess(reminders: Bool, timeout: TimeInterval = 60) async throws {
         try Task.checkCancellation()
@@ -196,6 +198,7 @@ struct EventKitAuthorizationRequest {
         }
         try Task.checkCancellation()
         guard allowed, status(entity) == .fullAccess else { throw denied() }
+        refreshAfterGrant()
     }
 
     private func denied() -> Error {

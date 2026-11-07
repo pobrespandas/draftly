@@ -14,6 +14,26 @@ struct NativeEventKitWaitTests {
         #expect(requests == 0)
     }
 
+    @Test func newGrantRefreshesCachedDestinationsForBothEntities() async throws {
+        for reminders in [false, true] {
+            var status: EKAuthorizationStatus = .notDetermined
+            var cachedDestinations: [String] = []
+            var refreshes = 0
+            let request = EventKitAuthorizationRequest(status: { _ in status }, request: { _, completion in
+                status = .fullAccess
+                completion(true, nil)
+            }, refreshAfterGrant: {
+                #expect(status == .fullAccess)
+                refreshes += 1
+                cachedDestinations = ["QA destination"]
+            })
+            try await request.requireFullAccess(reminders: reminders)
+            #expect(cachedDestinations == ["QA destination"])
+            try await request.requireFullAccess(reminders: reminders)
+            #expect(refreshes == 1)
+        }
+    }
+
     @Test func deniedAndRestrictedAccessFailWithoutAPrompt() async {
         for status in [EKAuthorizationStatus.denied, .restricted] {
             var requested = false
@@ -40,9 +60,12 @@ struct NativeEventKitWaitTests {
     }
 
     @Test func completionCannotClaimFullAccessWithoutFullAuthorization() async {
-        let request = EventKitAuthorizationRequest(status: { _ in .writeOnly }, request: { _, completion in completion(true, nil) })
+        var refreshed = false
+        let request = EventKitAuthorizationRequest(status: { _ in .writeOnly }, request: { _, completion in completion(true, nil) },
+                                                   refreshAfterGrant: { refreshed = true })
         do { try await request.requireFullAccess(reminders: false); Issue.record("Write-only access was accepted as full access.") }
         catch { #expect(error.localizedDescription == "Access was denied. Enable access in System Settings.") }
+        #expect(!refreshed)
     }
 
     @Test func authorizationFailurePreservesTheSystemError() async {
