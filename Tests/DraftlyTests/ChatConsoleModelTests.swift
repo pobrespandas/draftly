@@ -9,6 +9,19 @@ struct ChatConsoleModelTests {
         UserDefaults(suiteName: "ChatConsoleTests-\(UUID().uuidString)")!
     }
 
+    @Test func automaticToolsDefaultOnAndKeepManualOptOutAfterRestart() {
+        let defaults = isolatedDefaults()
+        func make() -> ChatConsoleModel {
+            ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: defaults)
+        }
+        let first = make()
+        #expect(first.automaticToolsEnabled)
+        first.automaticToolsEnabled = false
+        #expect(!make().automaticToolsEnabled)
+        first.automaticToolsEnabled = true
+        #expect(make().automaticToolsEnabled)
+    }
+
     @Test(arguments: [false, true]) func changingDraftRetainsOnlyLibraryConnections(libraryScope: Bool) async throws {
         let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults(),
             respondWithTools: { _, _, _ in "unused" })

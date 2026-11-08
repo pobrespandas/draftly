@@ -101,7 +101,7 @@ struct ChatConsolePanel: View {
                     .accessibilityAddTraits(.updatesFrequently)
                 Spacer(minLength: 4)
                 if model.hasTools {
-                    Button("Disconnect") { model.disconnectTools() }
+                    Button("Disconnect") { model.automaticToolsEnabled = false; model.disconnectTools() }
                 } else if let openAgentSettings {
                     Button("Agent Settings…", action: openAgentSettings)
                 } else if connectTools != nil && model.canConnectTools {
@@ -136,6 +136,7 @@ struct ChatConsolePanel: View {
 
     private func connectDraftTools() {
         guard let connectTools else { return }
+        model.automaticToolsEnabled = true
         do { try model.connectTools(connectTools()) }
         catch is CancellationError {}
         catch let error as AgentErrorCode where error == .cancelled {}
@@ -284,5 +285,12 @@ struct LocalChatConsolePanel: View {
                 selectedTab = "agents"
                 openSettings()
             }, contentFont: contentFont, createDraft: createDraft, insertText: insertText, hasDraft: hasDraft)
+            .task(id: model.selectedModel + String(settings.accessEnabled)) {
+                await model.loadModels()
+                guard settings.accessEnabled, model.automaticToolsEnabled,
+                      model.canConnectTools, !model.hasTools else { return }
+                do { try model.connectTools(connectTools()) }
+                catch { model.reportToolError(error) }
+            }
     }
 }

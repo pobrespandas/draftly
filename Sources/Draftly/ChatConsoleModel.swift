@@ -48,6 +48,9 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
             if !oldValue.hasPrefix("chatgpt:") || !selectedModel.hasPrefix("chatgpt:") { disconnectTools() }
         }
     }
+    @Published var automaticToolsEnabled = true {
+        didSet { defaults.set(automaticToolsEnabled, forKey: "chatConsole.automaticTools") }
+    }
     @Published private(set) var hasTools = false
     private var toolSession: AgentChatToolSession?
     @Published var prompt = ""
@@ -101,6 +104,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     init(loadModes: @escaping LoadModes, respond: @escaping Respond, defaults: UserDefaults = .standard,
          chatGPTAccount: ChatGPTAccountModel? = nil, respondWithTools: RespondWithTools? = nil) {
         self.loadModes = loadModes; self.respond = respond; self.respondWithTools = respondWithTools; self.defaults = defaults
+        automaticToolsEnabled = defaults.object(forKey: "chatConsole.automaticTools") as? Bool ?? true
         self.chatGPTAccount = chatGPTAccount
         if let savedModel = defaults.string(forKey: Self.selectedModelKey), !savedModel.isEmpty {
             selectedModel = savedModel
