@@ -160,7 +160,7 @@ struct AgentApplicationHostTests {
         }
     }
 
-    @Test func applicationConstructsAnIdleHostBoundToItsLiveLibrary() throws {
+    @Test func applicationEnablesAccessWithoutCreatingCredentialsAndKeepsAdmissionChecks() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let app = try #require(f.app), secrets = f.secrets
         let note = try f.library.createNote(content: "Scoped draft")
@@ -168,7 +168,9 @@ struct AgentApplicationHostTests {
             create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
             validateApplication: {}, validateHelper: { _ in })
         let settings = try #require(app.agentSettings)
-        #expect(!settings.accessEnabled && secrets.values.isEmpty)
+        #expect(settings.accessEnabled && secrets.values.isEmpty)
+        try settings.setEnabled(false)
+        #expect(!settings.accessEnabled)
         #expect(settings.resourceChoices().contains { $0.reference == .init(kind: .draft, id: note.id) })
         f.locked = true
         #expect(throws: AgentErrorCode.permissionDenied) { try settings.setEnabled(true) }

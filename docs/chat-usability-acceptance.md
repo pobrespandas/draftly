@@ -157,3 +157,30 @@ opt-out test, and 47 host tests passed. Build 45 includes the Apple read adapter
 correction and automatic scrolling. Notarization
 `6fa2b0b4-2a45-4696-bc11-802d328d33c0` was accepted. Installed combined acceptance
 is pending approval for the new automatic QA connections. Do not mark released.
+
+## Installed combined acceptance — build 46
+
+Build 46 uses source `181522c`. Notarization
+`bd1661d5-a750-4e7b-ac8d-c30ed432750d` was accepted and stapled.
+The previous QA instance was closed before this build opened the library.
+The prior manual off setting remained off. After the approved QA enable step,
+opening chat connected ChatGPT when model loading finished, without Connect.
+Switching to Apple Intelligence also connected automatically.
+
+Apple created `QA conjunta café 🐼` with the second line `El panda prepara café.`
+and returned the saved text. Opening it showed 41 characters. Apple then read
+and edited it, adding `Edición Apple confirmada.`. The editor showed 69 characters.
+ChatGPT connected automatically on provider change, read the editor, prepared
+and applied `editor.replaceRange`, then read the result. The editor showed
+97 characters and its response matched. Native Undo restored 69 characters.
+
+The transcript stayed at the bottom after replies. Scrolling up during a
+response kept the earlier messages visible and showed Latest message. That
+button returned the scrollbar to 1. Sending from an earlier position also
+returned it to 1. Stop response returned the composer to idle. Disconnect
+removed the connection. Settings showed no approved connections. Stop Work
+turned local access off. These are observed installed results, not publication.
+
+The CI default-off assertion was updated to check default-on without credentials,
+then explicit off and protected-data admission. All 11 application-host tests
+passed locally. CI must pass again before integration or release.
