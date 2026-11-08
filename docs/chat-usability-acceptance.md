@@ -142,3 +142,18 @@ The follow-up adapter treats an empty catalog name as a list request and omits
 write-envelope fields for read-only operations. The real-model forced generic
 read passed in 9.3 seconds. The deterministic gateway authorization test also
 passed. This is isolated-model evidence; installed acceptance is still open.
+
+## Automatic chat tools implementation
+
+Commit `abf66c9` enables local access once per library when the app is unlocked
+and protected data is available. Later manual changes to local access remain
+in effect. The chat connects automatically when its provider is available.
+Its connections use a distant-future expiry. Disconnect disables automatic
+connection and saves that choice across restart. The CLI pairing flow keeps
+its existing expiry rules.
+
+Native build passed. Twelve existing Chat Console tests, the new persisted
+opt-out test, and 47 host tests passed. Build 45 includes the Apple read adapter
+correction and automatic scrolling. Notarization
+`6fa2b0b4-2a45-4696-bc11-802d328d33c0` was accepted. Installed combined acceptance
+is pending approval for the new automatic QA connections. Do not mark released.
