@@ -266,6 +266,23 @@ final class AppleChatToolLifetime: @unchecked Sendable {
     }
 }
 
+enum AppleChatTextResult {
+    static func literalEditorText(_ result: String) throws -> String {
+        let response = try JSONDecoder().decode(AgentResponse.self, from: Data(result.utf8))
+        guard case .result(.object(let fields)) = response.outcome,
+              case .object(let content) = fields["content"],
+              case .string(let text) = content["text"] else { return result }
+        var metadata = fields
+        var contentMetadata = content
+        contentMetadata.removeValue(forKey: "text")
+        metadata["content"] = .object(contentMetadata)
+        let encoded = try JSONEncoder().encode(AgentJSONValue.object(metadata))
+        return "Editor metadata: " + String(decoding: encoded, as: UTF8.self)
+            + "\nExact editor text follows. Preserve its literal line breaks and characters. Do not JSON-escape this text when editing.\n"
+            + text
+    }
+}
+
 private struct AppleReadEditorTool: Tool {
     @Generable struct Arguments {}
     let name = "draftly_read_editor"
@@ -274,7 +291,7 @@ private struct AppleReadEditorTool: Tool {
     weak var bridge: AppleChatToolBridge?
     func call(arguments: Arguments) async throws -> String {
         guard let bridge else { throw CancellationError() }
-        return try await bridge.readEditor(id: editorID)
+        return try AppleChatTextResult.literalEditorText(try await bridge.readEditor(id: editorID))
     }
 }
 

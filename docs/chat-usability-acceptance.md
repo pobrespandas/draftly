@@ -566,3 +566,18 @@ dispatched. It never retries after a dispatched read, write, or failed call.
 The retry keeps the same lifetime and call budget. Thirteen Apple tool tests
 and the native Xcode build passed. Installed verification remains pending.
 The QA connection was revoked, local access was turned off, and the app quit.
+
+
+## Build 62: retry dispatch and literal text
+
+Notarization f07165bf-f5c0-42b4-a49c-8ac1e2aacd89 was accepted.
+The installed model made a real editor write and read with prior conversation
+history. It returned 67 characters but changed an original line break into
+literal backslash-n characters. Native Undo restored the control text.
+This result still blocks acceptance. The connection was revoked, access was
+turned off, and the QA quit.
+
+The next adapter presents editor text with literal line breaks, separate from
+JSON metadata. It does not change the public operation response or decode
+escape sequences in user text. Errors keep their original response.
+The native build passed. Installed verification remains pending.

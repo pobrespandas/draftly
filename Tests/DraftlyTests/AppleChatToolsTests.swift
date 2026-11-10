@@ -82,6 +82,21 @@ struct AppleChatToolsTests {
         #expect(attempts == 1)
     }
 
+    @Test func editorToolTextKeepsLiteralUnicodeAndLineBreaks() throws {
+        let text = "café 🐼\nSecond line\nLiteral \\n remains literal"
+        let response = try AgentResponse(requestID: UUID(), outcome: .result(.object([
+            "versionToken": .string("version"), "content": .object([
+                "text": .string(text), "hasMore": .bool(false), "totalLength": .integer(Int64(text.utf16.count))])
+        ])))
+        let raw = String(decoding: try JSONEncoder().encode(response), as: UTF8.self)
+        let rendered = try AppleChatTextResult.literalEditorText(raw)
+        #expect(rendered.hasSuffix(text))
+        #expect(rendered.contains("versionToken") && rendered.contains("hasMore"))
+        let denied = try AgentResponse(requestID: UUID(), outcome: .error(.permissionDenied))
+        let deniedJSON = String(decoding: try JSONEncoder().encode(denied), as: UTF8.self)
+        #expect(try AppleChatTextResult.literalEditorText(deniedJSON) == deniedJSON)
+    }
+
     @Test func catalogAndCallsKeepTheExistingScope() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)
