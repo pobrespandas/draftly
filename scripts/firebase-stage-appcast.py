@@ -234,7 +234,7 @@ def write_journal(path, data, *, new=False):
 
 def compress_feed(feed):
     output = io.BytesIO()
-    with gzip.GzipFile(filename="", mode="wb", fileobj=output, mtime=0) as stream:
+    with gzip.GzipFile(filename="", mode="wb", fileobj=output, mtime=0, compresslevel=9) as stream:
         stream.write(feed)
     return output.getvalue()
 
