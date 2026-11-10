@@ -205,3 +205,9 @@ ChatGPT, bottom following after the response, and an empty composer after
 Command-Z following send. No tool connection was created. A seven-line prompt
 exposed an inaccurate five-line height estimate. The follow-up uses the native
 font line height. This correction needs a new installed acceptance build.
+
+The complete local Swift verifier passed: consumer 1, contracts 197, core 837,
+app 1718. The subsequent focused run passed 17 tests, including Return,
+Shift-Return, marked IME text, independent Undo, and conversation changes.
+Conversation changes clear the unsent prompt and trigger automatic tool
+reconnection when enabled. Manual tool opt-out remains in force.

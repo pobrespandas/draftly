@@ -515,6 +515,21 @@ struct ChatEditorCompositionTests {
         #expect(text.string == "\n")
     }
 
+    @Test func markedTextDoesNotSubmit() throws {
+        let text = DraftTextView()
+        text.isEditable = true
+        var submitted = false
+        text.submitPrompt = { submitted = true }
+        text.setMarkedText("かな", selectedRange: NSRange(location: 2, length: 0),
+            replacementRange: NSRange(location: NSNotFound, length: 0))
+        #expect(text.hasMarkedText())
+        let event = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: 0, windowNumber: 0, context: nil, characters: "\r",
+            charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+        text.keyDown(with: event)
+        #expect(!submitted)
+    }
+
     @Test func independentEditorsDoNotShareUndo() {
         let draft = DraftTextView(), chat = DraftTextView()
         draft.ownsUndoManager = true

@@ -324,7 +324,7 @@ struct LocalChatConsolePanel: View {
                 selectedTab = "agents"
                 openSettings()
             }, editorTheme: editorTheme, contentFont: contentFont, createDraft: createDraft, insertText: insertText, hasDraft: hasDraft)
-            .task(id: model.selectedModel + String(settings.accessEnabled) + String(model.canConnectTools)) {
+            .task(id: model.selectedModel + String(settings.accessEnabled) + String(model.canConnectTools) + (model.selectedConversation?.id.uuidString ?? "")) {
                 await model.loadModels()
                 guard settings.accessEnabled, model.automaticToolsEnabled,
                       model.canConnectTools, !model.hasTools else { return }

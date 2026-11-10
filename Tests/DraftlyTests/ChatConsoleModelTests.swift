@@ -9,6 +9,18 @@ struct ChatConsoleModelTests {
         UserDefaults(suiteName: "ChatConsoleTests-\(UUID().uuidString)")!
     }
 
+    @Test func conversationChangesClearTheUnsentPrompt() {
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults())
+        let first = model.selectedConversation!.id
+        model.prompt = "Mensaje café 🐼"
+        model.startConversation()
+        #expect(model.prompt.isEmpty)
+        model.prompt = "Otro mensaje"
+        model.selectConversation(first)
+        #expect(model.prompt.isEmpty)
+        #expect(model.selectedConversation?.id == first)
+    }
+
     @Test func automaticToolsDefaultOnAndKeepManualOptOutAfterRestart() {
         let defaults = isolatedDefaults()
         func make() -> ChatConsoleModel {

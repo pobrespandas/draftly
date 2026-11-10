@@ -184,6 +184,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     }
 
     func startConversation() {
+        prompt = ""
         disconnectTools()
         stopCurrentResponse(); errorMessage = nil
         let conversation = ChatConsoleConversation()
@@ -196,6 +197,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     func selectConversation(_ id: UUID) {
         mergeSavedConversations()
         guard conversations.contains(where: { $0.id == id }) else { return }
+        prompt = ""
         disconnectTools()
         stopCurrentResponse(); errorMessage = nil
         selectedConversationID = id
