@@ -122,6 +122,26 @@ class SwiftResultVerificationTests(unittest.TestCase):
         self.assertEqual([c[0] for c in calls], [{layout}, {other}])
         self.assertEqual(calls[1][1]["test_skip"], "DraftlyTests.TypewriterScrollingTests/")
 
+    def test_view_reconstruction_isolation_keeps_each_case_exactly_once(self):
+        layout = "DraftlyTests.TypewriterScrollingTests/layout()"
+        reconstruction = "DraftlyTests.ChatEditorCompositionTests/recreatingComposerRestoresTheCurrentUnsentPrompt()"
+        keyboard = "DraftlyTests.ChatEditorCompositionTests/returnSubmitsAndShiftReturnAddsALine()"
+        other = "DraftlyTests.Other/check()"
+        expected = {layout, reconstruction, keyboard, other}
+        calls = []
+        def execute(module, selected, output, **options):
+            calls.append((set(selected), options, output.name))
+            return {module: len(selected)}
+        with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0, "\n".join(sorted(expected)), "")), \
+                patch.object(runner, "run_target", side_effect=execute), patch("builtins.print"):
+            runner.run(Path(self.folder.name))
+        self.assertEqual([call[0] for call in calls], [{layout}, {reconstruction}, {keyboard, other}])
+        self.assertEqual(set.union(*(call[0] for call in calls)), expected)
+        self.assertEqual(sum(len(call[0]) for call in calls), len(expected))
+        self.assertEqual(calls[1][2], "DraftlyTests-ChatComposerReconstruction")
+        self.assertEqual(calls[1][1]["test_filter"], reconstruction.removesuffix("()"))
+        self.assertEqual(calls[2][1]["test_skip"], "DraftlyTests.TypewriterScrollingTests/|" + reconstruction.removesuffix("()"))
+
     def test_diagnostic_suite_is_forwarded_without_retries(self):
         with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 7)) as command:
             with self.assertRaisesRegex(ValueError, "Swift tests failed"):

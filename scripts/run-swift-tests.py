@@ -201,17 +201,24 @@ def run(output, *, concurrent_app=False, diagnostic_suite=None):
         if not selected:
             raise ValueError("The test inventory has no cases for " + module)
         test_filter = "DraftlyTests." + diagnostic_suite if diagnostic_suite else None
-        isolated_filter = "DraftlyTests.TypewriterScrollingTests/"
-        isolated = {name for name in selected if name.startswith(isolated_filter)} if not diagnostic_suite else set()
-        if isolated:
-            # Native layout tests need their own AppKit process state.
-            counts.update(run_target(module, isolated, output / (module + "-TypewriterScrollingTests"),
-                                     concurrent_app=concurrent_app, test_filter=isolated_filter))
-            selected -= isolated
+        isolated_filters = []
+        if not diagnostic_suite:
+            # Keep native view reconstruction and layout state out of later input tests.
+            for label, prefix in [
+                ("TypewriterScrollingTests", "DraftlyTests.TypewriterScrollingTests/"),
+                ("ChatComposerReconstruction", "DraftlyTests.ChatEditorCompositionTests/recreatingComposerRestoresTheCurrentUnsentPrompt"),
+            ]:
+                isolated = {name for name in selected if name.startswith(prefix)}
+                if not isolated:
+                    continue
+                counts.update(run_target(module, isolated, output / (module + "-" + label),
+                                         concurrent_app=concurrent_app, test_filter=prefix))
+                selected -= isolated
+                isolated_filters.append(prefix)
         if not selected:
             continue
         counts.update(run_target(module, selected, output / module, concurrent_app=concurrent_app,
-                                 test_filter=test_filter, **({"test_skip": isolated_filter} if isolated else {})))
+                                 test_filter=test_filter, **({"test_skip": "|".join(isolated_filters)} if isolated_filters else {})))
     print("Verified complete Swift results: " + ", ".join(
         name + " " + str(count) for name, count in sorted(counts.items())))
 

@@ -506,3 +506,25 @@ verify this fixture change. App source is unchanged from e47bc03; build 60
 still contains the final app code. It is signed, but notarization could not
 read the saved Keychain profile while the Mac was locked. Manual unlock,
 notarization, and installed reconstruction QA remain pending.
+
+
+### Native process isolation and complete inventory
+
+Run 42870264828 repeated the status-zero termination at the Return test after
+composer reconstruction passed. An offscreen input window alone did not resolve
+it. The verifier still rejected the incomplete report.
+
+The reconstruction test now runs in its own native process before the main app
+tests. The existing typewriter process remains separate. The main process skips
+exactly those tested identities. A verifier test checks the partition, its union,
+and execution count. Every discovered case must have one passing result. There
+are no test retries or reduced result requirements. Locally, the reconstruction
+process passed its one test. The full verifier passed consumer 1, contracts 197,
+core 837, and app 1,726. All 331 script tests passed in an isolated environment
+with the CI dependency ranges. macOS 26 CI must still validate this partition.
+
+The broad script run also exposed a Python 3.15 default change: GzipFile now uses
+compression level 6. The existing feed-byte regression requires level 9. The
+feed compressor now sets that level explicitly. The regression and all script
+tests pass. This does not change the app source or the build-60 QA package.
+Manual Mac unlock is still required for notarization and installed follow-up.
