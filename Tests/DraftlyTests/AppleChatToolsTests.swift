@@ -63,9 +63,8 @@ struct AppleChatToolsTests {
         let catalog = try #require(tools.first { $0.name == "draftly_tools" } as? any Tool<GeneratedContent, String>)
         let description = try await catalog.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_get\"}"))
         #expect(description.contains("inputSchema"))
-        await #expect(throws: AgentErrorCode.permissionDenied) {
-            try await catalog.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
-        }
+        let deniedCatalog = try await catalog.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
+        #expect(deniedCatalog.contains("permission_denied") && deniedCatalog.contains("without name"))
         let call = try #require(tools.first { $0.name == "draftly_call" } as? any Tool<GeneratedContent, String>)
         let arguments: AgentJSONValue = .object(["name": .string("draftly_drafts_get"),
             "targets": .array([.object(["kind": .string("draft"), "id": .string(runtime.allowed.id.uuidString)])]),
@@ -73,9 +72,9 @@ struct AppleChatToolsTests {
             "expectedVersion": .string(""), "retryKey": .string("")])
         let json = String(decoding: try JSONEncoder().encode(arguments), as: UTF8.self)
         #expect(try await call.call(arguments: GeneratedContent(json: json)).contains(runtime.allowed.content))
-        await #expect(throws: AgentErrorCode.permissionDenied) {
-            try await call.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
-        }
+        let deniedCall = try await call.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
+        #expect(deniedCall.contains("permission_denied") && deniedCall.contains("unknown"))
+        #expect(runtime.library.notes.count == 2)
     }
 
     @Test func libraryCatalogLoadsDescriptionsOnlyForTheChosenOperation() async throws {

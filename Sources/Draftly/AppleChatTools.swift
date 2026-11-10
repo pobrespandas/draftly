@@ -286,7 +286,10 @@ private struct AppleCatalogTool: Tool {
         let fields = try appleToolFields(arguments)
         if let name = fields["name"], name != .null, name != .string("") {
             guard case .string(let name) = name else { throw AgentErrorCode.invalidInput }
-            return try await callback(name)
+            do { return try await callback(name) }
+            catch AgentErrorCode.permissionDenied {
+                return #"{"error":"permission_denied","hint":"This name is not available in the current catalog. Call draftly_tools without name to get exact authorized names. Do not invent a tool name."}"#
+            }
         }
         return try await callback(nil)
     }
@@ -332,6 +335,8 @@ private struct AppleCallTool: Tool {
             return try await callback(name, json)
         } catch AgentErrorCode.invalidInput {
             return #"{"error":"invalid_input","hint":"Check the exact tool schema with draftly_tools. Reads need exact targets and operation parameters. Writes and mutations.prepare also need a top-level requestID. Omit unrelated optional fields."}"#
+        } catch AgentErrorCode.permissionDenied {
+            return #"{"error":"permission_denied","hint":"Check access and the exact authorized name with draftly_tools without name. Do not invent names. Never repeat a write whose outcome is unknown."}"#
         }
     }
 }

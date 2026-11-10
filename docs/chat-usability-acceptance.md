@@ -392,3 +392,14 @@ execution through the string-name gateway. The complete library tool schema
 fixture must stay below 8,000 bytes; this is a byte bound, not a token claim.
 All 10 Apple adapter tests and the Xcode build passed. Another installed model
 run is required before acceptance.
+
+
+Build 57 passed notarization 5df4f303-4867-4295-a672-18ba380d3b78.
+The same request did not hit the context limit. It read the draft, then a tool
+call failed with permission_denied. No edit occurred and no success was shown.
+The QA connection was revoked and access was turned off. Gateway discovery
+and execution now return bounded permission feedback to the model, rather
+than ending inference when it chooses an unavailable name. The backend still
+rejects the call. The hint requires exact discovery and forbids replay of an
+unknown write. Ten adapter tests and the Xcode build passed. Installed recovery
+remains unverified.
