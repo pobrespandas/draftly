@@ -85,9 +85,6 @@ struct NativeEditor: NSViewRepresentable {
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let text = scroll.documentView as? DraftTextView else { return }
         text.submitPrompt = submit
-        if independentUndo, !text.hasMarkedText(), text.string != session.content {
-            text.undoManager?.removeAllActions()
-        }
         configureTextInput(text, coordinator: context.coordinator)
         if scroll.rulersVisible != showParagraphNumbers { scroll.rulersVisible = showParagraphNumbers }
         scroll.verticalRulerView?.needsDisplay = true
@@ -203,7 +200,8 @@ struct NativeEditor: NSViewRepresentable {
             if changedNote { textView.undoManager?.removeAllActions(); noteID = parent.session.noteID }
             guard !DraftOperations.sameText(textView.string, parent.session.content) else { return false }
             let previous = textView.string, selection = textView.selectedRange()
-            if !changedNote { textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous, selection: selection) } }
+            if parent.independentUndo { textView.undoManager?.removeAllActions() }
+            if !changedNote && !parent.independentUndo { textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous, selection: selection) } }
             textView.string = parent.session.content
             return true
         }

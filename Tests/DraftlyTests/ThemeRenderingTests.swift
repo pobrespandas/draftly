@@ -530,6 +530,24 @@ struct ChatEditorCompositionTests {
         #expect(!submitted)
     }
 
+    @Test func externalComposerResetDoesNotRegisterUndoForTheSentMessage() {
+        let session = EditorSession()
+        session.content = "Mensaje café 🐼"
+        let editor = NativeEditor(session: session, fontName: "System", fontSize: 17,
+            lineSpacing: 0, markdown: true, independentUndo: true, onChange: {})
+        let coordinator = editor.makeCoordinator()
+        let text = DraftTextView()
+        text.ownsUndoManager = true
+        text.string = session.content
+        coordinator.textView = text
+        text.undoManager?.registerUndo(withTarget: text) { $0.string = "previous" }
+        #expect(text.undoManager?.canUndo == true)
+        session.content = ""
+        coordinator.synchronizeScriptEdit()
+        #expect(text.string.isEmpty)
+        #expect(text.undoManager?.canUndo == false)
+    }
+
     @Test func independentEditorsDoNotShareUndo() {
         let draft = DraftTextView(), chat = DraftTextView()
         draft.ownsUndoManager = true

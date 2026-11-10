@@ -234,3 +234,10 @@ Build 50 installed composer QA also confirmed that New Chat clears the prompt
 and Command-Z does not restore the prior conversation's input. The composer
 scrolls internally for seven lines. Apple/ChatGPT tool acceptance remains
 pending the requested connection approval. Access was not enabled.
+
+A follow-up review found that external composer resets could register a new
+Undo entry after clearing the manager. Independent editor resets now clear
+Undo inside the shared replacement path and do not register the old prompt.
+A coordinator-level regression test confirms an empty composer with no Undo.
+The focused run passed 33 chat, theme, and composition tests. A new installed
+build is required for this final correction.
