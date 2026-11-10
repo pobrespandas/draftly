@@ -617,3 +617,16 @@ The test was cancelled. The library stayed at 11 drafts. This blocks combined
 QA acceptance. The next description puts the prepare sequence directly on
 drafts.create. Public names and operation schemas stay unchanged.
 All QA connections are revoked and local access is off.
+
+
+## Build 65: creation guidance verified
+
+Notarization 0c762726-6b3c-4f56-b3b4-1237b79c531b was accepted.
+ChatGPT GPT-6-Luna prepared, created, and read one QA ChatGPT 65 café 🐼 draft.
+The library grew from 11 to 12 drafts. The response reported the actual text.
+In the next turn, it read the current editor but attempted unprepared
+editor.replaceAll and editor.replaceRange calls. Both returned invalid_input.
+It read the unchanged editor again and correctly reported failure. It did not
+claim a successful edit or create another draft. Editing acceptance remains
+pending. The next descriptions put the preparation requirement on both editor
+write tools. All QA connections are revoked and local access is off.
