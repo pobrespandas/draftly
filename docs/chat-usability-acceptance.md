@@ -211,3 +211,26 @@ app 1718. The subsequent focused run passed 17 tests, including Return,
 Shift-Return, marked IME text, independent Undo, and conversation changes.
 Conversation changes clear the unsent prompt and trigger automatic tool
 reconnection when enabled. Manual tool opt-out remains in force.
+
+### Signed update fixture — 10 November 2026
+
+The official 0.4.0 ZIP passed its published checksum and strict code signature.
+A separate fixture uses source tag v0.4.0 (42c094d) with a QA-only loopback feed
+adapter. It is not the unmodified public binary. Production source retains its
+HTTPS feed restriction. Both fixture apps use library
+46FAF430-F21D-40B8-9427-782BA82A9D40 and a separate Sparkle key in Keychain.
+Archive and feed signatures remain required. The baseline is build 40; the
+target is build 50 from cfa6e06. Both app/helper packages were notarized and
+stapled: db7702e2-897a-40e9-be6e-f5dd43407405 and
+c0e3370b-101e-41e3-976b-88960edc3a79.
+
+The baseline opened and saved the neutral Unicode draft “Actualización 0.4.0
+café 🐼” (71 characters, 10 words). Check for Updates is present. The first check
+failed because sign_update was waiting for Keychain permission, so the local
+feed server had not started. Computer Use cannot control SecurityAgent. User
+handoff is pending. No update installation or grant migration is claimed.
+
+Build 50 installed composer QA also confirmed that New Chat clears the prompt
+and Command-Z does not restore the prior conversation's input. The composer
+scrolls internally for seven lines. Apple/ChatGPT tool acceptance remains
+pending the requested connection approval. Access was not enabled.
