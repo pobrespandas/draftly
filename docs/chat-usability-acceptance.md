@@ -184,3 +184,16 @@ turned local access off. These are observed installed results, not publication.
 The CI default-off assertion was updated to check default-on without credentials,
 then explicit off and protected-data admission. All 11 application-host tests
 passed locally. CI must pass again before integration or release.
+
+### Composition refactor checkpoint — 10 November 2026
+
+The draft panel and chat now use one panel composition with header, content,
+status, and footer slots. The chat composer uses NativeEditor with a separate
+EditorSession and UndoManager. It uses the Markdown font preference and the
+window theme. Return submits, Shift-Return inserts a line, and marked text
+bypasses submission. The composer measures laid-out text, including wrapping.
+
+The prior serial chat and theme run passed 88 tests. The independent Undo test
+passed. The final composition tests, installed build acceptance, full CI, and
+signed update from 0.4.0 remain open. Build 47 notarization was accepted, but
+that package predates the final panel extraction and is not final acceptance.

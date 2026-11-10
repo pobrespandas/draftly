@@ -31,7 +31,7 @@ struct DraftEditorPanel: View {
     }
 
     private func editorContent(_ note: Note) -> some View {
-        VStack(spacing: 0) {
+        WritingPanel(header: {
             if note.trashedAt != nil {
                 HStack { Label("This draft is in the Trash", systemImage: "trash"); Spacer(); Button("Restore") { model.change([note.id]) { $0.trashedAt = nil } } }
                     .font(.caption).padding(10).background(Color.orange.opacity(0.12))
@@ -40,6 +40,7 @@ struct DraftEditorPanel: View {
                 DraftTagStrip(model: model, session: model.editor)
                 Divider()
             }
+        }, content: {
             ZStack {
                 EditorBody(model: model, session: model.editor, fontName: fontName, fontSize: fontSize, lineSpacing: lineSpacing, markdown: ScriptSyntax.isMarkdown(note.syntax), horizontalMargin: horizontalMargin, verticalMargin: verticalMargin, maximumWidth: maximumWidth, theme: theme)
                     .opacity(model.showPreview ? 0 : 1).allowsHitTesting(!model.showPreview)
@@ -47,13 +48,14 @@ struct DraftEditorPanel: View {
                 if let request = model.actionPreview { ActionPreviewPane(request: request) }
                 else if model.showPreview { InlineMarkdownPreview(session: model.editor, syntax: note.syntax, htmlOverride: model.previewHTML) }
             }
+        }, status: { EmptyView() }, footer: {
             if model.showActionBar {
                 Divider()
                 EditorActionBar(model: model, session: model.editor, library: library)
             }
             Divider()
             EditorFooter(model: model, session: model.editor, library: library)
-        }
+        })
     }
 
 }

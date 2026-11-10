@@ -1,37 +1,62 @@
 import SwiftUI
 import AgentContracts
+import DraftlyCore
+
+/// Compose a panel without coupling its content to a window model.
+struct WritingPanel<Header: View, Content: View, Status: View, Footer: View>: View {
+    @ViewBuilder var header: () -> Header
+    @ViewBuilder var content: () -> Content
+    @ViewBuilder var status: () -> Status
+    @ViewBuilder var footer: () -> Footer
+    var body: some View {
+        VStack(spacing: 0) {
+            header()
+            content().frame(maxWidth: .infinity, maxHeight: .infinity)
+            status()
+            footer()
+        }
+    }
+}
 
 struct ChatConsolePanel: View {
     @ObservedObject var model: ChatConsoleModel
     var connectTools: (@MainActor () throws -> AgentChatToolSession)? = nil
     var toolsUnavailableReason = "Local agent access is unavailable in this build."
     var openAgentSettings: (() -> Void)? = nil
+    var editorTheme: EditorTheme? = nil
     var contentFont: Font = .body
     var createDraft: ((String) -> Void)? = nil
     var insertText: ((String) -> Void)? = nil
     var hasDraft = false
-    @FocusState private var promptFocused: Bool
+    @StateObject private var promptSession = EditorSession()
+    @State private var promptHeight: CGFloat = 38
+    @AppStorage("editor.fontName") private var promptFontName = EditorPreferenceDefaults.fontName
+    @AppStorage("editor.fontSize") private var promptFontSize = EditorPreferenceDefaults.fontSize
+    @AppStorage(EditorSyntaxFontPreferences.key) private var promptSyntaxFonts = "{}"
     @State private var showChatGPTAccount = false
     @State private var followsResponse = true
     @State private var userIsScrolling = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        WritingPanel(header: {
             header
             toolsStatus
             Divider()
+        }, content: {
             if let conversation = model.selectedConversation, conversation.messages.isEmpty {
                 emptyState
             } else {
                 transcript
             }
+        }, status: {
             if let error = model.errorMessage {
                 Text(error).font(.caption).foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14).padding(.vertical, 8)
             }
+        }, footer: {
             Divider()
             composer
-        }
+        })
         .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
         .background(.background)
         .task { await model.loadModels() }
@@ -241,14 +266,25 @@ struct ChatConsolePanel: View {
     }
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            TextField("Enter a prompt", text: $model.prompt, axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(contentFont)
-                .lineLimit(1...5)
-                .focused($promptFocused)
-                .onSubmit { model.send() }
-                .padding(.vertical, 8)
+        let promptFont = EditorSyntaxFontPreferences.font(for: "Markdown", encoded: promptSyntaxFonts,
+            defaultName: promptFontName, defaultSize: promptFontSize)
+        return HStack(alignment: .bottom, spacing: 8) {
+            NativeEditor(session: promptSession, fontName: promptFont.name,
+                fontSize: promptFont.size, lineSpacing: 0, markdown: true,
+                horizontalMargin: 0, verticalMargin: 8, maximumWidth: 0, theme: editorTheme,
+                submit: { model.send() }, measuredHeight: { if abs(promptHeight - $0) > 0.5 { promptHeight = $0 } }, independentUndo: true) { model.prompt = promptSession.content }
+                .frame(height: min(max(promptHeight, promptFontSize * 1.3 + 16), promptFontSize * 1.3 * 5 + 16))
+                .accessibilityLabel("Enter a prompt")
+                .id(model.selectedConversation?.id)
+                .onChange(of: model.prompt) { _, value in
+                    if promptSession.content != value {
+                        promptSession.content = value
+                        promptSession.selection = NSRange(location: value.utf16.count, length: 0)
+                    }
+                }
+                .onChange(of: model.selectedConversation?.id) { _, _ in
+                    promptSession.content = model.prompt
+                }
             Button {
                 if model.isResponding { model.cancelResponse() } else { model.send() }
             } label: {
@@ -270,6 +306,7 @@ struct ChatConsolePanel: View {
 struct LocalChatConsolePanel: View {
     @ObservedObject var model: ChatConsoleModel
     @ObservedObject var settings: AgentConnectionsSettingsModel
+    var editorTheme: EditorTheme? = nil
     var contentFont: Font = .body
     var createDraft: ((String) -> Void)? = nil
     var insertText: ((String) -> Void)? = nil
@@ -284,7 +321,7 @@ struct LocalChatConsolePanel: View {
             openAgentSettings: settings.accessEnabled ? nil : {
                 selectedTab = "agents"
                 openSettings()
-            }, contentFont: contentFont, createDraft: createDraft, insertText: insertText, hasDraft: hasDraft)
+            }, editorTheme: editorTheme, contentFont: contentFont, createDraft: createDraft, insertText: insertText, hasDraft: hasDraft)
             .task(id: model.selectedModel + String(settings.accessEnabled) + String(model.canConnectTools)) {
                 await model.loadModels()
                 guard settings.accessEnabled, model.automaticToolsEnabled,

@@ -134,7 +134,7 @@ struct LibraryView: View {
 
     @ViewBuilder private var chatConsole: some View {
         if let settings = hub.agentSettings {
-            LocalChatConsolePanel(model: model.chatConsole, settings: settings,
+            LocalChatConsolePanel(model: model.chatConsole, settings: settings, editorTheme: theme,
                 contentFont: Font(fontName == "System" ? NSFont.systemFont(ofSize: fontSize) : NSFont(name: fontName, size: fontSize) ?? NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)),
                 createDraft: { text in _ = model.capture(text) },
                 insertText: { text in model.perform {

@@ -495,3 +495,37 @@ struct ThemeRenderingTests {
     }
 
 }
+
+@Suite("Chat editor composition") @MainActor
+struct ChatEditorCompositionTests {
+    @Test func returnSubmitsAndShiftReturnAddsALine() throws {
+        let text = DraftTextView()
+        text.isEditable = true
+        var submitted = 0
+        text.submitPrompt = { submitted += 1 }
+        func event(_ flags: NSEvent.ModifierFlags) throws -> NSEvent {
+            try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags,
+                timestamp: 0, windowNumber: 0, context: nil, characters: "\r",
+                charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+        }
+        text.keyDown(with: try event([]))
+        #expect(submitted == 1)
+        text.keyDown(with: try event(.shift))
+        #expect(submitted == 1)
+        #expect(text.string == "\n")
+    }
+
+    @Test func independentEditorsDoNotShareUndo() {
+        let draft = DraftTextView(), chat = DraftTextView()
+        draft.ownsUndoManager = true
+        chat.ownsUndoManager = true
+        var draftValue = 1, chatValue = 1
+        draft.undoManager?.registerUndo(withTarget: draft) { _ in draftValue = 0 }
+        chat.undoManager?.registerUndo(withTarget: chat) { _ in chatValue = 0 }
+        chat.undoManager?.undo()
+        #expect(chatValue == 0)
+        #expect(draftValue == 1)
+        draft.undoManager?.undo()
+        #expect(draftValue == 0)
+    }
+}
