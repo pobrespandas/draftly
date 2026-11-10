@@ -2,18 +2,49 @@ import SwiftUI
 import AgentContracts
 import DraftlyCore
 
+private struct WritingHeaderMinimumKey: EnvironmentKey { static let defaultValue: CGFloat = 0 }
+private struct WritingFooterMinimumKey: EnvironmentKey { static let defaultValue: CGFloat = 0 }
+extension EnvironmentValues {
+    var writingHeaderMinimum: CGFloat {
+        get { self[WritingHeaderMinimumKey.self] }
+        set { self[WritingHeaderMinimumKey.self] = newValue }
+    }
+    var writingFooterMinimum: CGFloat {
+        get { self[WritingFooterMinimumKey.self] }
+        set { self[WritingFooterMinimumKey.self] = newValue }
+    }
+}
+struct WritingHeaderHeightPreference: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+struct WritingFooterHeightPreference: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
 /// Compose a panel without coupling its content to a window model.
 struct WritingPanel<Header: View, Content: View, Status: View, Footer: View>: View {
     @ViewBuilder var header: () -> Header
     @ViewBuilder var content: () -> Content
     @ViewBuilder var status: () -> Status
     @ViewBuilder var footer: () -> Footer
+    @Environment(\.writingHeaderMinimum) private var headerMinimum
+    @Environment(\.writingFooterMinimum) private var footerMinimum
     var body: some View {
         VStack(spacing: 0) {
-            header()
+            VStack(spacing: 0) { header() }
+                .fixedSize(horizontal: false, vertical: true)
+                .background(GeometryReader { proxy in Color.clear.preference(key: WritingHeaderHeightPreference.self, value: proxy.size.height) })
+                .frame(minHeight: headerMinimum)
+            Divider()
             content().frame(maxWidth: .infinity, maxHeight: .infinity)
             status()
-            footer()
+            Divider()
+            VStack(spacing: 0) { footer() }
+                .fixedSize(horizontal: false, vertical: true)
+                .background(GeometryReader { proxy in Color.clear.preference(key: WritingFooterHeightPreference.self, value: proxy.size.height) })
+                .frame(minHeight: footerMinimum, alignment: .bottom)
         }
     }
 }
@@ -34,14 +65,13 @@ struct ChatConsolePanel: View {
     @AppStorage("editor.fontSize") private var promptFontSize = EditorPreferenceDefaults.fontSize
     @AppStorage(EditorSyntaxFontPreferences.key) private var promptSyntaxFonts = "{}"
     @State private var showChatGPTAccount = false
+    @State private var showToolsStatus = false
     @State private var followsResponse = true
     @State private var userIsScrolling = false
 
     var body: some View {
         WritingPanel(header: {
             header
-            toolsStatus
-            Divider()
         }, content: {
             if let conversation = model.selectedConversation, conversation.messages.isEmpty {
                 emptyState
@@ -54,7 +84,6 @@ struct ChatConsolePanel: View {
                     .padding(.horizontal, 14).padding(.vertical, 8)
             }
         }, footer: {
-            Divider()
             composer
         })
         .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
@@ -98,6 +127,15 @@ struct ChatConsolePanel: View {
             .help(model.modelName(model.selectedModel))
             .disabled(model.availableModels.isEmpty)
 
+            Button { showToolsStatus.toggle() } label: {
+                PanelIcon(symbol: model.hasTools ? "checkmark.shield" : "wrench.and.screwdriver")
+                    .foregroundStyle(model.hasTools ? Color.accentColor : Color.secondary)
+            }
+            .accessibilityLabel("Draft tools")
+            .accessibilityValue(model.hasTools ? "Connected" : "Off")
+            .help((model.hasTools ? "Draft tools connected. " : "Draft tools off. ") + toolsStatusDetail)
+            .popover(isPresented: $showToolsStatus) { toolsStatus.padding(.top, 12).frame(width: 320) }
+
             Button { showChatGPTAccount = true } label: { PanelIcon(symbol: "person.crop.circle") }
                 .help("ChatGPT Account")
             Button { model.startConversation() } label: { PanelIcon(symbol: "plus") }
@@ -106,7 +144,7 @@ struct ChatConsolePanel: View {
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
         .padding(.horizontal, MainWindowStyle.utilityInset)
-        .frame(height: MainWindowStyle.utilityHeight)
+        .frame(height: MainWindowStyle.editorHeaderHeight)
     }
 
     private var modelLabel: String {

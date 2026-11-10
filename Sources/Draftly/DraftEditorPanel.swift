@@ -38,7 +38,6 @@ struct DraftEditorPanel: View {
             }
             if model.showTags {
                 DraftTagStrip(model: model, session: model.editor)
-                Divider()
             }
         }, content: {
             ZStack {
@@ -50,10 +49,9 @@ struct DraftEditorPanel: View {
             }
         }, status: { EmptyView() }, footer: {
             if model.showActionBar {
-                Divider()
                 EditorActionBar(model: model, session: model.editor, library: library)
+                Divider()
             }
-            Divider()
             EditorFooter(model: model, session: model.editor, library: library)
         })
     }

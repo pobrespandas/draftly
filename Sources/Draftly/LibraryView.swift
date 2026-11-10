@@ -8,6 +8,10 @@ struct LibraryView: View {
     private let requestID: UUID?
     @SceneStorage("draftly.scene.editorDraftID") private var restoredDraftID = ""
     @State private var showTagSearch = false
+    @State private var writingHeaderHeights: [Int: CGFloat] = [:]
+    @State private var writingFooterHeights: [Int: CGFloat] = [:]
+    private var writingHeaderHeight: CGFloat { max(MainWindowStyle.editorHeaderHeight, writingHeaderHeights.values.max() ?? 0) }
+    private var writingFooterHeight: CGFloat { writingFooterHeights.values.max() ?? (MainWindowStyle.editingBarHeight + MainWindowStyle.footerHeight + 1) }
     @AppStorage("editor.fontName") private var fontName = EditorPreferenceDefaults.fontName
     @AppStorage("editor.fontSize") private var fontSize = EditorPreferenceDefaults.fontSize
     @AppStorage("editor.lineSpacing") private var lineSpacing = EditorPreferenceDefaults.lineSpacing
@@ -35,7 +39,7 @@ struct LibraryView: View {
     }
     var body: some View {
         LibrarySplitView(model: model, panels: [
-            panel(sidebar), panel(noteList), panel(editor), panel(model.showChatConsole ? AnyView(chatConsole) : AnyView(actionPanel))
+            panel(sidebar), panel(noteList), panel(editor, writingSlot: 0), panel(model.showChatConsole ? AnyView(chatConsole) : AnyView(actionPanel), writingSlot: 1)
         ])
         .ignoresSafeArea(.container, edges: .top)
         .overlay(alignment: .top) {
@@ -107,8 +111,16 @@ struct LibraryView: View {
         }
     }
 
-    private func panel<Content: View>(_ content: Content) -> AnyView {
+    private func panel<Content: View>(_ content: Content, writingSlot: Int? = nil) -> AnyView {
         AnyView(content
+            .environment(\.writingHeaderMinimum, model.showChatConsole ? writingHeaderHeight : 0)
+            .environment(\.writingFooterMinimum, model.showChatConsole ? writingFooterHeight : 0)
+            .onPreferenceChange(WritingHeaderHeightPreference.self) { height in
+                if let writingSlot, writingHeaderHeights[writingSlot] != height { writingHeaderHeights[writingSlot] = height }
+            }
+            .onPreferenceChange(WritingFooterHeightPreference.self) { height in
+                if let writingSlot, writingFooterHeights[writingSlot] != height { writingFooterHeights[writingSlot] = height }
+            }
             .focusedSceneValue(\.windowModel, model)
             .preferredColorScheme(preferredScheme)
         .onChange(of: themePresentation.error, initial: true) { _, error in

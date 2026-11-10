@@ -291,3 +291,20 @@ A fresh response returns to the open draft. Generic calls still use explicit
 IDs and the existing permission checks. Nine adapter tests passed, including
 creation while another draft exists, reading the created content, and resetting
 the target for the next turn. This requires another installed regression run.
+
+### Shared panel boundaries
+
+The user requested aligned header and footer boundaries across the editor and
+chat. Each split panel has a separate NSHostingController, so measurements and
+environment values must be passed through each panel root. The two writing
+panels now report intrinsic header/footer heights by slot and receive common
+minimum heights. Footer borders belong to WritingPanel. The chat tools state
+is a compact header button with status and controls in a popover. It no longer
+adds a separate row above the transcript. DraftTagStrip and the chat header use
+the same 45-point constant. Multiline composition can expand both footer bands.
+
+The existing defaults remain automatic tools on and first-library access on.
+Explicit Disconnect, Stop Work, and manual access off remain effective. The QA
+screenshots with access off followed deliberate cleanup, not the install
+default. The focused 34-test run and Xcode build passed. Installed alignment,
+wrapped input, custom themes, and final model regression remain open.
