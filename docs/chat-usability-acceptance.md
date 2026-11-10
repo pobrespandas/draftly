@@ -488,3 +488,21 @@ Access stayed off. The live record gained library scope. Expired and revoked
 records were unchanged, as were all expiry dates. A second launch left the
 connection metadata identical. The updated app passed strict signature checks
 and was closed with access off.
+
+
+### macOS 26 keyboard fixture follow-up
+
+Run 42866996963 passed tooling and the contract matrix. Its native process
+passed the new composer reconstruction test, then exited with status zero at
+returnSubmitsAndShiftReturnAddsALine. The termination trace ends in Swift's
+async-main queue drain. There is no crash report and the test report is
+incomplete. The inventory verifier correctly rejected the run.
+
+The Return/Shift-Return and marked-text tests used an unattached NSTextView.
+They now attach it to an offscreen window and make it the native first
+responder. Key events use that window's identity. The coverage and assertions
+stay intact. The 20-test chat/composition run passed locally. macOS 26 CI must
+verify this fixture change. App source is unchanged from e47bc03; build 60
+still contains the final app code. It is signed, but notarization could not
+read the saved Keychain profile while the Mac was locked. Manual unlock,
+notarization, and installed reconstruction QA remain pending.

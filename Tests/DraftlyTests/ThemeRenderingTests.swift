@@ -525,13 +525,18 @@ struct ChatEditorCompositionTests {
     }
 
     @Test func returnSubmitsAndShiftReturnAddsALine() throws {
-        let text = DraftTextView()
+        _ = NSApplication.shared
+        let text = DraftTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 120))
+        let window = OffscreenTestWindow(contentRect: text.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = text
+        defer { window.contentView = nil }
         text.isEditable = true
+        #expect(window.makeFirstResponder(text))
         var submitted = 0
         text.submitPrompt = { submitted += 1 }
         func event(_ flags: NSEvent.ModifierFlags) throws -> NSEvent {
             try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags,
-                timestamp: 0, windowNumber: 0, context: nil, characters: "\r",
+                timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: "\r",
                 charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
         }
         text.keyDown(with: try event([]))
@@ -542,15 +547,20 @@ struct ChatEditorCompositionTests {
     }
 
     @Test func markedTextDoesNotSubmit() throws {
-        let text = DraftTextView()
+        _ = NSApplication.shared
+        let text = DraftTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 120))
+        let window = OffscreenTestWindow(contentRect: text.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = text
+        defer { window.contentView = nil }
         text.isEditable = true
+        #expect(window.makeFirstResponder(text))
         var submitted = false
         text.submitPrompt = { submitted = true }
         text.setMarkedText("かな", selectedRange: NSRange(location: 2, length: 0),
             replacementRange: NSRange(location: NSNotFound, length: 0))
         #expect(text.hasMarkedText())
         let event = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
-            timestamp: 0, windowNumber: 0, context: nil, characters: "\r",
+            timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: "\r",
             charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
         text.keyDown(with: event)
         #expect(!submitted)
