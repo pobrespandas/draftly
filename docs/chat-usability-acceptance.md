@@ -373,3 +373,22 @@ kept their resource scopes. Expiry dates did not change. Metadata was identical
 after restart, which confirms that migration did not repeat. No credential was
 created for this metadata fixture. The source-0.4.0 loopback-adapter limitation
 still applies. Both QA apps were closed with access off.
+
+
+### Apple context regression in final-code QA
+
+Installed build 56 passed combined notarization
+1d66785a-4274-4f7f-bb53-9c3df1bacb64. Automatic tools connected after enabling
+the approved isolated QA. A fresh request to edit and read the open editor
+failed with 8,561 supplied tokens against the model limit of 8,192. The draft
+stayed unchanged. The error was shown; no success was reported. Dark-mode
+header and footer boundaries stayed aligned. The connection was revoked and
+access was turned off before closing the app.
+
+The Apple gateway schemas no longer repeat every operation name in two enums.
+The model loads authorized names through discovery. Each discovery and call
+still validates the current grant. Tests cover a denied discovery and denied
+execution through the string-name gateway. The complete library tool schema
+fixture must stay below 8,000 bytes; this is a byte bound, not a token claim.
+All 10 Apple adapter tests and the Xcode build passed. Another installed model
+run is required before acceptance.

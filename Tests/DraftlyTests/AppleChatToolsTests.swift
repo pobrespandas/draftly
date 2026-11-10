@@ -50,9 +50,9 @@ struct AppleChatToolsTests {
         defer { session.invalidate() }
         let bridge = try AppleChatToolBridge(session: session)
         let tools = try await bridge.modelTools()
-        // Keep valid names constrained for the small local model.
+        // Load operation names on demand. The session still validates each call.
         let encoded = try JSONEncoder().encode(tools.map(\.parameters))
-        #expect(String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_get"))
+        #expect(!String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_get"))
         #expect(!String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_create"))
         let listing = try JSONDecoder().decode(AgentJSONValue.self, from: Data(try await bridge.catalog().utf8))
         guard case .object(let fields) = listing, case .array(let names) = fields["tools"] else {
@@ -63,6 +63,9 @@ struct AppleChatToolsTests {
         let catalog = try #require(tools.first { $0.name == "draftly_tools" } as? any Tool<GeneratedContent, String>)
         let description = try await catalog.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_get\"}"))
         #expect(description.contains("inputSchema"))
+        await #expect(throws: AgentErrorCode.permissionDenied) {
+            try await catalog.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
+        }
         let call = try #require(tools.first { $0.name == "draftly_call" } as? any Tool<GeneratedContent, String>)
         let arguments: AgentJSONValue = .object(["name": .string("draftly_drafts_get"),
             "targets": .array([.object(["kind": .string("draft"), "id": .string(runtime.allowed.id.uuidString)])]),
@@ -97,7 +100,7 @@ struct AppleChatToolsTests {
         let nativeSchemas = try JSONEncoder().encode(try await bridge.modelTools().map(\.parameters))
         // Bound transport bytes, not model tokens. Real-model QA checks context use.
         #expect(catalog.utf8.count < 8_000)
-        #expect(nativeSchemas.count < 32_000)
+        #expect(nativeSchemas.count < 8_000)
         let created = try await bridge.createDraft(content: "Created café 🐼")
         #expect(created.contains("result"))
         #expect(runtime.library.notes.contains { $0.content == "Created café 🐼" })

@@ -88,10 +88,10 @@ final class AppleChatToolLifetime: @unchecked Sendable {
         let names = try await session.tools(validateExecution: lifetime.requireActive).map(\.name)
         try lifetime.requireActive()
         guard !names.isEmpty else { throw AgentErrorCode.unavailable }
-        var tools: [any Tool] = [try AppleCatalogTool(names: names, callback: { [weak self] name in
+        var tools: [any Tool] = [try AppleCatalogTool(callback: { [weak self] name in
             guard let self else { throw CancellationError() }
             return try await self.catalog(name: name)
-        }), try AppleCallTool(names: names, callback: { [weak self] name, arguments in
+        }), try AppleCallTool(callback: { [weak self] name, arguments in
             guard let self else { throw CancellationError() }
             return try await self.execute(name: name, argumentsJSON: arguments)
         })]
@@ -275,11 +275,11 @@ private struct AppleCatalogTool: Tool {
     let description = "Omit name to list authorized operation names. Pass one exact name to load its description and input schema."
     let parameters: GenerationSchema
     let callback: @MainActor @Sendable (String?) async throws -> String
-    init(names: [String], callback: @escaping @MainActor @Sendable (String?) async throws -> String) throws {
+    init(callback: @escaping @MainActor @Sendable (String?) async throws -> String) throws {
         self.callback = callback
         parameters = try GenerationSchema(root: DynamicGenerationSchema(name: "DraftlyCatalogArguments", properties: [
             .init(name: "name", description: "An authorized target tool name. Omit to list tools.",
-                schema: DynamicGenerationSchema(name: "AuthorizedTool", anyOf: names), isOptional: true)
+                schema: DynamicGenerationSchema(type: String.self), isOptional: true)
         ]), dependencies: [])
     }
     func call(arguments: GeneratedContent) async throws -> String {
@@ -298,14 +298,14 @@ private struct AppleCallTool: Tool {
     let description = "Execute an authorized operation by its exact name from draftly_tools. Pass targets, requestID, expectedVersion, and retryKey as separate fields when needed. Encode only the schema’s parameters object in parametersJSON."
     let parameters: GenerationSchema
     let callback: @MainActor @Sendable (String, String) async throws -> String
-    init(names: [String], callback: @escaping @MainActor @Sendable (String, String) async throws -> String) throws {
+    init(callback: @escaping @MainActor @Sendable (String, String) async throws -> String) throws {
         self.callback = callback
         let reference = DynamicGenerationSchema(name: "DraftlyResource", properties: [
             .init(name: "kind", schema: DynamicGenerationSchema(name: "ResourceKind", anyOf: AgentResourceKind.allCases.map(\.rawValue))),
             .init(name: "id", description: "Exact authorized resource UUID.", schema: DynamicGenerationSchema(type: String.self))
         ])
         parameters = try GenerationSchema(root: DynamicGenerationSchema(name: "DraftlyCallArguments", properties: [
-            .init(name: "name", schema: DynamicGenerationSchema(name: "AuthorizedTool", anyOf: names)),
+            .init(name: "name", description: "Exact authorized name returned by draftly_tools.", schema: DynamicGenerationSchema(type: String.self)),
             .init(name: "targets", description: "Resources used by this operation. A draft read needs kind draft and its exact UUID.", schema: DynamicGenerationSchema(arrayOf: reference), isOptional: true),
             .init(name: "requestID", description: "Fresh UUID for a write intent. Keep it unchanged when preparing and retrying that intent.", schema: DynamicGenerationSchema(type: String.self), isOptional: true),
             .init(name: "expectedVersion", description: "Exact versionToken from a read, or batchVersion for the exact target set.", schema: DynamicGenerationSchema(type: String.self), isOptional: true),
