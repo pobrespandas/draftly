@@ -279,3 +279,15 @@ Apple context. Instructions forbid replaying earlier writes and require the
 created draft ID for verification. The focused run passed 24 chat and Apple
 adapter tests; the Xcode build passed. Installed regression acceptance and a
 new CI run remain required.
+
+Build 52 (ca786b2) passed notarization 9d32850d-e392-4ace-bf6b-fc63883d5964
+and full CI run 42840334185. Installed creation with another draft open still
+read that old draft despite the prompt change. Acceptance failed. The QA
+connection was revoked and access was switched off.
+
+The Apple bridge now retains the ID returned by a successful creation for one
+model response. Its convenience read and edit use that ID during the response.
+A fresh response returns to the open draft. Generic calls still use explicit
+IDs and the existing permission checks. Nine adapter tests passed, including
+creation while another draft exists, reading the created content, and resetting
+the target for the next turn. This requires another installed regression run.

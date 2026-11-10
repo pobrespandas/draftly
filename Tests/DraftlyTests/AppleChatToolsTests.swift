@@ -82,6 +82,12 @@ struct AppleChatToolsTests {
         let created = try await bridge.createDraft(content: "Created café 🐼")
         #expect(created.contains("result"))
         #expect(runtime.library.notes.contains { $0.content == "Created café 🐼" })
+        let createdNote = try #require(runtime.library.notes.first { $0.content == "Created café 🐼" })
+        #expect(bridge.responseDraftID(fallback: runtime.allowed.id) == createdNote.id)
+        let verified = try await bridge.readDraft(id: bridge.responseDraftID(fallback: runtime.allowed.id))
+        #expect(verified.contains("Created café 🐼"))
+        let nextTurn = try AppleChatToolBridge(session: session)
+        #expect(nextTurn.responseDraftID(fallback: runtime.allowed.id) == runtime.allowed.id)
         _ = try runtime.registry.revokeFromUserInterface(record.id)
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog() }
     }

@@ -50,6 +50,7 @@ final class AppleChatToolLifetime: @unchecked Sendable {
     var currentDraftID: UUID? { session.currentDraftID }
     private let maximumCalls: Int
     private var calls = 0
+    private(set) var createdDraftID: UUID?
     init(session: AgentChatToolSession, timeout: TimeInterval = 120, maximumCalls: Int = 32) throws {
         guard maximumCalls > 0, maximumCalls <= 256 else { throw AgentErrorCode.invalidInput }
         self.session = session; self.maximumCalls = maximumCalls
@@ -128,9 +129,18 @@ final class AppleChatToolLifetime: @unchecked Sendable {
         let reply = try JSONDecoder().decode(AgentResponse.self, from: Data(prepared.utf8))
         guard case .result(.object(let values)) = reply.outcome,
               case .string(let key) = values["retryKey"] else { return prepared }
-        return try await invoke("draftly_drafts_create", ["requestID": requestID,
+        let created = try await invoke("draftly_drafts_create", ["requestID": requestID,
             "retryKey": .string(key), "parameters": parameters])
+        let response = try JSONDecoder().decode(AgentResponse.self, from: Data(created.utf8))
+        if case .result(.object(let fields)) = response.outcome,
+           case .object(let resource) = fields["resource"], case .string(let id) = resource["id"] {
+            createdDraftID = UUID(uuidString: id)
+        }
+        return created
     }
+
+    // This target lasts for one model response. A new turn gets a new bridge.
+    func responseDraftID(fallback: UUID) -> UUID { createdDraftID ?? fallback }
 
     private var readVersions: [UUID: String] = [:]
 
@@ -189,13 +199,13 @@ private struct AppleReadOpenDraftTool: Tool {
     @Generable struct Arguments {}
 
     let name = "draftly_read_draft"
-    let description = "Read the open draft. If hasMore is true, use the catalog to read the remaining text before replacing it."
+    let description = "Read the draft created in this response, or the open draft if none was created. Use the catalog and an explicit ID for other drafts. If hasMore is true, fetch remaining text before replacement."
     let draftID: UUID
     weak var bridge: AppleChatToolBridge?
 
     func call(arguments: Arguments) async throws -> String {
         guard let bridge else { throw CancellationError() }
-        return try await bridge.readDraft(id: draftID)
+        return try await bridge.readDraft(id: bridge.responseDraftID(fallback: draftID))
     }
 }
 
@@ -206,13 +216,13 @@ private struct AppleEditOpenDraftTool: Tool {
     }
 
     let name = "draftly_edit_draft"
-    let description = "Save the complete updated text of the open draft. Read it with draftly_read_draft first."
+    let description = "Save the complete text of the draft created in this response, or the open draft if none was created. Read it first. Use the catalog and an explicit ID for other drafts."
     let draftID: UUID
     weak var bridge: AppleChatToolBridge?
 
     func call(arguments: Arguments) async throws -> String {
         guard let bridge else { throw CancellationError() }
-        return try await bridge.editDraft(id: draftID, content: arguments.content)
+        return try await bridge.editDraft(id: bridge.responseDraftID(fallback: draftID), content: arguments.content)
     }
 }
 
