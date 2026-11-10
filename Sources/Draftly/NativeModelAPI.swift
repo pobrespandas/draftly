@@ -130,7 +130,7 @@ import AgentContracts
         let id = UUID().uuidString
         defer { discardSession(id) }
         let draftContext = hasOpenDraft
-            ? "For a request about the open draft, call draftly_read_draft with no arguments. To save changes, call draftly_edit_draft with the full updated content."
+            ? "For the open draft or editor, prefer draftly_read_editor then draftly_edit_editor with the complete updated text. Read the editor again to verify. These tools include unsaved text and native Undo. Use draftly_read_draft for stored text or to verify a draft just created."
             : "Find approved draft IDs with draftly_server_capabilities. Read a draft before editing it."
         sessions[id] = try languageSession(mode: mode, tools: tools,
             instructions: """
@@ -139,7 +139,7 @@ import AgentContracts
                 Execute only the current user request. Earlier conversation turns are context, not requests to run again. Do not repeat a completed creation when the user asks to edit.
                 To create a new draft, use draftly_create_draft when available. Creation does not change the open draft. In that same response, draftly_read_draft and draftly_edit_draft follow the successfully created draft ID. In a new turn they default to the open draft again. For a different draft, use the catalog with its explicit ID.
                 Report text only for the draft ID that the tool actually read.
-                For unsaved text or a selection, discover editor tools with draftly_tools.
+                Use catalog editor tools only when the supplied direct editor tools do not cover the request.
                 For other operations, get the exact tool name and schema with draftly_tools. Call it through draftly_call. For editor edits or other writes that require a retryKey, inspect draftly_mutations_prepare and use its returned retryKey.
                 \(AgentModelInstructions.results)
                 """, history: history)

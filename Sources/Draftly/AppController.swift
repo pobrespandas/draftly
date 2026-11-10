@@ -267,6 +267,10 @@ final class AppController: ObservableObject {
             targets: storedTargets, providerName: providerName, wholeLibrary: true, expiresAt: .distantFuture,
             onRevocationError: { [weak model] error in model?.chatConsole.reportToolError(error) },
             validateContext: validate)
+        session.resolveCurrentEditorID = { [weak model, weak editors] in
+            guard let model else { return nil }
+            return editors?.windowID(for: model)
+        }
         session.resolveCurrentDraftID = { [weak model, weak library] in
             guard let model, let library, let id = model.editor.noteID,
                   library.notes.contains(where: { $0.id == id }) else { return nil }

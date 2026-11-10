@@ -7,6 +7,8 @@ import AgentContracts
     var expiresAt: Date?
     var followsDraftSelection = false
     private let draftID: UUID?
+    var resolveCurrentEditorID: (() -> UUID?)?
+    var currentEditorID: UUID? { resolveCurrentEditorID?() }
     var resolveCurrentDraftID: (() -> UUID?)?
     var currentDraftID: UUID? { resolveCurrentDraftID.map { $0() } ?? draftID }
     private let backend: Backend

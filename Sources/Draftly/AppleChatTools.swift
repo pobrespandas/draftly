@@ -112,7 +112,56 @@ final class AppleChatToolLifetime: @unchecked Sendable {
                 tools.append(AppleEditDraftTool(bridge: self))
             }
         }
+        if let editorID = session.currentEditorID, names.contains("draftly_editor_get") {
+            tools.append(AppleReadEditorTool(editorID: editorID, bridge: self))
+            if ["draftly_editor_replaceRange", "draftly_mutations_prepare"].allSatisfy(names.contains) {
+                tools.append(AppleEditEditorTool(editorID: editorID, bridge: self))
+            }
+        }
         return tools
+    }
+
+    private var editorReads: [UUID: (version: String, length: Int64)] = [:]
+
+    func readEditor(id: UUID) async throws -> String {
+        editorReads.removeValue(forKey: id)
+        let result = try await invoke("draftly_editor_get", ["targets": editorTargets(id)])
+        let response = try JSONDecoder().decode(AgentResponse.self, from: Data(result.utf8))
+        if case .result(.object(let fields)) = response.outcome,
+           case .string(let version) = fields["versionToken"],
+           case .object(let content) = fields["content"], content["hasMore"] == .bool(false),
+           case .integer(let length) = content["totalLength"] {
+            editorReads[id] = (version, length)
+        }
+        return result
+    }
+
+    func editEditor(id: UUID, content: String) async throws -> String {
+        guard let read = editorReads.removeValue(forKey: id) else {
+            return #"{"error":"read_required","hint":"Read the complete editor with draftly_read_editor before editing. A partial read cannot authorize full replacement."}"#
+        }
+        let requestID = AgentJSONValue.string(UUID().uuidString)
+        let targets = editorTargets(id)
+        let parameters: AgentJSONValue = .object(["range": .object(["offset": .integer(0), "length": .integer(read.length)]),
+                                                "text": .string(content)])
+        let intent: AgentJSONValue = .object(["apiVersion": .integer(1), "requestID": requestID,
+            "operation": .string("editor.replaceRange"), "targets": targets,
+            "expectedVersion": .string(read.version), "parameters": parameters])
+        let prepared = try await invoke("draftly_mutations_prepare", ["requestID": .string(UUID().uuidString),
+            "parameters": .object(["request": intent])])
+        let response = try JSONDecoder().decode(AgentResponse.self, from: Data(prepared.utf8))
+        guard case .result(.object(let receipt)) = response.outcome,
+              case .string(let key) = receipt["retryKey"] else { return prepared }
+        return try await invoke("draftly_editor_replaceRange", ["requestID": requestID, "targets": targets,
+            "expectedVersion": .string(read.version), "retryKey": .string(key), "parameters": parameters])
+    }
+
+    private func editorTargets(_ id: UUID) -> AgentJSONValue {
+        .array([.object(["kind": .string("window"), "id": .string(id.uuidString)])])
+    }
+    private func invoke(_ name: String, _ fields: [String: AgentJSONValue]) async throws -> String {
+        let bytes = try JSONEncoder().encode(AgentJSONValue.object(fields))
+        return try await execute(name: name, argumentsJSON: String(decoding: bytes, as: UTF8.self))
     }
 
     func createDraft(content: String) async throws -> String {
@@ -178,6 +227,33 @@ final class AppleChatToolLifetime: @unchecked Sendable {
               case .string(let key) = values["retryKey"] else { return prepared }
         return try await invoke("draftly_drafts_update", ["requestID": requestID, "targets": targets,
             "expectedVersion": .string(version), "retryKey": .string(key), "parameters": parameters])
+    }
+}
+
+private struct AppleReadEditorTool: Tool {
+    @Generable struct Arguments {}
+    let name = "draftly_read_editor"
+    let description = "Read the open editor, including unsaved text. Prefer this for the current draft. It retains the version for draftly_edit_editor."
+    let editorID: UUID
+    weak var bridge: AppleChatToolBridge?
+    func call(arguments: Arguments) async throws -> String {
+        guard let bridge else { throw CancellationError() }
+        return try await bridge.readEditor(id: editorID)
+    }
+}
+
+private struct AppleEditEditorTool: Tool {
+    @Generable struct Arguments {
+        @Guide(description: "Complete updated editor text, including all text to keep")
+        var content: String
+    }
+    let name = "draftly_edit_editor"
+    let description = "Replace the open editor text using its version and native Undo. Read with draftly_read_editor first. Prefer this for changes to the current draft; do not use the catalog for this task."
+    let editorID: UUID
+    weak var bridge: AppleChatToolBridge?
+    func call(arguments: Arguments) async throws -> String {
+        guard let bridge else { throw CancellationError() }
+        return try await bridge.editEditor(id: editorID, content: arguments.content)
     }
 }
 

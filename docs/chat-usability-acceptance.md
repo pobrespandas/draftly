@@ -403,3 +403,19 @@ than ending inference when it chooses an unavailable name. The backend still
 rejects the call. The hint requires exact discovery and forbids replay of an
 unknown write. Ten adapter tests and the Xcode build passed. Installed recovery
 remains unverified.
+
+
+Build 58 passed notarization 5a8f026b-9d16-47b2-b497-469ee3161255.
+Permission feedback allowed the request to continue, but catalog discovery
+still exceeded the context limit (8,521 against 8,192 tokens). The draft stayed
+unchanged. The session was revoked and access was turned off.
+
+Apple now gets small direct read/edit tools for the current editor. The session
+binds the editor identity from the host registry. The bridge uses editor.get,
+mutations.prepare, and editor.replaceRange with the read version and UTF-16
+length. It accepts only a complete read for full replacement. A stale read
+cannot write, and a consumed read cannot be reused. These are provider adapters;
+public MCP names, schemas, and permissions do not change. The normal editor
+still owns pending text and Undo. The focused 11-test run checks pending Unicode
+text, native Undo, stale versions, partial reads, hidden windows, and revocation.
+It passed, as did the Xcode build. Installed direct-editor acceptance is pending.

@@ -19,6 +19,11 @@ import AgentContracts
         let dirty: Bool
     }
 
+    func windowID(for model: WindowModel) -> UUID? {
+        guard valid, trackedModels().contains(where: { $0 === model }) else { return nil }
+        return entries[ObjectIdentifier(model)]?.windowID
+    }
+
     func windowSnapshots() throws -> [WindowSnapshot] {
         guard valid else { throw AgentErrorCode.cancelled }
         var seen: Set<ObjectIdentifier> = []

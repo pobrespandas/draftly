@@ -113,6 +113,66 @@ struct AppleChatToolsTests {
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog() }
     }
 
+    @Test func openEditorToolsKeepPendingTextAndRejectStaleOrPartialReads() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let preferences = try TestPreferences(prefix: "Apple-Direct-Editor-")
+        defer { preferences.close() }
+        var dependencies = WindowDependencies()
+        dependencies.preferences = WindowPreferences(defaults: preferences.defaults)
+        let model = WindowModel(library: runtime.library, dependencies: dependencies)
+        model.editor.load(runtime.allowed, focusEditor: false)
+        let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17,
+            lineSpacing: 0, markdown: false, onChange: { [weak model] in model?.contentChanged() })
+        let nativeFixture = ScriptUndoEditorFixture(native, content: runtime.allowed.content)
+        model.editor.canApplyExternalEdit = { true }
+        defer {
+            model.pausePendingAutosave { true }
+            model.editor.canApplyExternalEdit = nil
+            nativeFixture.close()
+        }
+        let editors = AgentEditorRegistry(library: runtime.library, models: { [model] })
+        defer { editors.invalidate() }
+        let windowID = try #require(editors.windowID(for: model))
+        runtime.service = try AgentCommandService(library: runtime.library, libraryID: runtime.libraryID,
+            connections: runtime.registry, appVersion: "Direct editor QA", validateHost: {}, isLocked: { false },
+            editors: editors, pendingEditorGeneration: { _ in "" })
+        let record = try runtime.registry.connectFromUserInterface(name: "Direct editor QA", libraryID: runtime.libraryID,
+            capabilities: [.draftsRead, .draftsWrite, .editorRead, .editorWrite],
+            scope: .resources([.init(kind: .draft, id: runtime.allowed.id), .init(kind: .window, id: windowID)]))
+        runtime.session = try runtime.service.authenticate(connectionID: record.id, credential: #require(runtime.secrets[record.id]))
+        let session = AgentChatToolSession(backend: runtime.backend, currentDraftID: runtime.allowed.id)
+        session.resolveCurrentEditorID = { windowID }
+        defer { session.invalidate() }
+        let bridge = try AppleChatToolBridge(session: session)
+        let tools = try await bridge.modelTools()
+        #expect(tools.contains { $0.name == "draftly_read_editor" })
+        #expect(tools.contains { $0.name == "draftly_edit_editor" })
+        #expect(try await bridge.editEditor(id: windowID, content: "Must not write").contains("read_required"))
+        model.editor.content = "Pending café 🐼"; model.editor.synchronizeScriptEdit?(); model.hasUnsavedChanges = true
+        #expect(try await bridge.readEditor(id: windowID).contains("Pending café 🐼"))
+        let written = try await bridge.editEditor(id: windowID, content: "Pending café 🐼\nAdded")
+        guard case .result = try JSONDecoder().decode(AgentResponse.self, from: Data(written.utf8)).outcome else {
+            Issue.record(Comment(rawValue: "Direct editor write failed: " + written)); return
+        }
+        #expect(model.editor.content == "Pending café 🐼\nAdded")
+        model.editor.performUndo?(false)
+        #expect(model.editor.content == "Pending café 🐼")
+        _ = try await bridge.readEditor(id: windowID)
+        model.editor.content += "\nConcurrent"; model.hasUnsavedChanges = true
+        #expect(try await bridge.editEditor(id: windowID, content: "Stale").contains("version_conflict"))
+        #expect(model.editor.content.hasSuffix("Concurrent"))
+        #expect(try await bridge.editEditor(id: windowID, content: "Retry").contains("read_required"))
+        model.editor.content = String(repeating: "a", count: 65_537); model.hasUnsavedChanges = true
+        _ = try await bridge.readEditor(id: windowID)
+        #expect(try await bridge.editEditor(id: windowID, content: "Partial").contains("read_required"))
+        #expect(model.editor.content.utf16.count == 65_537)
+        let hidden = try await bridge.readEditor(id: UUID())
+        #expect(hidden.contains("not_found"))
+        #expect(runtime.library.notes.first { $0.id == runtime.hidden.id }?.content == runtime.hidden.content)
+        _ = try runtime.registry.revokeFromUserInterface(record.id)
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.readEditor(id: windowID) }
+    }
+
     #if DRAFTLY_APPLE_LIVE_QA
     @Test func onDeviceLibraryCatalogCreatesAndReadsNeutralDraft() async throws {
         try #require(AppleModelAccess.modes().contains("onDevice"))
