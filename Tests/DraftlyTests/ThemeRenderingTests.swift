@@ -498,6 +498,17 @@ struct ThemeRenderingTests {
 
 @Suite("Chat editor composition") @MainActor
 struct ChatEditorCompositionTests {
+    @Test func upwardAccessibilityScrollPausesFollowingWithoutAUserPhase() {
+        let id = UUID()
+        let bottom = ChatScrollMetrics(conversationID: id, offset: 1000, nearBottom: true)
+        let reading = ChatScrollMetrics(conversationID: id, offset: 800, nearBottom: false)
+        #expect(reading.movedAway(from: bottom))
+        #expect(!bottom.movedAway(from: reading))
+        #expect(!ChatScrollMetrics(conversationID: id, offset: 1000, nearBottom: false).movedAway(from: bottom))
+        #expect(!ChatScrollMetrics(conversationID: UUID(), offset: 0, nearBottom: false).movedAway(from: bottom))
+        #expect(!ChatScrollMetrics(conversationID: id, offset: 999.5, nearBottom: false).movedAway(from: bottom))
+    }
+
     @Test func recreatingComposerRestoresTheCurrentUnsentPrompt() async throws {
         _ = NSApplication.shared
         let preferences = try TestPreferences(prefix: "Chat-Composer-Recreate-")

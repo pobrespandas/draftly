@@ -2,6 +2,16 @@ import SwiftUI
 import AgentContracts
 import DraftlyCore
 
+struct ChatScrollMetrics: Equatable {
+    let conversationID: UUID?
+    let offset: CGFloat
+    let nearBottom: Bool
+
+    func movedAway(from previous: Self) -> Bool {
+        conversationID == previous.conversationID && !nearBottom && offset < previous.offset - 1
+    }
+}
+
 private struct WritingHeaderMinimumKey: EnvironmentKey { static let defaultValue: CGFloat = 0 }
 private struct WritingFooterMinimumKey: EnvironmentKey { static let defaultValue: CGFloat = 0 }
 extension EnvironmentValues {
@@ -240,12 +250,14 @@ struct ChatConsolePanel: View {
                 Color.clear.frame(height: 1).id("chat-bottom")
             }
             .onScrollPhaseChange { _, phase in
-                userIsScrolling = phase == .interacting || phase == .decelerating
+                userIsScrolling = phase == .tracking || phase == .interacting || phase == .decelerating
             }
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 60
-            } action: { _, nearBottom in
-                if userIsScrolling { followsResponse = nearBottom }
+            .onScrollGeometryChange(for: ChatScrollMetrics.self) { geometry in
+                ChatScrollMetrics(conversationID: model.selectedConversationID, offset: geometry.contentOffset.y,
+                    nearBottom: geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 60)
+            } action: { previous, current in
+                if userIsScrolling { followsResponse = current.nearBottom }
+                else if current.movedAway(from: previous) { followsResponse = false }
             }
             .onChange(of: model.selectedConversation?.messages.count) { _, _ in
                 if model.selectedConversation?.messages.last?.role == .user { followsResponse = true }
@@ -255,7 +267,7 @@ struct ChatConsolePanel: View {
                 if active && followsResponse { proxy.scrollTo("chat-bottom", anchor: .bottom) }
             }
             .onChange(of: model.streamingText) { _, _ in if followsResponse { proxy.scrollTo("chat-bottom", anchor: .bottom) } }
-            .onChange(of: model.selectedConversationID) { _, _ in
+            .onChange(of: model.selectedConversationID, initial: true) { _, _ in
                 followsResponse = true
                 proxy.scrollTo("chat-bottom", anchor: .bottom)
             }

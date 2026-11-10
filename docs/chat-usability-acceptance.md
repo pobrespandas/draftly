@@ -630,3 +630,32 @@ It read the unchanged editor again and correctly reported failure. It did not
 claim a successful edit or create another draft. Editing acceptance remains
 pending. The next descriptions put the preparation requirement on both editor
 write tools. All QA connections are revoked and local access is off.
+
+
+## Build 66: ChatGPT edit and native Undo verified
+
+The signed build ran while notarization was still processing. ChatGPT
+GPT-6-Luna read the editor, prepared its write, replaced only independiente
+with verificado, and read back the result. Recent activity confirmed each
+operation. The editor had exactly 36 characters. Its response confirmed that
+change. Native Undo restored the original 39 characters. The library stayed
+at 12 drafts. A long Markdown response followed the bottom while streaming.
+
+An accessibility Scroll Up action moved the transcript but did not show
+Latest message. The old follow logic required a gesture phase that this
+accessibility action does not emit. The next correction also detects upward
+offset changes away from the bottom. Content growth alone and a conversation
+change must not pause following. The native build passed. Installed scroll
+and cancellation checks remain pending. The QA connection was revoked and
+local access was turned off.
+
+
+## Build 67: accessible scroll verified
+
+The signed build passed both Scroll Up through accessibility and a scroll
+gesture over the long response. Each moved away from the bottom and showed
+Latest message. That button returned to offset 1 and resumed following.
+No tools were enabled for this check. The restored conversation opened at
+the top. The next change runs the conversation-position handler on initial
+presentation as well as conversation changes. Installed verification remains
+pending. Notarization is tracked separately from these signed-build checks.
