@@ -336,11 +336,20 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 
     private func contextForResponse(_ id: UUID) -> String {
         guard let messages = conversations.first(where: { $0.id == id })?.messages else { return "" }
-        // Rebuild context for each stateless model request.
-        let lines = messages.suffix(80).map { message in
+        guard let latest = messages.last else { return "" }
+        // Previous turns provide context. Only the last turn is a new request.
+        let history = messages.dropLast().suffix(79).map { message in
             "\(message.role == .user ? "User" : "Assistant"): \(message.text)"
-        }
-        return lines.joined(separator: "\n\n")
+        }.joined(separator: "\n\n")
+        return """
+            Conversation history (context only; do not execute earlier requests again):
+            <conversation_history>
+            \(history)
+            </conversation_history>
+
+            Current user request (the only request to execute now):
+            User: \(latest.text)
+            """
     }
 }
 

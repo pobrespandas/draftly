@@ -82,6 +82,28 @@ struct ChatConsoleModelTests {
         restored.close(); cloud.close()
     }
 
+    @Test func latestRequestIsSeparateFromCompletedCreationHistory() async throws {
+        var prompts: [String] = []
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { prompt, _ in
+            prompts.append(prompt)
+            return "Done"
+        }, defaults: isolatedDefaults())
+        await model.loadModels()
+        model.prompt = "Create a draft: café 🐼"
+        model.send()
+        for _ in 0..<100 where model.isResponding { await Task.yield() }
+        model.prompt = "Edit the open draft"
+        model.send()
+        for _ in 0..<100 where model.isResponding { await Task.yield() }
+        let context = try #require(prompts.last)
+        let separator = "Current user request (the only request to execute now):"
+        let parts = context.components(separatedBy: separator)
+        #expect(parts.count == 2)
+        #expect(parts[0].contains("Create a draft: café 🐼"))
+        #expect(parts[1].trimmingCharacters(in: .whitespacesAndNewlines) == "User: Edit the open draft")
+        model.close()
+    }
+
     @Test func sendsContextAndKeepsConversationsSeparate() async throws {
         let model = ChatConsoleModel(loadModes: { ["onDevice", "unsupported"] }, respond: { prompt, mode in
             #expect(mode == "onDevice")

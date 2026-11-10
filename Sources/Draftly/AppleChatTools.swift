@@ -177,7 +177,7 @@ private struct AppleCreateDraftTool: Tool {
         var content: String
     }
     let name = "draftly_create_draft"
-    let description = "Create and save a new Markdown draft. Pass its complete text. Do not use this to edit an existing draft."
+    let description = "Create and save a new Markdown draft. Pass its complete text. This does not open the draft. Verify it with draftly_drafts_get using the returned ID. Do not repeat a prior creation or use this to edit."
     weak var bridge: AppleChatToolBridge?
     func call(arguments: Arguments) async throws -> String {
         guard let bridge else { throw CancellationError() }

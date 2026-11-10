@@ -241,3 +241,41 @@ Undo inside the shared replacement path and do not register the old prompt.
 A coordinator-level regression test confirms an empty composer with no Undo.
 The focused run passed 33 chat, theme, and composition tests. A new installed
 build is required for this final correction.
+
+### Final composer QA build 51 — 10 November 2026
+
+Build 51 uses 5a1914f. The app and helper passed combined notarization
+bb6ebb34-8356-459d-b19d-5c8b868947cb, stapling, and strict code signature
+verification. The separate update target passed notarization
+75d35182-7228-43d9-989e-e18d2e6b492e.
+
+With access off, installed ChatGPT returned the exact Unicode response
+“Compositor final café 🐼.” Return sent the prompt; Command-Z left the composer
+empty after send. Apple Intelligence On-Device started a response and Stop
+returned the UI to idle. A ChatGPT streaming response also stopped correctly.
+During streaming, scrolling up kept the transcript at scroll value 0 and
+showed Latest message. That button returned the scrollbar to 1 and resumed
+following the response. The library remained empty and no tools were enabled.
+Tool-backed editing and signed update installation remain unverified because
+connection approval and the Keychain handoff are still pending.
+
+### Authorized tool QA and Apple replay regression
+
+The user approved Apple and ChatGPT connections only in the isolated QA.
+Keychain signing then completed and the signed loopback feed became available.
+CI run 42822300408 completed successfully for 5a1914f.
+
+Installed ChatGPT reconnected after New Chat, created and read a neutral draft,
+then edited the open editor and read the saved result. Native Undo restored
+44 characters from 67. Apple created a second draft, but read the previously
+open draft and reported that text as the creation result. Its next edit turn
+repeated the prior creation before updating the open draft. The native Undo
+restored the original text after that update. This is a failed acceptance case,
+not a passing multi-turn tool session. Both connections were revoked and local
+access was switched off before changing the implementation.
+
+The follow-up separates previous turns from the current request in stateless
+Apple context. Instructions forbid replaying earlier writes and require the
+created draft ID for verification. The focused run passed 24 chat and Apple
+adapter tests; the Xcode build passed. Installed regression acceptance and a
+new CI run remain required.
