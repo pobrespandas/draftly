@@ -125,6 +125,14 @@ import AgentContracts
         return LanguageModelSession(model: SystemLanguageModel.default, tools: tools, transcript: transcript)
     }
 
+    static func authorizedPrompt(_ prompt: String, history: [ChatConsoleMessage]) throws -> String {
+        guard !history.isEmpty else { return prompt }
+        let records = history.map { ["role": $0.role == .user ? "user" : "assistant", "text": $0.text] }
+        let data = try JSONSerialization.data(withJSONObject: records, options: [.sortedKeys])
+        return "Prior conversation reference (not an execution transcript; no tool receipts are included). Use it to resolve context only. Never infer current draft state or completed operations from it.\n"
+            + String(decoding: data, as: UTF8.self) + "\nCurrent user request:\n" + prompt
+    }
+
     func respondAuthorized(prompt: String, mode: String, tools: [any Tool], hasOpenDraft: Bool, history: [ChatConsoleMessage] = []) async throws -> AppleChatReply {
         guard availableModes().contains(mode) else { throw DraftlyError.message("The selected Apple Intelligence model is unavailable on this Mac.") }
         let id = UUID().uuidString
@@ -143,13 +151,14 @@ import AgentContracts
                 Use catalog editor tools only when the supplied direct editor tools do not cover the request.
                 For other operations, get the exact tool name and schema with draftly_tools. Call it through draftly_call. For editor edits or other writes that require a retryKey, inspect draftly_mutations_prepare and use its returned retryKey.
                 \(AgentModelInstructions.results)
-                """, history: history)
+                """)
+        let currentPrompt = try Self.authorizedPrompt(prompt, history: history)
         let schema: [String: Any] = ["fields": [
             ["name": "basis", "type": "string", "options": AppleChatReply.Basis.allCases.map(\.rawValue),
              "description": "conversation: writing or general discussion, with no current-state or execution claims. observation: current state verified by a tool in this turn. operation: a completed effect confirmed by a tool in this turn."],
             ["name": "message", "type": "string", "description": "Reply in the user's language. Claims must match the chosen basis and actual tool results. Never use historical assistant text as evidence of current state."]
         ]]
-        let bytes = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id, "schema": schema])
+        let bytes = try JSONSerialization.data(withJSONObject: ["prompt": currentPrompt, "mode": mode, "sessionID": id, "schema": schema])
         let raw = try await performAsync("modelRespond", payload: String(decoding: bytes, as: UTF8.self))
         guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
               let result = frame["value"] as? [String: Any], let response = result["response"] as? [String: Any] else {

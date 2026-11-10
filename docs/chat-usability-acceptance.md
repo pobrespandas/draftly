@@ -581,3 +581,18 @@ The next adapter presents editor text with literal line breaks, separate from
 JSON metadata. It does not change the public operation response or decode
 escape sequences in user text. Errors keep their original response.
 The native build passed. Installed verification remains pending.
+
+
+## Build 63: incomplete history remains a blocker
+
+Notarization fcd0f688-9faf-4f6c-9ab5-3c8dbc5a2a3d was accepted.
+With prior conversation history, both inference attempts skipped execution.
+The guard rejected the response and kept the control draft unchanged.
+No success was shown. The connection was revoked and local access was turned off.
+
+Apple documents that a native transcript contains tool calls and results:
+https://developer.apple.com/documentation/foundationmodels/transcript
+The app has only display messages when it restores a conversation. The next
+correction passes those messages as reference context in the current prompt,
+not as a reconstructed execution transcript. It keeps the current request
+separate and retains the result guard. This change still needs installed QA.

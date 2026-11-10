@@ -97,6 +97,17 @@ struct AppleChatToolsTests {
         #expect(try AppleChatTextResult.literalEditorText(deniedJSON) == deniedJSON)
     }
 
+    @Test func authorizedHistoryIsReferenceWithoutInventedToolReceipts() throws {
+        let prompt = "Read the editor again"
+        #expect(try NativeModelAPI.authorizedPrompt(prompt, history: []) == prompt)
+        let history: [ChatConsoleMessage] = [.init(role: .user, text: "Create café 🐼"),
+            .init(role: .assistant, text: "Created the draft")]
+        let combined = try NativeModelAPI.authorizedPrompt(prompt, history: history)
+        #expect(combined.contains("not an execution transcript"))
+        #expect(combined.contains("Created the draft") && combined.contains("Create café 🐼"))
+        #expect(combined.hasSuffix("Current user request:\n" + prompt))
+    }
+
     @Test func catalogAndCallsKeepTheExistingScope() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)
