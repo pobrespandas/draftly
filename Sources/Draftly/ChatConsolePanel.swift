@@ -316,7 +316,7 @@ struct ChatConsolePanel: View {
                 .frame(height: min(max(promptHeight, lineHeight + 16), lineHeight * 5 + 16))
                 .accessibilityLabel("Enter a prompt")
                 .id(model.selectedConversation?.id)
-                .onChange(of: model.prompt) { _, value in
+                .onChange(of: model.prompt, initial: true) { _, value in
                     if promptSession.content != value {
                         promptSession.content = value
                         promptSession.selection = NSRange(location: value.utf16.count, length: 0)

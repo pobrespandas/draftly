@@ -1,6 +1,18 @@
 # Chat usability acceptance
 
-## Current acceptance — 10 November 2026
+## Composer reconstruction follow-up
+
+A final review found that a new ChatConsolePanel did not copy an existing
+unsent prompt into its new EditorSession. The send state could therefore refer
+to text that the empty composer did not show. An offscreen native-view test
+reproduced this twice, with Unicode text. The prompt observer now also runs
+when the view first appears. The same test and the 20-test chat/composition
+run passed. Return, Shift-Return, marked IME text, independent Undo, and
+conversation resets still passed. Installed reconstruction QA and final-head
+CI remain required. The Mac was locked when installed QA was requested.
+The build-59 evidence below predates this one-line view correction.
+
+## Installed checkpoint — build 59, 10 November 2026
 
 Code: 6dd321a. Signed installed QA: build 59. The shared panel boundaries,
 five-line composer limit, independent Undo, and conversation reset passed.

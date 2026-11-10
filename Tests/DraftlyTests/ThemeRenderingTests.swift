@@ -498,6 +498,32 @@ struct ThemeRenderingTests {
 
 @Suite("Chat editor composition") @MainActor
 struct ChatEditorCompositionTests {
+    @Test func recreatingComposerRestoresTheCurrentUnsentPrompt() async throws {
+        _ = NSApplication.shared
+        let preferences = try TestPreferences(prefix: "Chat-Composer-Recreate-")
+        defer { preferences.close() }
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: preferences.defaults)
+        defer { model.close() }
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
+            styleMask: [.titled], backing: .buffered, defer: false)
+        defer { window.contentView = nil }
+        func findText(_ view: NSView) -> DraftTextView? {
+            if let text = view as? DraftTextView { return text }
+            return view.subviews.lazy.compactMap { findText($0) }.first
+        }
+        for source in ["Pending café 🐼", "Reopened 日本語"] {
+            window.contentView = nil
+            model.prompt = source
+            let host = NSHostingView(rootView: ChatConsolePanel(model: model))
+            window.contentView = host
+            host.layoutSubtreeIfNeeded(); await TestMainQueue.drain()
+            let text = try #require(findText(host))
+            #expect(text.string == source)
+            #expect(model.prompt == source)
+            #expect(text.undoManager?.canUndo != true)
+        }
+    }
+
     @Test func returnSubmitsAndShiftReturnAddsALine() throws {
         let text = DraftTextView()
         text.isEditable = true
