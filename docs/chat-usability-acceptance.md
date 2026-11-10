@@ -659,3 +659,21 @@ No tools were enabled for this check. The restored conversation opened at
 the top. The next change runs the conversation-position handler on initial
 presentation as well as conversation changes. Installed verification remains
 pending. Notarization is tracked separately from these signed-build checks.
+
+
+## Build 68: scroll and cancellation passed; Apple read-only regression
+
+The signed build opened the restored conversation at offset 1. Hiding and
+reopening chat kept Pendiente final café 🐼 and returned to the last message.
+ChatGPT connected automatically. During a long response, accessibility scroll
+paused following while text continued to grow. Latest message returned to the
+bottom. Stop response cancelled generation. No draft changed in that test.
+
+After switching to Apple, a read-only request unexpectedly called drafts.update
+and inserted a blank line. Activity confirmed the write. This blocks acceptance.
+The Apple open-draft instruction told the model to read then edit without
+limiting that sequence to edit requests. The next correction separates reading
+from writing and forbids formatting writes on reads. It also removes editing
+guidance from the read result. The regression must pass in the installed app.
+The neutral draft was restored to its original 39 characters through the editor.
+All QA connections are revoked and local access is off.

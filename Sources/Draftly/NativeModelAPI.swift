@@ -138,7 +138,7 @@ import AgentContracts
         let id = UUID().uuidString
         defer { discardSession(id) }
         let draftContext = hasOpenDraft
-            ? "For the open draft or editor, prefer draftly_read_editor then draftly_edit_editor with the complete updated text. Read the editor again to verify. These tools include unsaved text and native Undo. Use draftly_read_draft for stored text or to verify a draft just created."
+            ? "For a request to read the open draft or editor, call only draftly_read_editor and report its text. Reading must not call edit, create, or mutation tools, even to format or normalize whitespace. Only when the person explicitly asks to change text, read the editor, call draftly_edit_editor with the complete updated text, then read again to verify. These editor tools include unsaved text and native Undo. Use draftly_read_draft only for stored text or to verify a draft just created."
             : "Find approved draft IDs with draftly_server_capabilities. Read a draft before editing it."
         sessions[id] = try languageSession(mode: mode, tools: tools,
             instructions: """

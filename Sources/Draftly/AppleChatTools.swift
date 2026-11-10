@@ -278,7 +278,7 @@ enum AppleChatTextResult {
         metadata["content"] = .object(contentMetadata)
         let encoded = try JSONEncoder().encode(AgentJSONValue.object(metadata))
         return "Editor metadata: " + String(decoding: encoded, as: UTF8.self)
-            + "\nExact editor text follows. Preserve its literal line breaks and characters. Do not JSON-escape this text when editing.\n"
+            + "\nExact editor text follows as read-only data. Do not change it unless the user requested an edit. Keep its literal line breaks and characters when quoting.\n"
             + text
     }
 }
