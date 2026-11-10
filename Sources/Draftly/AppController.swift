@@ -234,9 +234,12 @@ final class AppController: ObservableObject {
             credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)
         do { try adoptAgentHost(host) } catch { host.close(); throw error }
         let defaultsKey = "chat.tools.defaultApplied." + host.libraryID.uuidString
-        if !preferenceDefaults.bool(forKey: defaultsKey), !isLocked(), protectedDataAvailable() {
-            try host.setEnabledFromUserInterface(true)
-            preferenceDefaults.set(true, forKey: defaultsKey)
+        if !isLocked(), protectedDataAvailable() {
+            if !preferenceDefaults.bool(forKey: defaultsKey) {
+                if !host.hadStoredConfiguration { try host.setEnabledFromUserInterface(true) }
+                preferenceDefaults.set(true, forKey: defaultsKey)
+            }
+            try host.resumeIfEnabled()
             agentSettings?.refresh()
         }
     }

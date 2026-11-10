@@ -160,6 +160,29 @@ struct AgentApplicationHostTests {
         }
     }
 
+    @Test(arguments: [false, true], [false, true])
+    func updatePreservesStoredAccessBeforeApplyingChatDefaults(enabled: Bool, alreadyApplied: Bool) throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let previous = try f.host()
+        let libraryID = previous.libraryID
+        try previous.setEnabledFromUserInterface(enabled)
+        previous.close()
+        let file = try AgentConnectionFile(parentDirectory: f.root)
+        let bytes = try file.read()
+        var legacy = try AgentConnectionMetadata.decode(bytes)
+        legacy.libraryAccessMigration = nil
+        try file.replace(legacy.encoded(), expected: bytes)
+        let app = try #require(f.app), secrets = f.secrets
+        f.defaults.set(alreadyApplied, forKey: "chat.tools.defaultApplied." + libraryID.uuidString)
+        try app.configureAgentHost(isLocked: { false }, preferenceDefaults: f.defaults,
+            protectedDataAvailable: { true }, credentials: .init(read: { secrets.values[$0] },
+                create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
+            validateApplication: {}, validateHelper: { _ in })
+        #expect(try #require(app.agentSettings).accessEnabled == enabled)
+        #expect(f.defaults.bool(forKey: "chat.tools.defaultApplied." + libraryID.uuidString))
+        #expect(secrets.values.isEmpty)
+    }
+
     @Test func applicationEnablesAccessWithoutCreatingCredentialsAndKeepsAdmissionChecks() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let app = try #require(f.app), secrets = f.secrets

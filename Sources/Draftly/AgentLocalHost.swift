@@ -7,6 +7,7 @@ import AgentLocalSecurity
 // must still provide editor/lock adapters and a provisioned signed helper.
 @MainActor final class AgentLocalHost {
     let libraryID: UUID
+    let hadStoredConfiguration: Bool
     let connections: AgentConnectionRegistry
     let pairing: AgentPairingCoordinator
     let approvals: AgentApprovalStore
@@ -76,6 +77,7 @@ import AgentLocalSecurity
         do {
             let parent = lease.location.url.deletingLastPathComponent()
             file = try AgentConnectionFile(parentDirectory: parent)
+            hadStoredConfiguration = try file.read() != nil
             locator = try AgentHostLocator(parentDirectory: parent)
             activity = try AgentActivityStore(parentDirectory: parent)
             journal = (enableReviewedActions || enableReviewedMutations) ? try AgentOperationJournal(parentDirectory: parent) : nil

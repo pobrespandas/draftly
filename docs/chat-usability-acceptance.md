@@ -335,3 +335,30 @@ fresh tools bound to the current permission session. ChatGPT's existing typed
 message path and persisted conversation format are unchanged. The SDK interface
 confirms the transcript initializer on supported macOS versions. The focused
 25-test run and Xcode build passed. Installed regression remains open.
+
+
+### Installed typed-history and update regression
+
+Signed and notarized build 55 (88e4705) created one two-line Unicode draft.
+Two later turns edited and read the intended draft without another creation.
+Native Undo restored both edits. ChatGPT also edited and read the test draft;
+Undo restored its content. Automatic connections worked after provider and
+conversation changes. Manual scroll exposed Latest message. That action
+returned to the streaming response. Stop ended both provider responses.
+Apple used a contradictory closing reassurance after one successful edit.
+Its reported content was correct, but that sentence was not. A fresh Apple
+story response created a draft before Stop. Stop does not undo committed work.
+All model connections were revoked and local access was turned off afterward.
+
+The signed Sparkle update from the isolated source-0.4.0 fixture to build 55
+preserved the neutral draft and its identity. The fixture uses a QA-only
+loopback feed adapter, not the unmodified public binary. Synthetic connection
+metadata had no credentials. Its live scope expanded; expired and revoked
+records stayed unchanged. The update incorrectly enabled stored access off.
+This failed the update gate. Access was immediately turned off.
+
+The correction records whether host configuration existed before migration.
+Only a new library receives the enabled default. Existing enabled hosts resume;
+existing disabled hosts stay off. Four regression combinations cover stored
+on/off and an absent/present defaults marker. The focused 59-test run and
+Xcode build passed. A new installed signed update remains required.
