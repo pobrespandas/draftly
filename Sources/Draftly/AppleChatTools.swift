@@ -337,7 +337,7 @@ private struct AppleCallTool: Tool {
 }
 
 @MainActor final class AppleChatResponder {
-    typealias Generate = @MainActor (String, String, AppleChatToolBridge) async throws -> String
+    typealias Generate = @MainActor (ChatModelRequest, String, AppleChatToolBridge) async throws -> String
     private let generate: Generate
     let timeout: TimeInterval
     init(timeout: TimeInterval = 120, generate: Generate? = nil) {
@@ -345,11 +345,14 @@ private struct AppleCallTool: Tool {
         self.generate = generate ?? { prompt, mode, bridge in
             let models = NativeModelAPI()
             models.responseTimeout = timeout
-            return try await models.respondAuthorized(prompt: prompt, mode: mode, tools: try await bridge.modelTools(),
-                                                      hasOpenDraft: bridge.currentDraftID != nil)
+            return try await models.respondAuthorized(prompt: prompt.prompt, mode: mode, tools: try await bridge.modelTools(),
+                                                      hasOpenDraft: bridge.currentDraftID != nil, history: prompt.history)
         }
     }
     func respond(prompt: String, mode: String, session: AgentChatToolSession) async throws -> String {
+        try await respond(prompt: ChatModelRequest(prompt: prompt), mode: mode, session: session)
+    }
+    func respond(prompt: ChatModelRequest, mode: String, session: AgentChatToolSession) async throws -> String {
         guard ["onDevice", "pcc"].contains(mode) else { throw AgentErrorCode.invalidInput }
         let bridge = try AppleChatToolBridge(session: session, timeout: timeout)
         defer { bridge.lifetime.invalidate() }

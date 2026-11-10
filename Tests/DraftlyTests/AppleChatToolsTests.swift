@@ -6,6 +6,25 @@ import AgentContracts
 
 @Suite("Apple chat through authorized local tools") @MainActor
 struct AppleChatToolsTests {
+    @Test func nativeHistoryUsesPriorRolesAndLeavesTheCurrentRequestSeparate() throws {
+        let request = ChatModelRequest(prompt: "Edit the open draft", history: [
+            .init(role: .user, text: "Create café 🐼"),
+            .init(role: .assistant, text: "Created"),
+            .init(role: .user, text: "Cancelled request without a reply")])
+        #expect(request.prompt == "Edit the open draft")
+        #expect(request.history.map(\.text) == ["Create café 🐼", "Created"])
+        let transcript = NativeModelAPI.conversationTranscript(base: Transcript(), history: request.history)
+        #expect(transcript.count == 2)
+        guard case .prompt(let priorUser) = transcript[0],
+              case .response(let priorAssistant) = transcript[1],
+              case .text(let userText) = priorUser.segments.first,
+              case .text(let assistantText) = priorAssistant.segments.first else {
+            Issue.record("Conversation roles were not preserved"); return
+        }
+        #expect(userText.content == "Create café 🐼")
+        #expect(assistantText.content == "Created")
+    }
+
     @Test func catalogAndCallsKeepTheExistingScope() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)

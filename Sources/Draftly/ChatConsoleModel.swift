@@ -25,6 +25,26 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     }
 }
 
+struct ChatModelRequest {
+    let prompt: String
+    let history: [ChatConsoleMessage]
+
+    init(prompt: String, history: [ChatConsoleMessage] = []) {
+        self.prompt = prompt
+        var completed: [ChatConsoleMessage] = []
+        var pending: ChatConsoleMessage?
+        for message in history.suffix(79) {
+            switch message.role {
+            case .user: pending = message
+            case .assistant:
+                if let user = pending { completed += [user, message] }
+                pending = nil
+            }
+        }
+        self.history = completed
+    }
+}
+
 @MainActor final class ChatConsoleModel: ObservableObject {
     let chatGPTAccount: ChatGPTAccountModel?
     private struct SavedState: Codable {
@@ -35,7 +55,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     static let selectedModelKey = "chatConsole.selectedModel"
     typealias LoadModes = @MainActor () async throws -> [String]
     typealias Respond = @MainActor (_ prompt: String, _ mode: String) async throws -> String
-    typealias RespondWithTools = @MainActor (String, String, AgentChatToolSession) async throws -> String
+    typealias RespondWithTools = @MainActor (ChatModelRequest, String, AgentChatToolSession) async throws -> String
 
     @Published private(set) var conversations: [ChatConsoleConversation] = []
     @Published private(set) var selectedConversationID: UUID?
@@ -212,6 +232,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         append(.init(role: .user, text: text), to: conversationID)
         let context = contextForResponse(conversationID)
         let messages = selectedConversation?.messages ?? []
+        let request = ChatModelRequest(prompt: text, history: Array(messages.dropLast()))
         let mode = selectedModel
         let tools = toolSession
         let id = UUID()
@@ -233,7 +254,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
                     }
                 } else if let tools {
                     guard let respondWithTools else { throw AgentErrorCode.unavailable }
-                    answer = try await respondWithTools(context, mode, tools)
+                    answer = try await respondWithTools(request, mode, tools)
                 } else { answer = try await respond(context, mode) }
                 try Task.checkCancellation()
                 guard responseID == id else { return }

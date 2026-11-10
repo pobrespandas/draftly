@@ -308,3 +308,30 @@ Explicit Disconnect, Stop Work, and manual access off remain effective. The QA
 screenshots with access off followed deliberate cleanup, not the install
 default. The focused 34-test run and Xcode build passed. Installed alignment,
 wrapped input, custom themes, and final model regression remain open.
+
+Installed build 54 (46fc399) passed notarization
+19bfce40-90be-47b3-90a8-b0a685f544ce, stapling, and strict signature checks.
+Native light-mode QA showed a continuous divider below both 45-point headers.
+The footer divider aligned across the editor and chat with an empty composer.
+Pasting seven neutral Unicode lines expanded both footer regions together;
+the composer scrolled internally. Clearing the prompt returned both dividers
+to the compact position. The tool state was accessible as a header button and
+no separate status row displaced the transcript. Access remained off during
+this visual test. Model regression and update acceptance remain pending.
+
+### Typed Apple conversation history
+
+Installed build 54 correctly verified the ID created in the first response.
+Its unquoted creation request omitted the requested second line. On the next
+turn, it still repeated creation despite an explicit request not to create.
+This failed acceptance. The connection was revoked and local access was turned
+off. No passing multi-turn Apple claim is made for that build.
+
+Authorized Apple requests now carry the current prompt separately from completed
+chat turns. NativeModelAPI adds earlier turns as Foundation Models Transcript
+prompt/response entries and sends only the current prompt to respond. Previous
+unanswered or cancelled user turns are not replayed. Each response still gets
+fresh tools bound to the current permission session. ChatGPT's existing typed
+message path and persisted conversation format are unchanged. The SDK interface
+confirms the transcript initializer on supported macOS versions. The focused
+25-test run and Xcode build passed. Installed regression remains open.

@@ -86,17 +86,46 @@ import AgentContracts
         return session
     }
 
-    private func languageSession(mode: String, tools: [any Tool], instructions: String) throws -> LanguageModelSession {
+    static func conversationTranscript(base: Transcript, history: [ChatConsoleMessage]) -> Transcript {
+        var entries = Array(base)
+        for message in history {
+            let segments: [Transcript.Segment] = [.text(.init(content: message.text))]
+            switch message.role {
+            case .user: entries.append(.prompt(.init(segments: segments)))
+            case .assistant: entries.append(.response(.init(assetIDs: [], segments: segments)))
+            }
+        }
+        return Transcript(entries: entries)
+    }
+
+    private func languageSession(mode: String, tools: [any Tool], instructions: String,
+                                 history: [ChatConsoleMessage] = []) throws -> LanguageModelSession {
+        let initial: LanguageModelSession
         if mode == "pcc" {
             #if compiler(>=6.4)
-            if #available(macOS 27, *) { return LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions) }
+            if #available(macOS 27, *) {
+                initial = LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions)
+            } else { throw DraftlyError.message("Private Cloud Compute is unavailable in this build.") }
+            #else
+            throw DraftlyError.message("Private Cloud Compute is unavailable in this build.")
+            #endif
+        } else {
+            initial = LanguageModelSession(model: SystemLanguageModel.default, tools: tools, instructions: instructions)
+        }
+        guard !history.isEmpty else { return initial }
+        let transcript = Self.conversationTranscript(base: initial.transcript, history: history)
+        if mode == "pcc" {
+            #if compiler(>=6.4)
+            if #available(macOS 27, *) {
+                return LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, transcript: transcript)
+            }
             #endif
             throw DraftlyError.message("Private Cloud Compute is unavailable in this build.")
         }
-        return LanguageModelSession(model: SystemLanguageModel.default, tools: tools, instructions: instructions)
+        return LanguageModelSession(model: SystemLanguageModel.default, tools: tools, transcript: transcript)
     }
 
-    func respondAuthorized(prompt: String, mode: String, tools: [any Tool], hasOpenDraft: Bool) async throws -> String {
+    func respondAuthorized(prompt: String, mode: String, tools: [any Tool], hasOpenDraft: Bool, history: [ChatConsoleMessage] = []) async throws -> String {
         guard availableModes().contains(mode) else { throw DraftlyError.message("The selected Apple Intelligence model is unavailable on this Mac.") }
         let id = UUID().uuidString
         defer { discardSession(id) }
@@ -113,7 +142,7 @@ import AgentContracts
                 For unsaved text or a selection, discover editor tools with draftly_tools.
                 For other operations, get the exact tool name and schema with draftly_tools. Call it through draftly_call. For editor edits or other writes that require a retryKey, inspect draftly_mutations_prepare and use its returned retryKey.
                 \(AgentModelInstructions.results)
-                """)
+                """, history: history)
         let bytes = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id])
         let raw = try await performAsync("modelRespond", payload: String(decoding: bytes, as: UTF8.self))
         guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
