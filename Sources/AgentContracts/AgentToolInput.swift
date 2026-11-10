@@ -174,7 +174,7 @@ package extension AgentOperationDescriptor {
         case "drafts.list": "List authorized draft metadata with filters, order and opaque pagination."
         case "drafts.search": "Search authorized drafts. Return metadata and matching previews."
         case "drafts.get": "Read stored draft metadata and a UTF-16 text chunk. If hasMore is true, read the next chunk from offset plus length. Use the editor tools for unsaved text."
-        case "drafts.create": "Save text as a new draft. Requires library scope. Use drafts.update or drafts.patch to change an existing draft."
+        case "drafts.create": "Save text as a new draft. Requires library scope and a prepared retryKey. First call draftly_mutations_prepare with parameters.request containing apiVersion 1, a new write requestID, operation drafts.create, targets [], and parameters.content. Then call this tool with that same write requestID, content, and returned retryKey. Do not call this tool before preparation. Use drafts.update or drafts.patch to change an existing draft."
         case "drafts.update": "Set fields on an existing draft using its current versionToken. Setting changes.content replaces the entire text. Use drafts.patch for targeted text edits."
         case "drafts.patch": "Apply targeted UTF-16 text edits to an existing draft. Read its text and versionToken first. Offsets refer to the original text."
         case "drafts.trash": "Move authorized drafts to Trash. Use drafts.restore to recover them."

@@ -596,3 +596,24 @@ The app has only display messages when it restores a conversation. The next
 correction passes those messages as reference context in the current prompt,
 not as a reconstructed execution transcript. It keeps the current request
 separate and retains the result guard. This change still needs installed QA.
+
+
+## Build 64: editing, Undo, scroll, and creation checks
+
+Notarization 36a8c303-71ac-41ea-ae17-d3cf4f11bbd0 was accepted.
+Apple dispatched an editor write with restored conversation context and read
+the real result. It kept the original line break but used a space before the
+requested appended line. This is a model formatting limitation, not an exact
+append pass. After native Undo, another turn changed only independiente to
+verificado. The response was cancelled after the write. Undo restored the
+39-character control text. A new read returned that actual restored text.
+Manual scroll exposed Latest message. That control returned to the bottom.
+Apple also created and read QA Apple 64 café 🐼. The library grew from 10 to 11
+drafts. No other draft was created by the cancelled requests.
+
+ChatGPT GPT-6-Luna connected automatically but called drafts.create without
+mutation preparation and received invalid_input. It repeated the invalid call.
+The test was cancelled. The library stayed at 11 drafts. This blocks combined
+QA acceptance. The next description puts the prepare sequence directly on
+drafts.create. Public names and operation schemas stay unchanged.
+All QA connections are revoked and local access is off.
