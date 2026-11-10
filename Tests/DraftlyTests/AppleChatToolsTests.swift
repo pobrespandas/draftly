@@ -25,6 +25,37 @@ struct AppleChatToolsTests {
         #expect(assistantText.content == "Created")
     }
 
+    @Test func replyEvidenceIsLimitedToTheCurrentTurn() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        let bridge = try AppleChatToolBridge(session: session)
+        #expect(try bridge.verifiedMessage(.init(basis: .conversation, message: "A writing proposal")) == "A writing proposal")
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .observation, message: "Current text"))
+        }
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .operation, message: "Saved"))
+        }
+        _ = try await bridge.modelTools()
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .observation, message: "Current text"))
+        }
+        _ = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.hidden.id))
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .observation, message: "Hidden text"))
+        }
+        _ = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id))
+        #expect(try bridge.verifiedMessage(.init(basis: .observation, message: "Read")) == "Read")
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .operation, message: "Saved"))
+        }
+        let nextTurn = try AppleChatToolBridge(session: session)
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try nextTurn.verifiedMessage(.init(basis: .observation, message: "Old read"))
+        }
+    }
+
     @Test func catalogAndCallsKeepTheExistingScope() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)
@@ -102,6 +133,7 @@ struct AppleChatToolsTests {
         #expect(nativeSchemas.count < 8_000)
         let created = try await bridge.createDraft(content: "Created café 🐼")
         #expect(created.contains("result"))
+        #expect(try bridge.verifiedMessage(.init(basis: .operation, message: "Created")) == "Created")
         #expect(runtime.library.notes.contains { $0.content == "Created café 🐼" })
         let createdNote = try #require(runtime.library.notes.first { $0.content == "Created café 🐼" })
         #expect(bridge.responseDraftID(fallback: runtime.allowed.id) == createdNote.id)
@@ -109,6 +141,9 @@ struct AppleChatToolsTests {
         #expect(verified.contains("Created café 🐼"))
         let nextTurn = try AppleChatToolBridge(session: session)
         #expect(nextTurn.responseDraftID(fallback: runtime.allowed.id) == runtime.allowed.id)
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try nextTurn.verifiedMessage(.init(basis: .operation, message: "Created again"))
+        }
         _ = try runtime.registry.revokeFromUserInterface(record.id)
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog() }
     }
@@ -295,7 +330,7 @@ struct AppleChatToolsTests {
         let responder = AppleChatResponder(generate: { _, selected, bridge in
             #expect(selected == mode)
             retained = bridge
-            return try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id))
+            return AppleChatReply(basis: .observation, message: try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id)))
         })
         #expect(try await responder.respond(prompt: "Read neutral draft", mode: mode, session: session).contains(runtime.allowed.content))
         let bridge = try #require(retained), before = runtime.dispatches
@@ -327,7 +362,7 @@ struct AppleChatToolsTests {
         let session = AgentChatToolSession(backend: runtime.backend)
         defer { session.invalidate() }
         var retained: AppleChatToolBridge?
-        var continuation: CheckedContinuation<String, Never>?
+        var continuation: CheckedContinuation<AppleChatReply, Never>?
         let responder = AppleChatResponder(generate: { _, _, bridge in
             retained = bridge
             return await withCheckedContinuation { continuation = $0 }
@@ -339,7 +374,7 @@ struct AppleChatToolsTests {
         let before = runtime.dispatches
         await #expect(throws: CancellationError.self) { try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id)) }
         #expect(runtime.dispatches == before)
-        pending.resume(returning: "Late response")
+        pending.resume(returning: AppleChatReply(basis: .conversation, message: "Late response"))
         await #expect(throws: CancellationError.self) { try await response.value }
     }
 

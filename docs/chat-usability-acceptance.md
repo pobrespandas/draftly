@@ -528,3 +528,24 @@ compression level 6. The existing feed-byte regression requires level 9. The
 feed compressor now sets that level explicitly. The regression and all script
 tests pass. This does not change the app source or the build-60 QA package.
 Manual Mac unlock is still required for notarization and installed follow-up.
+
+
+## Build 60: Apple confirmation regression
+
+The signed and notarized build 60 passed the installed composer remount,
+wrapped five-line height, separate Undo, and light/dark divider checks.
+Apple made two confirmed editor writes. Native Undo restored the original
+39-character text after each write. On the next request, Apple claimed that
+it replaced the text but did not call a tool. The editor stayed unchanged.
+This result blocks acceptance. ChatGPT was not retested in this build.
+All QA connections were revoked. Local access was turned off and the QA quit.
+
+The next build uses a structured Apple reply basis. An observation requires
+a tool result in the current turn. A completed-operation reply requires a
+successful write result in that turn. Discovery during setup, denied reads,
+and results from an earlier turn do not qualify. The guard does not retry
+an effect. A model could still classify a claim as conversation. Installed
+model tests must check this limit before acceptance.
+
+The correction passed 27 focused tests and the native Xcode build.
+These checks do not replace the pending installed-model regression test.

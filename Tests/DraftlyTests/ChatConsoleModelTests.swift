@@ -211,7 +211,7 @@ struct ChatConsoleModelTests {
     @Test func appleToolsDoNotRequireAChatGPTAccountAndSwitchingModelsRevokesThem() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let apple = AppleChatResponder(generate: { _, _, bridge in
-            try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id))
+            AppleChatReply(basis: .observation, message: try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id)))
         })
         let model = ChatConsoleModel(loadModes: { ["onDevice", "pcc"] }, respond: { _, _ in
             Issue.record("Attached tools were bypassed")

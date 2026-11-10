@@ -4,6 +4,18 @@ import OSLog
 import Security
 import AgentContracts
 
+struct AppleChatReply: Codable, Sendable {
+    enum Basis: String, Codable, Sendable, CaseIterable { case conversation, observation, operation }
+    let basis: Basis
+    let message: String
+}
+
+struct AppleChatUnverifiedReplyError: LocalizedError {
+    var errorDescription: String? {
+        "Apple Intelligence did not provide a verifiable Draftly result. Check the draft before trying again."
+    }
+}
+
 // A cloud choice requires both Apple authorization and runtime availability.
 @MainActor enum AppleModelAccess {
     static func modes() -> [String] {
@@ -50,6 +62,8 @@ final class AppleChatToolLifetime: @unchecked Sendable {
     var currentDraftID: UUID? { session.currentDraftID }
     private let maximumCalls: Int
     private var calls = 0
+    private var observedResult = false
+    private var completedOperation = false
     private(set) var createdDraftID: UUID?
     init(session: AgentChatToolSession, timeout: TimeInterval = 120, maximumCalls: Int = 32) throws {
         guard maximumCalls > 0, maximumCalls <= 256 else { throw AgentErrorCode.invalidInput }
@@ -74,6 +88,7 @@ final class AppleChatToolLifetime: @unchecked Sendable {
         }
         let bytes = try JSONEncoder().encode(result)
         guard bytes.count <= AgentRequest.maximumBytes else { throw AgentErrorCode.unavailable }
+        observedResult = true
         return String(decoding: bytes, as: UTF8.self)
     }
     func execute(name: String, argumentsJSON: String) async throws -> String {
@@ -81,7 +96,26 @@ final class AppleChatToolLifetime: @unchecked Sendable {
         let result = try await session.execute(callID: UUID().uuidString, tool: name, argumentsJSON: argumentsJSON,
             validateExecution: lifetime.requireActive)
         try lifetime.requireActive()
+        let response = try JSONDecoder().decode(AgentResponse.self, from: Data(result.utf8))
+        switch response.outcome {
+        case .result:
+            if let operation = AgentToolInput.operation(named: name), operation.name != "mutations.prepare" {
+                observedResult = true
+                if !operation.isReadOnly { completedOperation = true }
+            }
+        case .accepted: observedResult = true
+        case .error: break
+        }
         return result
+    }
+    func verifiedMessage(_ reply: AppleChatReply) throws -> String {
+        try lifetime.requireActive()
+        switch reply.basis {
+        case .conversation: break
+        case .observation: guard observedResult else { throw AppleChatUnverifiedReplyError() }
+        case .operation: guard completedOperation else { throw AppleChatUnverifiedReplyError() }
+        }
+        return reply.message
     }
     func modelTools() async throws -> [any Tool] {
         try admit()
@@ -418,7 +452,7 @@ private struct AppleCallTool: Tool {
 }
 
 @MainActor final class AppleChatResponder {
-    typealias Generate = @MainActor (ChatModelRequest, String, AppleChatToolBridge) async throws -> String
+    typealias Generate = @MainActor (ChatModelRequest, String, AppleChatToolBridge) async throws -> AppleChatReply
     private let generate: Generate
     let timeout: TimeInterval
     init(timeout: TimeInterval = 120, generate: Generate? = nil) {
@@ -440,8 +474,7 @@ private struct AppleCallTool: Tool {
         return try await withTaskCancellationHandler {
             do {
                 let result = try await generate(prompt, mode, bridge)
-                try bridge.lifetime.requireActive()
-                return result
+                return try bridge.verifiedMessage(result)
             } catch let error as LanguageModelSession.ToolCallError {
                 try Task.checkCancellation()
                 if error.underlyingError is CancellationError { throw CancellationError() }
