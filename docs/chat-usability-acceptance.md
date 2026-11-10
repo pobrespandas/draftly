@@ -362,3 +362,14 @@ Only a new library receives the enabled default. Existing enabled hosts resume;
 existing disabled hosts stay off. Four regression combinations cover stored
 on/off and an absent/present defaults marker. The focused 59-test run and
 Xcode build passed. A new installed signed update remains required.
+
+
+Build 56 (3c84168) passed notarization fdf40272-0818-405c-b48b-e16a7523f888.
+The repeated signed Sparkle update from the isolated source-0.4.0 fixture
+installed build 56 at the original path. The neutral draft retained its ID and
+content. Access stayed off before update, after update, and after restart.
+The live synthetic record expanded to the library. Expired and revoked records
+kept their resource scopes. Expiry dates did not change. Metadata was identical
+after restart, which confirms that migration did not repeat. No credential was
+created for this metadata fixture. The source-0.4.0 loopback-adapter limitation
+still applies. Both QA apps were closed with access off.
