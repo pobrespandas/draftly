@@ -1,5 +1,38 @@
 # Chat usability acceptance
 
+## Current acceptance — 10 November 2026
+
+Code: 6dd321a. Signed installed QA: build 59. The shared panel boundaries,
+five-line composer limit, independent Undo, and conversation reset passed.
+The combined 42-test run covers submission, Shift-Return, marked IME text,
+conversation state, host defaults, and Apple tools. It passed. Physical input
+method candidate selection was not tested; the marked-text path was tested.
+
+Apple On-Device and ChatGPT created one neutral draft each, read the correct
+created draft, edited the open editor, and read the updated text. Native Undo
+restored both edits. The sent composer and a new conversation did not restore
+the previous prompt through Undo. Automatic connections worked after provider
+and conversation changes. Both providers stopped an in-progress response.
+ChatGPT GPT-6-Luna produced a partial list while Stop remained available.
+Scrolling up kept the scrollbar below 1 and showed Latest message. That action
+returned it to 1 during generation. Stop returned the UI to idle. No extra
+notes were created during these cancellation tests. Access was revoked and
+the isolated QA was closed with access off.
+
+The signed source-0.4.0 QA fixture updated to build 59 through Sparkle. Its
+neutral draft, ID, expiry dates, and revoked/expired grants were preserved.
+The live synthetic grant expanded once. Access stayed off and metadata stayed
+identical after restart. This fixture uses a loopback feed adapter and synthetic
+grants without credentials; it is not acceptance of an unmodified public binary
+or multi-device sync. Public archive checksum/signature checks passed earlier.
+
+Full exact-head CI remains required. Run 42857185053 passed tooling and the
+contract matrix. GitHub cancelled its native job because no hosted macOS ARM
+runner acquired it. The aggregate check therefore failed. The previous full
+run on 88e4705 passed. Do not treat that older run as final-head acceptance.
+
+Older checkpoints below record the failures and corrections in order.
+
 Status: implementation in progress. Not released.
 
 ## Intended behavior
@@ -419,3 +452,27 @@ public MCP names, schemas, and permissions do not change. The normal editor
 still owns pending text and Undo. The focused 11-test run checks pending Unicode
 text, native Undo, stale versions, partial reads, hidden windows, and revocation.
 It passed, as did the Xcode build. Installed direct-editor acceptance is pending.
+
+
+### Final installed QA and signed update
+
+Model QA build 59 (6dd321a) passed combined notarization
+11720512-c2f2-45ec-96ac-030aeb842b74, stapling, and strict signature checks.
+Apple edited the open 39-character draft to 66 characters through the direct
+editor adapter. It read and reported all three exact lines. Undo restored 39.
+ChatGPT GPT-6.1-Sol edited the same editor to 68 characters, read it, and reported
+its exact text. Undo restored 39. Draft count stayed eight during both edits.
+ChatGPT created one two-line draft (count nine); Apple created another (count
+ten). Each read the new draft rather than the open control draft. The control
+stayed at 39 characters. Both cancellation tests returned Stop to idle Send.
+GPT-6-Luna streamed more than 130 numbered ideas before the scroll/cancel test.
+The composer scrolled internally for seven Unicode lines while both footer
+borders stayed aligned. New Chat cleared it; Undo did not restore that input.
+
+The update target passed notarization ccdb103b-5a17-46a8-be42-15a004554f2e.
+Sparkle installed build 59 at the original source-0.4.0 fixture path. The saved
+71-character neutral draft retained ID 6F881F91-ED85-4CFE-A1B4-F10717A962C4.
+Access stayed off. The live record gained library scope. Expired and revoked
+records were unchanged, as were all expiry dates. A second launch left the
+connection metadata identical. The updated app passed strict signature checks
+and was closed with access off.
