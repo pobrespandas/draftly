@@ -549,3 +549,20 @@ model tests must check this limit before acceptance.
 
 The correction passed 27 focused tests and the native Xcode build.
 These checks do not replace the pending installed-model regression test.
+
+
+## Build 61: confirmation guard in use
+
+Notarization 0bec4d36-0f6f-4515-a0d4-7fe96ae57710 was accepted.
+The installed build rejected the previous false-confirmation case. It showed
+an error and left the original 39-character text unchanged. A new conversation
+then made an actual editor write and read back all 66 characters. Native Undo
+restored the original text. The next turn again skipped its operation. The
+guard rejected that reply. This prevents the observed false success but does
+not yet pass the multi-turn editing acceptance check.
+
+The next correction retries inference once only when no operation was
+dispatched. It never retries after a dispatched read, write, or failed call.
+The retry keeps the same lifetime and call budget. Thirteen Apple tool tests
+and the native Xcode build passed. Installed verification remains pending.
+The QA connection was revoked, local access was turned off, and the app quit.

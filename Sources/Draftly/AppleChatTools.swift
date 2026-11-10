@@ -64,6 +64,7 @@ final class AppleChatToolLifetime: @unchecked Sendable {
     private var calls = 0
     private var observedResult = false
     private var completedOperation = false
+    private(set) var attemptedExecution = false
     private(set) var createdDraftID: UUID?
     init(session: AgentChatToolSession, timeout: TimeInterval = 120, maximumCalls: Int = 32) throws {
         guard maximumCalls > 0, maximumCalls <= 256 else { throw AgentErrorCode.invalidInput }
@@ -93,6 +94,7 @@ final class AppleChatToolLifetime: @unchecked Sendable {
     }
     func execute(name: String, argumentsJSON: String) async throws -> String {
         try admit()
+        attemptedExecution = true
         let result = try await session.execute(callID: UUID().uuidString, tool: name, argumentsJSON: argumentsJSON,
             validateExecution: lifetime.requireActive)
         try lifetime.requireActive()
@@ -474,7 +476,13 @@ private struct AppleCallTool: Tool {
         return try await withTaskCancellationHandler {
             do {
                 let result = try await generate(prompt, mode, bridge)
-                return try bridge.verifiedMessage(result)
+                do { return try bridge.verifiedMessage(result) }
+                catch is AppleChatUnverifiedReplyError where !bridge.attemptedExecution {
+                    // No operation was dispatched. Retry inference once, not an effect.
+                    let correction = ChatModelRequest(prompt: prompt.prompt + "\n\nYour previous reply was withheld because no Draftly operation ran in this turn. Use the available tools to perform or verify this request before answering. If you cannot, explain that limitation without claiming a change.", history: prompt.history)
+                    let corrected = try await generate(correction, mode, bridge)
+                    return try bridge.verifiedMessage(corrected)
+                }
             } catch let error as LanguageModelSession.ToolCallError {
                 try Task.checkCancellation()
                 if error.underlyingError is CancellationError { throw CancellationError() }

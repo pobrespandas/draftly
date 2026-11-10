@@ -56,6 +56,32 @@ struct AppleChatToolsTests {
         }
     }
 
+    @Test func unverifiedReplyRetriesInferenceOnlyBeforeAnyDispatch() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        var attempts = 0
+        let responder = AppleChatResponder(generate: { request, _, bridge in
+            attempts += 1
+            if attempts == 1 { return .init(basis: .observation, message: "Unverified") }
+            #expect(request.prompt.contains("no Draftly operation ran"))
+            _ = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id))
+            return .init(basis: .observation, message: "Verified read")
+        })
+        #expect(try await responder.respond(prompt: "Read", mode: "onDevice", session: session) == "Verified read")
+        #expect(attempts == 2)
+        attempts = 0
+        let noRetry = AppleChatResponder(generate: { _, _, bridge in
+            attempts += 1
+            _ = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.hidden.id))
+            return .init(basis: .operation, message: "Saved")
+        })
+        await #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try await noRetry.respond(prompt: "Write", mode: "onDevice", session: session)
+        }
+        #expect(attempts == 1)
+    }
+
     @Test func catalogAndCallsKeepTheExistingScope() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)
