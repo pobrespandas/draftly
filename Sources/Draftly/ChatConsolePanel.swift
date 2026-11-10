@@ -268,12 +268,14 @@ struct ChatConsolePanel: View {
     private var composer: some View {
         let promptFont = EditorSyntaxFontPreferences.font(for: "Markdown", encoded: promptSyntaxFonts,
             defaultName: promptFontName, defaultSize: promptFontSize)
+        let nativeFont = NSFont(name: promptFont.name, size: promptFont.size) ?? NSFont.systemFont(ofSize: promptFont.size)
+        let lineHeight = NSLayoutManager().defaultLineHeight(for: nativeFont)
         return HStack(alignment: .bottom, spacing: 8) {
             NativeEditor(session: promptSession, fontName: promptFont.name,
                 fontSize: promptFont.size, lineSpacing: 0, markdown: true,
                 horizontalMargin: 0, verticalMargin: 8, maximumWidth: 0, theme: editorTheme,
                 submit: { model.send() }, measuredHeight: { if abs(promptHeight - $0) > 0.5 { promptHeight = $0 } }, independentUndo: true) { model.prompt = promptSession.content }
-                .frame(height: min(max(promptHeight, promptFontSize * 1.3 + 16), promptFontSize * 1.3 * 5 + 16))
+                .frame(height: min(max(promptHeight, lineHeight + 16), lineHeight * 5 + 16))
                 .accessibilityLabel("Enter a prompt")
                 .id(model.selectedConversation?.id)
                 .onChange(of: model.prompt) { _, value in

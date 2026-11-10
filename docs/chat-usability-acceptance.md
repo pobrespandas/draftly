@@ -197,3 +197,11 @@ The prior serial chat and theme run passed 88 tests. The independent Undo test
 passed. The final composition tests, installed build acceptance, full CI, and
 signed update from 0.4.0 remain open. Build 47 notarization was accepted, but
 that package predates the final panel extraction and is not final acceptance.
+
+Build 48 (3ca3aef) and its helper were signed and notarized together.
+Submission b723d2bd-1758-4c1b-beae-10c3a5b91f6c was Accepted.
+Installed QA confirmed Unicode paste, Shift-Return, Return submission to
+ChatGPT, bottom following after the response, and an empty composer after
+Command-Z following send. No tool connection was created. A seven-line prompt
+exposed an inaccurate five-line height estimate. The follow-up uses the native
+font line height. This correction needs a new installed acceptance build.
