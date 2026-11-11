@@ -167,7 +167,7 @@ struct AgentMCPTests {
         let all = try await AgentMCPServer(backend: backend).tools()
         #expect(all.nextCursor == nil)
         let expected = AgentOperationCatalog.operations.map(\.name).sorted().map(AgentToolInput.name)
-        #expect(all.tools.map(\.name) == expected && Set(expected).count == 137)
+        #expect(all.tools.map(\.name) == expected && Set(expected).count == 139)
 
         let paged = AgentMCPServer(toolPageLimit: 32_768, backend: backend)
         var page = try await paged.tools()
@@ -195,11 +195,11 @@ struct AgentMCPTests {
                 let page = try await runtime.client.listTools(cursor: cursor)
                 names.append(contentsOf: page.tools.map(\.name))
                 guard let next = page.nextCursor else { break }
-                #expect(names.count < AgentReadSchemas.operationNames.count)
-                guard names.count < AgentReadSchemas.operationNames.count else { break }
+                #expect(names.count < AgentReadSchemas.operationNames.union(AgentHelpSchemas.operationNames).count)
+                guard names.count < AgentReadSchemas.operationNames.union(AgentHelpSchemas.operationNames).count else { break }
                 cursor = next
             }
-            #expect(names == AgentReadSchemas.operationNames.sorted().map(AgentToolInput.name))
+            #expect(names == AgentReadSchemas.operationNames.union(AgentHelpSchemas.operationNames).sorted().map(AgentToolInput.name))
             await #expect(throws: MCPError.self) {
                 try await runtime.client.listTools(cursor: "1.invalid")
             }
@@ -247,10 +247,29 @@ struct AgentMCPTests {
         }
     }
 
+    @Test func bundledHelpAndSkillAreReadableThroughMCPAndCLI() async throws {
+        try await run { r in
+            let before = r.library.notes
+            let tools = try await r.client.listTools().tools
+            #expect(tools.contains { $0.name == "draftly_help_search" && $0.annotations.readOnlyHint == true })
+            let found = try await r.client.callTool(name: "draftly_help_search", arguments: ["parameters": .object([
+                "query": .string("Undo"), "limit": .int(30)])])
+            guard case .result(.object(let page)) = try response(found.content).outcome,
+                  case .array(let items) = page["items"] else { Issue.record("Missing help page"); return }
+            #expect(!items.isEmpty)
+            let skill = try await r.oneShotCall("help.get", arguments: ["parameters": .object(["id": .string("agent-skill")])])
+            guard case .result(.object(let article)) = skill.outcome else { Issue.record("Missing skill"); return }
+            #expect(article["markdown"] == .string(try HelpGuide.agentSkill().markdown))
+            let missing = try await r.oneShotCall("help.get", arguments: ["parameters": .object(["id": .string("missing")])])
+            #expect(missing.outcome == .error(.notFound))
+            #expect(r.library.notes == before)
+        }
+    }
+
     @Test func realSDKInitializesListsAuthorizedToolsAndCallsTheHost() async throws {
         try await run { r in
             let tools = try await r.client.listTools().tools
-            #expect(Set(tools.map(\.name)) == Set(AgentReadSchemas.operationNames.map(AgentToolInput.name)))
+            #expect(Set(tools.map(\.name)) == Set(AgentReadSchemas.operationNames.union(AgentHelpSchemas.operationNames).map(AgentToolInput.name)))
             #expect(tools.allSatisfy { $0.annotations.readOnlyHint == true })
             let reply = try await r.client.callTool(name: "draftly_library_summary")
             #expect(reply.isError == false)
@@ -401,7 +420,7 @@ struct AgentMCPTests {
             async let resources = r.client.listResources()
             async let prompts = r.client.listPrompts()
             let (t, d, p) = try await (tools, resources, prompts)
-            #expect(t.tools.count == 8 && d.resources.count == 1 && p.prompts.count == 1)
+            #expect(t.tools.count == AgentReadSchemas.operationNames.union(AgentHelpSchemas.operationNames).count && d.resources.count == 1 && p.prompts.count == 1)
         }
     }
 

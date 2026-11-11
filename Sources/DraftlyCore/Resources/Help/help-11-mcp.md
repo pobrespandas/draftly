@@ -13,7 +13,7 @@ Draftly provides a local helper for CLI and MCP clients. The app owns the librar
 Use the command shown by the installed app. Do not paste credentials or connection secrets into a public issue or chat.
 
 ## Available operations
-The local catalog contains 137 operations across drafts, editors, actions, workspaces, settings, themes, syntax, imports, backups, activity, and native integrations. Discovery exposes handlers that are available under the current permission. A client can therefore see fewer than 137 tools.
+The local catalog contains 139 operations across drafts, editors, actions, workspaces, settings, themes, syntax, imports, backups, activity, and native integrations. Discovery exposes handlers that are available under the current permission. A client can therefore see fewer than 139 tools.
 
 Each operation has its own MCP tool schema. Clients must use the advertised names and fields. A cached tool list is not continuing authorization: each call checks the current grant.
 

@@ -48,7 +48,7 @@ need changes or services that are not available on a given Mac. Read the
 [compatibility guide](docs/compatibility.md) for the specific limits.
 
 This version is for Mac. Chat Console supports ChatGPT and Apple Intelligence
-On-Device. Local agents can use the CLI and the 137-operation MCP catalog.
+On-Device. Local agents can use the CLI and the 139-operation MCP catalog.
 iPhone, iPad, Apple Watch, remote agent access, and email capture are outside
 the current scope. See [project progress](docs/project-progress.md)
 for implemented work and checks that remain open.

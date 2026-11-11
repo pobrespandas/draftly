@@ -135,3 +135,5 @@ native.shell
 native.appleScript
 native.shortcut
 mutations.prepare
+help.search
+help.get

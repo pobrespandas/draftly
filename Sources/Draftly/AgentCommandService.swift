@@ -1301,6 +1301,8 @@ import AgentContracts
                 parameters: parameters, expiresAt: grant.expiresAt, ids: { ordered.map(\.id) }, value: { byID[$0].map(value) })
         case "actions.validateShortcut", "actions.stepSchemas", "actionGroups.get", "actions.groups", "actions.get", "actions.list":
             return try actions.read(request, parameters: parameters, grant: grant, sessionID: sessionID)
+        case "help.search", "help.get":
+            return try AgentHelpReading.read(request.operation, parameters: parameters)
         case "server.status":
             return ["apiVersion": .integer(Int64(AgentRequest.version)), "appVersion": .string(appVersion), "accessEnabled": .bool(true)]
         case "server.capabilities":

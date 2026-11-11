@@ -14,6 +14,7 @@ import AgentContracts
     }
 
     private static let rules: [Rule] = [
+        .init(operations: AgentHelpSchemas.operationNames, handlers: []),
         .init(operations: ["server.status", "server.capabilities", "server.schemas",
             "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions",
             "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.export",

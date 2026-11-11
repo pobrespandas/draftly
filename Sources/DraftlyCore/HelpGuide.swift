@@ -35,6 +35,14 @@ public enum HelpGuide {
         ("18-troubleshooting", "Troubleshooting and support", "Reference")
     ]
 
+    public static func agentSkill() throws -> HelpArticle {
+        guard let url = Bundle.module.url(forResource: "SKILL", withExtension: "md") else {
+            throw DraftlyError.message("The Draftly agent skill is missing.")
+        }
+        return HelpArticle(id: "agent-skill", title: "Work with Draftly", category: "Agent reference",
+            markdown: try String(contentsOf: url, encoding: .utf8))
+    }
+
     public static func articles() throws -> [HelpArticle] {
         try index.map { id, title, category in
             guard let url = Bundle.module.url(forResource: "help-" + id, withExtension: "md") else {

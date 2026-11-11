@@ -30,3 +30,38 @@ QA did not check every external link, VoiceOver, light appearance, or the Help
 keyboard shortcut. The manual is in English, matching the app. This is not an
 Apple Help Book with system-wide topic indexing. It provides its own in-app
 search. No release was published for this change.
+
+## Agent help and workflow skill
+
+The local catalog now has 139 operations. The two additions are help.search
+and help.get. They use the same bundled articles as the Help window. They need
+an active authenticated connection, but no draft capability or resource scope.
+They cannot read draft text. Existing public tool names stay unchanged.
+
+The separate bundled skill is available through help.get with id agent-skill.
+Its source is `Sources/DraftlyCore/Resources/draftly/SKILL.md`. It uses the
+standard skill frontmatter. It is not an extra user-guide sidebar article.
+The skill validator passed. This change does not install it into a client's
+personal skill folder. The shared model instructions point clients to its tool
+representation when a Draftly creation or change needs the workflow.
+
+The shared prompt directs models to search the installed guide for product
+instructions, use current access results, and distinguish a draft from its open
+editor. Help is reference data. It does not grant permission to run examples.
+Routine authorized reads need no skill load. With tools off, the chat must not
+claim that it consulted installed help or saved a draft.
+
+The SDK/CLI suite passed 20 tests, including discovery, reading the bundled
+skill, missing IDs, unchanged notes, complete and paged catalogs, and revocation.
+Contract, guide, and service tests passed. The service check covered a grant
+without draft capabilities, invalid input, missing articles, denied draft reads,
+and revoked access. These are isolated local-host tests, not installed signed
+client acceptance or live model evaluation.
+
+Live Apple Intelligence and ChatGPT requests using the new skill remain to be
+checked in a signed installed QA. Full CI and publication also remain pending.
+
+The 37 chat regression tests passed after the final prompt change. They cover
+mocked provider and tool behavior, cancellation, stream validation, and model
+session boundaries. They do not establish that a live model will choose the
+help tools correctly.

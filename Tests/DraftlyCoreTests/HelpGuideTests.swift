@@ -14,6 +14,13 @@ struct HelpGuideTests {
         }
     }
 
+    @Test func agentSkillIsBundledSeparatelyFromTheUserIndex() throws {
+        let skill = try HelpGuide.agentSkill()
+        #expect(skill.id == "agent-skill")
+        #expect(skill.markdown.hasPrefix("---\nname: draftly\n"))
+        #expect(try !HelpGuide.articles().contains { $0.id == skill.id })
+    }
+
     @Test func searchFindsContentAcrossTopicsWithoutExactPhrase() throws {
         let articles = try HelpGuide.articles()
         #expect(articles.filter { $0.matches("  UNDO editor  ") }.contains { $0.id == "04-editor" })

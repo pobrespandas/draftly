@@ -2,7 +2,7 @@ import Foundation
 
 package enum AgentOperationSchemas {
     package static var operationNames: Set<String> {
-        AgentNativeSchemas.operationNames.union(AgentReadSchemas.operationNames).union(AgentTransferSchemas.operationNames).union(AgentBackupSchemas.operationNames).union(AgentImportSchemas.operationNames).union(AgentActivitySchemas.operationNames).union(AgentMutationSchemas.operationNames).union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames).union(AgentPreferenceSchemas.operationNames).union(AgentBookmarkSchemas.operationNames)
+        AgentHelpSchemas.operationNames.union(AgentNativeSchemas.operationNames).union(AgentReadSchemas.operationNames).union(AgentTransferSchemas.operationNames).union(AgentBackupSchemas.operationNames).union(AgentImportSchemas.operationNames).union(AgentActivitySchemas.operationNames).union(AgentMutationSchemas.operationNames).union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames).union(AgentPreferenceSchemas.operationNames).union(AgentBookmarkSchemas.operationNames)
     }
 
     package static func schema(for operation: String, preferences: AgentPreferenceRegistry? = nil) -> AgentOperationSchema? {
@@ -10,6 +10,7 @@ package enum AgentOperationSchemas {
             guard let preferences else { return nil }
             return AgentPreferenceSchemas.schema(for: operation, registry: preferences)
         }
+        if let help = AgentHelpSchemas.schema(for: operation) { return help }
         if let native = AgentNativeSchemas.schema(for: operation) { return native }
         if let backup = AgentBackupSchemas.schema(for: operation) { return backup }
         if let input = AgentImportSchemas.schema(for: operation) { return input }
