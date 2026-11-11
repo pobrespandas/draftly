@@ -85,13 +85,15 @@ struct AppleChatToolsTests {
     @Test func editorToolTextKeepsLiteralUnicodeAndLineBreaks() throws {
         let text = "café 🐼\nSecond line\nLiteral \\n remains literal"
         let response = try AgentResponse(requestID: UUID(), outcome: .result(.object([
-            "versionToken": .string("version"), "content": .object([
+            "versionToken": .string(String(repeating: "opaque-version", count: 1_000)), "content": .object([
                 "text": .string(text), "hasMore": .bool(false), "totalLength": .integer(Int64(text.utf16.count))])
         ])))
         let raw = String(decoding: try JSONEncoder().encode(response), as: UTF8.self)
         let rendered = try AppleChatTextResult.literalEditorText(raw)
         #expect(rendered.hasSuffix(text))
-        #expect(rendered.contains("versionToken") && rendered.contains("hasMore"))
+        #expect(rendered.contains("hasMore"))
+        #expect(!rendered.contains("opaque-version") && rendered.utf8.count < 1_000)
+        #expect(try AppleChatTextResult.literalDraftText(raw).hasSuffix(text))
         let denied = try AgentResponse(requestID: UUID(), outcome: .error(.permissionDenied))
         let deniedJSON = String(decoding: try JSONEncoder().encode(denied), as: UTF8.self)
         #expect(try AppleChatTextResult.literalEditorText(deniedJSON) == deniedJSON)
@@ -106,6 +108,25 @@ struct AppleChatToolsTests {
         #expect(combined.contains("not an execution transcript"))
         #expect(combined.contains("Created the draft") && combined.contains("Create café 🐼"))
         #expect(combined.hasSuffix("Current user request:\n" + prompt))
+    }
+
+    @Test func partialStoredDraftReadCannotAuthorizeReplacement() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        var long = runtime.allowed
+        long.content = String(repeating: "x", count: 4_097)
+        try runtime.library.saveNotes([long, runtime.hidden], preserveRevision: false)
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        let bridge = try AppleChatToolBridge(session: session)
+        let raw = try await bridge.readDraft(id: long.id)
+        let response = try JSONDecoder().decode(AgentResponse.self, from: Data(raw.utf8))
+        guard case .result(.object(let fields)) = response.outcome,
+              case .object(let content) = fields["content"] else { Issue.record("Missing content"); return }
+        #expect(content["hasMore"] == .bool(true) && content["length"] == .integer(2_048))
+        let dispatches = runtime.dispatches
+        #expect(try await bridge.editDraft(id: long.id, content: "Truncated").contains("read_required"))
+        #expect(runtime.dispatches == dispatches)
+        #expect(runtime.library.notes.first { $0.id == long.id }?.content == long.content)
     }
 
     @Test func catalogAndCallsKeepTheExistingScope() async throws {

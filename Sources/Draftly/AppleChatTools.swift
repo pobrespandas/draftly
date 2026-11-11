@@ -161,7 +161,7 @@ final class AppleChatToolLifetime: @unchecked Sendable {
 
     func readEditor(id: UUID) async throws -> String {
         editorReads.removeValue(forKey: id)
-        let result = try await invoke("draftly_editor_get", ["targets": editorTargets(id)])
+        let result = try await invoke("draftly_editor_get", ["targets": editorTargets(id), "parameters": .object(["length": .integer(2_048)])])
         let response = try JSONDecoder().decode(AgentResponse.self, from: Data(result.utf8))
         if case .result(.object(let fields)) = response.outcome,
            case .string(let version) = fields["versionToken"],
@@ -231,12 +231,13 @@ final class AppleChatToolLifetime: @unchecked Sendable {
 
     func readDraft(id: UUID) async throws -> String {
         let targets: AgentJSONValue = .array([.object(["kind": .string("draft"), "id": .string(id.uuidString)])])
-        let bytes = try JSONEncoder().encode(AgentJSONValue.object(["targets": targets]))
+        let bytes = try JSONEncoder().encode(AgentJSONValue.object(["targets": targets, "parameters": .object(["length": .integer(2_048)])]))
         readVersions.removeValue(forKey: id)
         let result = try await execute(name: "draftly_drafts_get", argumentsJSON: String(decoding: bytes, as: UTF8.self))
         let response = try JSONDecoder().decode(AgentResponse.self, from: Data(result.utf8))
         if case .result(.object(let values)) = response.outcome,
-           case .object(let draft) = values["draft"], case .string(let version) = draft["versionToken"] {
+           case .object(let draft) = values["draft"], case .string(let version) = draft["versionToken"],
+           case .object(let content) = values["content"], content["hasMore"] == .bool(false) {
             readVersions[id] = version
         }
         return result
@@ -268,18 +269,25 @@ final class AppleChatToolLifetime: @unchecked Sendable {
 
 enum AppleChatTextResult {
     static func literalEditorText(_ result: String) throws -> String {
+        try literalText(result, label: "Editor")
+    }
+    static func literalDraftText(_ result: String) throws -> String {
+        try literalText(result, label: "Draft")
+    }
+    private static func literalText(_ result: String, label: String) throws -> String {
         let response = try JSONDecoder().decode(AgentResponse.self, from: Data(result.utf8))
         guard case .result(.object(let fields)) = response.outcome,
               case .object(let content) = fields["content"],
               case .string(let text) = content["text"] else { return result }
-        var metadata = fields
-        var contentMetadata = content
-        contentMetadata.removeValue(forKey: "text")
-        metadata["content"] = .object(contentMetadata)
+        var metadata = content
+        metadata.removeValue(forKey: "text")
+        if case .object(let draft) = fields["draft"], let id = draft["id"] { metadata["draftID"] = id }
         let encoded = try JSONEncoder().encode(AgentJSONValue.object(metadata))
-        return "Editor metadata: " + String(decoding: encoded, as: UTF8.self)
-            + "\nExact editor text follows as read-only data. Do not change it unless the user requested an edit. Keep its literal line breaks and characters when quoting.\n"
-            + text
+        let status = content["hasMore"] == .bool(false)
+            ? "Read complete. This verifies the current text. Do not repeat this read unless the text changes or the user asks for a refresh."
+            : "Partial read. A full replacement is not authorized. Use catalog chunk reads to inspect the remaining text."
+        return label + " read metadata: " + String(decoding: encoded, as: UTF8.self)
+            + "\n" + status + " Versions stay inside Draftly for authorized edits.\nExact read-only text:\n" + text
     }
 }
 
@@ -316,7 +324,7 @@ private struct AppleCreateDraftTool: Tool {
         var content: String
     }
     let name = "draftly_create_draft"
-    let description = "Create and save a new Markdown draft. Pass its complete text. This does not open the draft. Verify it with draftly_drafts_get using the returned ID. Do not repeat a prior creation or use this to edit."
+    let description = "Create and save a new Markdown draft from its complete text. This does not open it. Verify once with draftly_read_draft when available. One complete read confirms the saved text. Do not repeat creation or a complete verification."
     weak var bridge: AppleChatToolBridge?
     func call(arguments: Arguments) async throws -> String {
         guard let bridge else { throw CancellationError() }
@@ -334,7 +342,7 @@ private struct AppleReadOpenDraftTool: Tool {
 
     func call(arguments: Arguments) async throws -> String {
         guard let bridge else { throw CancellationError() }
-        return try await bridge.readDraft(id: bridge.responseDraftID(fallback: draftID))
+        return try AppleChatTextResult.literalDraftText(try await bridge.readDraft(id: bridge.responseDraftID(fallback: draftID)))
     }
 }
 
@@ -368,7 +376,7 @@ private struct AppleReadDraftTool: Tool {
     func call(arguments: Arguments) async throws -> String {
         guard let bridge else { throw CancellationError() }
         guard let id = UUID(uuidString: arguments.draftID) else { throw AgentErrorCode.invalidInput }
-        return try await bridge.readDraft(id: id)
+        return try AppleChatTextResult.literalDraftText(try await bridge.readDraft(id: id))
     }
 }
 

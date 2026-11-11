@@ -677,3 +677,34 @@ from writing and forbids formatting writes on reads. It also removes editing
 guidance from the read result. The regression must pass in the installed app.
 The neutral draft was restored to its original 39 characters through the editor.
 All QA connections are revoked and local access is off.
+
+
+## Build 69: complete suite, signed update, and context blocker
+
+Commit f96c627 passed all CI jobs in run 42926744088. The local verifier
+checked 2,766 results: consumer 1, contracts 197, core 837, and app 1,731.
+App notarization 8ee91790-5312-4892-96c2-0101f32752f4 and update-package
+notarization ebce2673-2420-430e-9bab-49bb510661cb were accepted and stapled.
+Sparkle updated the signed source-0.4.0 QA from build 40 to 69. The draft
+identity and text survived. Access stayed off. Only the live grant expanded.
+Expired and revoked records stayed unchanged. Expiry dates stayed unchanged.
+The metadata stayed identical after restart. This uses the QA loopback feed
+adapter and synthetic metadata without credentials. It does not prove an
+unmodified public-binary update or cross-device sync.
+
+Apple passed three read-only requests with the control text unchanged at 39
+characters. The activity snapshot contained only 12 capability reads, 12 schema
+reads, and 7 editor reads. It contained no writes. A pending request cancelled.
+Apple later changed only independiente to verificado, returned the actual
+36-character text, and read the restored 39-character text after native Undo.
+A long-story request returned an editor summary instead. This remains a model
+instruction-following limitation.
+
+Apple created QA Apple 69 café 🐼 once. The library grew from 12 to 13 drafts.
+It then repeated stored-draft reads until it exceeded the 8,192-token context
+limit. The creation committed. Do not retry that creation. This blocks creation
+confirmation acceptance. The next correction presents compact literal read
+results without opaque version tokens, bounds direct reads to 2,048 UTF-16
+units, and rejects full replacement after a partial stored-draft read.
+Sixteen focused Apple tests passed. The next installed model check is pending.
+All QA connections are revoked, access is off, and the loopback server stopped.
