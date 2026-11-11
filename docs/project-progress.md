@@ -3,6 +3,26 @@
 Updated: 10 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Public chat usability release — 10 November
+
+Draftly 0.5.0, build 15, is public from tag v0.5.0 at 369db63. PRs #119 and
+#120 passed full CI before integration. Release run 42939129798 passed the
+complete rehearsal, combined app/helper signing and notarization, public asset
+verification, and site promotion. The writer lock is released.
+
+An independent download check matched all seven public assets with their GitHub
+hashes and the original candidate files. The candidate passed local signature,
+Production entitlement, notarization-ticket, and Gatekeeper verification. The
+public feed matches the GitHub asset, its signature is valid, and its ZIP
+signature is valid. Both browser download controls point to the 0.5.0 DMG.
+News shows 0.5.0. The final browser check found stale homepage feature text;
+this correction removes the old version claim and describes the included chat
+and local tools. The installer and signed feed do not change.
+
+The installed QA evidence and Apple model limits remain in the
+[chat acceptance checkpoint](chat-usability-acceptance.md). All real QA grants
+are revoked and access is off.
+
 ## Chat usability integration — 10 November
 
 PR #119 is integrated at 30e5f18. Its exact-head CI run 42933490305 passed.
@@ -18,9 +38,8 @@ the migration. This fixture uses a loopback feed adapter and synthetic metadata
 without credentials. It does not prove an unmodified public-binary update.
 All real QA connections are revoked and local access is off.
 
-Version 0.5.0, build 15, is being prepared. Its notes disclose automatic tools,
-new-library defaults, one-time grant expansion, and Apple model limitations.
-Version 0.4.0 remains the public download until the new release completes.
+Version 0.5.0 preparation disclosed automatic tools, new-library defaults,
+one-time grant expansion, and Apple model limitations. It is now public.
 
 ## Public catalog release — 7 November
 
