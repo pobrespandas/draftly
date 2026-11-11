@@ -10,6 +10,10 @@ struct DraftlyCommands: Commands {
         focusedModel ?? controller.commandWindow
     }
     var body: some Commands {
+        CommandGroup(replacing: .help) {
+            Button("Draftly Help") { openWindow(id: "help") }
+                .keyboardShortcut("?", modifiers: .command)
+        }
         if let model { WindowCommands(controller: controller, model: model) }
         else {
             CommandGroup(replacing: .newItem) {

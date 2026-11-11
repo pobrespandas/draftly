@@ -32,8 +32,9 @@ The public app is signed and notarized. You do not need Xcode or an Apple
 Developer membership. To update, choose **Draftly → Check for Updates…**.
 Draftly asks before installing an update.
 
-The [user guide](docs/getting-started.md) explains capture, search, organization,
-Actions, personalization, and backups.
+Choose **Help → Draftly Help** for the searchable offline manual. The
+[user guide](docs/getting-started.md) also introduces capture, search,
+organization, Actions, personalization, and backups.
 
 ## Current status
 
@@ -46,8 +47,10 @@ Compatibility with Drafts actions is still in progress. Imported scripts can
 need changes or services that are not available on a given Mac. Read the
 [compatibility guide](docs/compatibility.md) for the specific limits.
 
-This version is for Mac. iPhone, iPad, Apple Watch, MCP, and email capture are
-outside the current scope. See [project progress](docs/project-progress.md)
+This version is for Mac. Chat Console supports ChatGPT and Apple Intelligence
+On-Device. Local agents can use the CLI and the 137-operation MCP catalog.
+iPhone, iPad, Apple Watch, remote agent access, and email capture are outside
+the current scope. See [project progress](docs/project-progress.md)
 for implemented work and checks that remain open.
 
 ## Build from source

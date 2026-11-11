@@ -1,5 +1,10 @@
 # Use Draftly
 
+For the complete offline manual, choose **Help → Draftly Help** in the app.
+Search its 18 topics for writing, actions, Chat Console, agents, synchronization,
+backups, and troubleshooting. The bundled sources are in
+[Help](../Sources/DraftlyCore/Resources/Help).
+
 Draftly is a Mac app for capturing text, developing ideas, and using actions
 to copy, share, or export your writing. A draft is one text item in your
 library. A workspace is a saved view of that library.
