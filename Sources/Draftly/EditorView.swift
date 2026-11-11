@@ -32,17 +32,18 @@ struct NativeEditor: NSViewRepresentable {
     var submit: (() -> Void)? = nil
     var measuredHeight: ((CGFloat) -> Void)? = nil
     var independentUndo = false
+    var drawsBackground = true
     var onChange: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true
-        scroll.drawsBackground = true
+        scroll.drawsBackground = drawsBackground
         let text = DraftTextView(frame: .zero)
         text.isRichText = false; text.isAutomaticTextReplacementEnabled = true
         configureTextInput(text, coordinator: context.coordinator)
         text.allowsUndo = true; text.usesFindBar = true; text.isIncrementalSearchingEnabled = true
-        text.drawsBackground = true; text.textContainerInset = NSSize(width: 17, height: 17)
+        text.drawsBackground = drawsBackground; text.textContainerInset = NSSize(width: 17, height: 17)
         text.isVerticallyResizable = true; text.isHorizontallyResizable = false
         text.autoresizingMask = [.width]; text.textContainer?.widthTracksTextView = true
         text.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
@@ -85,6 +86,8 @@ struct NativeEditor: NSViewRepresentable {
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let text = scroll.documentView as? DraftTextView else { return }
         text.submitPrompt = submit
+        text.drawsBackground = drawsBackground
+        scroll.drawsBackground = drawsBackground
         configureTextInput(text, coordinator: context.coordinator)
         if scroll.rulersVisible != showParagraphNumbers { scroll.rulersVisible = showParagraphNumbers }
         scroll.verticalRulerView?.needsDisplay = true
