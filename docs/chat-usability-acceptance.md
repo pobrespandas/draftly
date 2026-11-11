@@ -1,5 +1,54 @@
 # Chat usability acceptance
 
+## Current acceptance checkpoint — build 72, 10 November 2026
+
+This checkpoint supersedes the pending checks in the chronological notes below.
+Installed code: b184cd9. Xcode build passed. The complete local verifier passed
+2,768 results: consumer 1, contracts 197, core 837, and app 1,733. Seventeen
+focused Apple tests passed. Exact-head CI is required before integration.
+
+The shared panel, native composer, five-line wrapping, separate selection and
+Undo, Return, Shift-Return, marked IME text, conversation reset, pending text,
+and initial scroll restoration passed the checks recorded below. Physical IME
+candidate selection remains untested. Public MCP contracts did not change.
+
+Apple build 72 created one QA Apple 72 café 🐼 draft and verified its text.
+It replaced the control editor with the requested 36-character text and read
+it back. Native Undo restored the original 39 characters. A fresh read reported
+that restored text. Stop cancelled a pending read-and-summary request and
+returned the chat to idle. The app cut repeated post-write verification and
+showed a receipt from a fresh authorized read. It did not replay a write.
+
+ChatGPT GPT-6-Luna build 71 created and read QA ChatGPT 71 café 🐼, changed
+only the requested word in the control editor, and read the result. Undo
+restored 39 characters. Its next read reported the restored text. A long
+Markdown list followed the bottom during streaming. The rendered list showed
+bold titles. Reading older messages showed Latest message; that action returned
+to the bottom. Stop cancelled a subsequent response. No ChatGPT path changed
+between builds 71 and 72. The earlier build-68 check covers pause while streaming.
+
+Both providers connected with the available QA permissions. All real QA
+connections were revoked after testing. Local access is off. No external effects
+ran. Apple can still ignore a creative-writing request and return an editor
+summary. It can also misinterpret a word replacement. The UI verifies effects;
+it does not guarantee that every generated edit matches the person's intent.
+The recovery receipt states that other requested work can remain incomplete.
+
+Both build-72 notarization submissions were accepted and stapled:
+651b77a8-6735-42d8-b340-fb60c293f160 (installed QA) and
+cc5f5fac-6687-4ead-83ee-6fb78c62915b (update QA). Sparkle updated build 40,
+from source 0.4.0, to build 72. App and helper signatures and the notarization
+ticket passed verification. The neutral draft kept its ID and exact text.
+Access stayed off. The live grant expanded and rotated once. Expired and
+revoked records stayed equal. IDs, expiry dates, and creation dates stayed equal.
+Connection metadata stayed equal after restart. The loopback feed is stopped.
+
+This update test uses a QA-only loopback feed adapter and synthetic connection
+metadata without credentials. It does not prove an unmodified public-binary
+update, credential reuse, or cross-device sync. Evidence is in
+.build/update-from-040/verification72.json and the adjacent metadata snapshots.
+No release was published by this acceptance checkpoint.
+
 ## Composer reconstruction follow-up
 
 A final review found that a new ChatConsolePanel did not copy an existing
