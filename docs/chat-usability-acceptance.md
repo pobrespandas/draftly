@@ -718,3 +718,18 @@ Apple tests and the native Xcode build passed. These checks include compact
 literal draft output, bounded reads, partial-read replacement rejection,
 and a single-attempt context error. Installed creation confirmation remains
 pending for the next build.
+
+## Build 70: bounded reads still repeat
+
+Both build 70 notarization submissions were accepted. Apple created QA Apple
+70 café 🐼 once. The library grew from 13 to 14 drafts. It then repeated
+29 stored-draft reads and exhausted the call budget. The UI reported failure
+without replaying creation. The control draft stayed at 39 characters.
+The connection is revoked and access is off.
+
+The next correction stops a second identical complete verification of a draft
+created in the same response. It first performs the authorized read again.
+It returns a factual receipt from that read and states that generation stopped.
+It does not retry creation or claim that further requested work completed.
+Partial reads, failed reads, cancellation, and expired access do not use this
+recovery path. Installed acceptance is still pending.

@@ -228,6 +228,7 @@ final class AppleChatToolLifetime: @unchecked Sendable {
     func responseDraftID(fallback: UUID) -> UUID { createdDraftID ?? fallback }
 
     private var readVersions: [UUID: String] = [:]
+    private var verifiedCreatedRead: String?
 
     func readDraft(id: UUID) async throws -> String {
         let targets: AgentJSONValue = .array([.object(["kind": .string("draft"), "id": .string(id.uuidString)])])
@@ -239,6 +240,12 @@ final class AppleChatToolLifetime: @unchecked Sendable {
            case .object(let draft) = values["draft"], case .string(let version) = draft["versionToken"],
            case .object(let content) = values["content"], content["hasMore"] == .bool(false) {
             readVersions[id] = version
+            if id == createdDraftID, case .string(let text) = content["text"] {
+                if verifiedCreatedRead == text {
+                    throw AppleChatRepeatedVerification(verifiedText: text)
+                }
+                verifiedCreatedRead = text
+            }
         }
         return result
     }
@@ -511,10 +518,17 @@ private struct AppleCallTool: Tool {
             } catch let error as LanguageModelSession.ToolCallError {
                 try Task.checkCancellation()
                 if error.underlyingError is CancellationError { throw CancellationError() }
+                if let repeated = error.underlyingError as? AppleChatRepeatedVerification {
+                    try bridge.lifetime.requireActive()
+                    return repeated.message
+                }
                 let underlying = error.underlyingError as NSError
                 Logger(subsystem: "com.pobrespandas.draftly", category: "AppleChat")
                     .error("Apple tool invocation failed: \(underlying.domain, privacy: .public) (\(underlying.code))")
                 throw AppleChatToolInvocationError()
+            } catch let repeated as AppleChatRepeatedVerification {
+                try bridge.lifetime.requireActive()
+                return repeated.message
             } catch let error as LanguageModelSession.GenerationError {
                 try Task.checkCancellation()
                 if case .exceededContextWindowSize = error { throw AppleChatContextLimitError() }
@@ -533,5 +547,13 @@ private struct AppleChatToolInvocationError: LocalizedError {
 private struct AppleChatContextLimitError: LocalizedError {
     var errorDescription: String? {
         "Apple Intelligence reached its context limit. Some Draftly work may already be saved. Check the draft before starting a new chat."
+    }
+}
+
+// End repeated verification without replaying the completed creation.
+struct AppleChatRepeatedVerification: Error {
+    let verifiedText: String
+    var message: String {
+        "Draftly created the draft and verified its saved text. Apple Intelligence repeated the verification, so Draftly stopped the response. No creation was replayed.\n\n" + verifiedText
     }
 }

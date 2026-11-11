@@ -232,6 +232,13 @@ struct AppleChatToolsTests {
         #expect(bridge.responseDraftID(fallback: runtime.allowed.id) == createdNote.id)
         let verified = try await bridge.readDraft(id: bridge.responseDraftID(fallback: runtime.allowed.id))
         #expect(verified.contains("Created café 🐼"))
+        let repeatedResponder = AppleChatResponder(generate: { _, _, _ in
+            _ = try await bridge.readDraft(id: createdNote.id)
+            return .init(basis: .operation, message: "Unexpected")
+        })
+        let recovered = try await repeatedResponder.respond(prompt: "Verify", mode: "onDevice", session: session)
+        #expect(recovered.contains("Created café 🐼") && recovered.contains("stopped the response"))
+        #expect(runtime.library.notes.filter { $0.content == "Created café 🐼" }.count == 1)
         let nextTurn = try AppleChatToolBridge(session: session)
         #expect(nextTurn.responseDraftID(fallback: runtime.allowed.id) == runtime.allowed.id)
         #expect(throws: AppleChatUnverifiedReplyError.self) {
