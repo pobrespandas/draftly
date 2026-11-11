@@ -298,11 +298,11 @@ struct ChatConsolePanel: View {
                 if role == .assistant { ChatMarkdown(text: text) }
                 else { Text(text).textSelection(.enabled) }
                 if role == .assistant, !model.isResponding {
-                    HStack {
-                        if let createDraft { Button("Create draft") { createDraft(text) } }
-                        if let insertText { Button("Insert") { insertText(text) } }
-                        Button("Copy") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string) }
-                    }.buttonStyle(.link).controlSize(.small)
+                    ViewThatFits(in: .horizontal) {
+                        messageActions(text, labels: true)
+                        messageActions(text, labels: false)
+                    }
+                    .padding(.top, 4)
                 }
             }
                 .font(contentFont)
@@ -315,6 +315,33 @@ struct ChatConsolePanel: View {
         .accessibilityLabel(role == .user ? "You" : "Assistant")
     }
 
+    private func messageActions(_ text: String, labels: Bool) -> some View {
+        HStack(spacing: 12) {
+            if let createDraft {
+                Button { createDraft(text) } label: { Label("Create draft", systemImage: "square.and.pencil") }
+                    .accessibilityLabel("Create draft")
+                    .help("Create a new draft from this response")
+            }
+            if let insertText {
+                Button { insertText(text) } label: { Label("Insert", systemImage: "text.insert") }
+                    .accessibilityLabel("Insert")
+                    .disabled(!hasDraft)
+                    .help("Insert this response in the current draft")
+            }
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+            } label: { Label("Copy", systemImage: "doc.on.doc") }
+                .accessibilityLabel("Copy")
+                .help("Copy the original Markdown")
+        }
+        .labelStyle(ChatActionLabelStyle(showsTitle: labels))
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .buttonStyle(.plain)
+        .controlSize(.small)
+    }
+
     private var composer: some View {
         let promptFont = EditorSyntaxFontPreferences.font(for: "Markdown", encoded: promptSyntaxFonts,
             defaultName: promptFontName, defaultSize: promptFontSize)
@@ -323,9 +350,19 @@ struct ChatConsolePanel: View {
         return HStack(alignment: .bottom, spacing: 8) {
             NativeEditor(session: promptSession, fontName: promptFont.name,
                 fontSize: promptFont.size, lineSpacing: 0, markdown: true,
-                horizontalMargin: 0, verticalMargin: 8, maximumWidth: 0, theme: editorTheme,
-                submit: { model.send() }, measuredHeight: { if abs(promptHeight - $0) > 0.5 { promptHeight = $0 } }, independentUndo: true) { model.prompt = promptSession.content }
+                horizontalMargin: 10, verticalMargin: 8, maximumWidth: 0, theme: editorTheme,
+                submit: { model.send() }, measuredHeight: { if abs(promptHeight - $0) > 0.5 { promptHeight = $0 } }, independentUndo: true, drawsBackground: false) { model.prompt = promptSession.content }
                 .frame(height: min(max(promptHeight, lineHeight + 16), lineHeight * 5 + 16))
+                .overlay(alignment: .topLeading) {
+                    if model.prompt.isEmpty {
+                        Text("Write a message…")
+                            .font(Font(nativeFont))
+                            .foregroundStyle(.tertiary)
+                            .padding(.leading, 15).padding(.top, 8)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
+                }
                 .accessibilityLabel("Enter a prompt")
                 .id(model.selectedConversation?.id)
                 .onChange(of: model.prompt, initial: true) { _, value in
@@ -350,8 +387,26 @@ struct ChatConsolePanel: View {
             .accessibilityLabel(model.isResponding ? "Stop response" : "Send prompt")
             .help(model.isResponding ? "Stop response" : "Send prompt")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(6)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+}
+
+private struct ChatActionLabelStyle: LabelStyle {
+    let showsTitle: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) {
+            configuration.icon
+            if showsTitle { configuration.title }
+        }
+
     }
 }
 
