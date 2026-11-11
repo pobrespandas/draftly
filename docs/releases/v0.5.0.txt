@@ -1,0 +1,26 @@
+Draftly 0.5.0
+
+Chat Console renders Markdown and shares the native editor presentation.
+Its composer grows to five lines, keeps separate Undo and selection, and
+preserves unsent text. Return sends; Shift-Return adds a line. The chat follows
+new replies and lets you return to the latest message after reading older text.
+
+Chat tools connect automatically when the selected provider is available.
+New libraries enable local agent access. A saved off state and Stop Work stay
+effective. This update expands active, unexpired connections to the entire
+library and all available tools once. It keeps expiry dates and does not
+reactivate expired or revoked connections. Destructive and external effects
+still require review.
+
+ChatGPT and Apple Intelligence use current tool results to confirm changes.
+Apple draft reads are bounded. Repeated verification after a write stops with
+a receipt of the text that Draftly read, without replaying the write. Apple
+can still misunderstand a writing request or an exact edit. Review the result;
+a verified effect does not prove that the model followed every instruction.
+
+During catalog stabilization, this update restores all default actions and
+groups. It replaces custom and edited actions and groups. It preserves drafts.
+
+Requires macOS 26 or later. Apple Intelligence On-Device requires a compatible
+Mac with Apple Intelligence enabled. Public MCP names and schemas stay
+compatible.
