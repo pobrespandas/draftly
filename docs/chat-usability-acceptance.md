@@ -733,3 +733,16 @@ It returns a factual receipt from that read and states that generation stopped.
 It does not retry creation or claim that further requested work completed.
 Partial reads, failed reads, cancellation, and expired access do not use this
 recovery path. Installed acceptance is still pending.
+
+## Build 71: creation recovery and editor follow-up
+
+Apple created QA Apple 71 café 🐼 once. The library grew from 14 to 15 drafts.
+Repeated creation verification stopped and showed the actual saved text.
+An edit request changed the control text, but did not follow the requested
+word replacement exactly. Native Undo restored the original 39 characters.
+A request with the complete replacement text produced the correct 36 characters.
+It then repeated reads until cancelled. Undo again restored 39 characters.
+The next correction applies the same bounded recovery to complete draft and
+editor reads after successful writes, including catalog calls. Each repeated
+read still checks current authorization and obtains current text. A changed
+text starts a new verification. The receipt does not claim other work completed.

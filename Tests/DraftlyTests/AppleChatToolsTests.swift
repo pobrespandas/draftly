@@ -246,6 +246,7 @@ struct AppleChatToolsTests {
         }
         _ = try runtime.registry.revokeFromUserInterface(record.id)
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog() }
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.readDraft(id: createdNote.id) }
     }
 
     @Test func openEditorToolsKeepPendingTextAndRejectStaleOrPartialReads() async throws {

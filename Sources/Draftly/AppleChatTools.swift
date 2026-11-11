@@ -64,6 +64,7 @@ final class AppleChatToolLifetime: @unchecked Sendable {
     private var calls = 0
     private var observedResult = false
     private var completedOperation = false
+    private var verifiedReads: [String: String] = [:]
     private(set) var attemptedExecution = false
     private(set) var createdDraftID: UUID?
     init(session: AgentChatToolSession, timeout: TimeInterval = 120, maximumCalls: Int = 32) throws {
@@ -103,7 +104,22 @@ final class AppleChatToolLifetime: @unchecked Sendable {
         case .result:
             if let operation = AgentToolInput.operation(named: name), operation.name != "mutations.prepare" {
                 observedResult = true
-                if !operation.isReadOnly { completedOperation = true }
+                if !operation.isReadOnly {
+                    completedOperation = true
+                    verifiedReads.removeAll()
+                }
+                if completedOperation, ["drafts.get", "editor.get"].contains(operation.name),
+                   case .result(.object(let fields)) = response.outcome,
+                   case .object(let content) = fields["content"], content["hasMore"] == .bool(false),
+                   case .string(let text) = content["text"],
+                   case .object(let request) = try JSONDecoder().decode(AgentJSONValue.self, from: Data(argumentsJSON.utf8)),
+                   let targets = request["targets"] {
+                    let encoder = JSONEncoder()
+                    encoder.outputFormatting = .sortedKeys
+                    let key = operation.name + String(decoding: try encoder.encode(targets), as: UTF8.self)
+                    if verifiedReads[key] == text { throw AppleChatRepeatedVerification(verifiedText: text) }
+                    verifiedReads[key] = text
+                }
             }
         case .accepted: observedResult = true
         case .error: break
@@ -228,7 +244,6 @@ final class AppleChatToolLifetime: @unchecked Sendable {
     func responseDraftID(fallback: UUID) -> UUID { createdDraftID ?? fallback }
 
     private var readVersions: [UUID: String] = [:]
-    private var verifiedCreatedRead: String?
 
     func readDraft(id: UUID) async throws -> String {
         let targets: AgentJSONValue = .array([.object(["kind": .string("draft"), "id": .string(id.uuidString)])])
@@ -240,12 +255,7 @@ final class AppleChatToolLifetime: @unchecked Sendable {
            case .object(let draft) = values["draft"], case .string(let version) = draft["versionToken"],
            case .object(let content) = values["content"], content["hasMore"] == .bool(false) {
             readVersions[id] = version
-            if id == createdDraftID, case .string(let text) = content["text"] {
-                if verifiedCreatedRead == text {
-                    throw AppleChatRepeatedVerification(verifiedText: text)
-                }
-                verifiedCreatedRead = text
-            }
+
         }
         return result
     }
@@ -554,6 +564,6 @@ private struct AppleChatContextLimitError: LocalizedError {
 struct AppleChatRepeatedVerification: Error {
     let verifiedText: String
     var message: String {
-        "Draftly created the draft and verified its saved text. Apple Intelligence repeated the verification, so Draftly stopped the response. No creation was replayed.\n\n" + verifiedText
+        "Draftly verified the current text below. Apple Intelligence repeated the verification, so Draftly stopped the response. Other requested work may be incomplete. No write was replayed.\n\n" + verifiedText
     }
 }
