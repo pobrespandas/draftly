@@ -5,7 +5,8 @@ Its composer grows to five lines, keeps separate Undo and selection, and
 preserves unsent text. Return sends; Shift-Return adds a line. The chat follows
 new replies and lets you return to the latest message after reading older text.
 
-Chat tools connect automatically when the selected provider is available.
+When local access is on, chat tools connect automatically when the selected
+provider is available.
 New libraries enable local agent access. A saved off state and Stop Work stay
 effective. This update expands active, unexpired connections to the entire
 library and all available tools once. It keeps expiry dates and does not
