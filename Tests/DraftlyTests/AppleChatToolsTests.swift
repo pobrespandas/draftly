@@ -129,6 +129,26 @@ struct AppleChatToolsTests {
         #expect(runtime.library.notes.first { $0.id == long.id }?.content == long.content)
     }
 
+    @Test func contextLimitExplainsRecoveryWithoutRetryingEffects() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        var attempts = 0
+        let responder = AppleChatResponder(generate: { _, _, _ in
+            attempts += 1
+            throw LanguageModelSession.GenerationError.exceededContextWindowSize(
+                .init(debugDescription: "Provided 8276 tokens, maximum 8192"))
+        })
+        do {
+            _ = try await responder.respond(prompt: "Create", mode: "onDevice", session: session)
+            Issue.record("Context failure was accepted")
+        } catch {
+            #expect(error.localizedDescription.contains("Check the draft"))
+            #expect(!error.localizedDescription.contains("8276"))
+        }
+        #expect(attempts == 1 && runtime.dispatches == 0)
+    }
+
     @Test func catalogAndCallsKeepTheExistingScope() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)

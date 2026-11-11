@@ -515,6 +515,10 @@ private struct AppleCallTool: Tool {
                 Logger(subsystem: "com.pobrespandas.draftly", category: "AppleChat")
                     .error("Apple tool invocation failed: \(underlying.domain, privacy: .public) (\(underlying.code))")
                 throw AppleChatToolInvocationError()
+            } catch let error as LanguageModelSession.GenerationError {
+                try Task.checkCancellation()
+                if case .exceededContextWindowSize = error { throw AppleChatContextLimitError() }
+                throw error
             }
         } onCancel: { [lifetime = bridge.lifetime] in lifetime.invalidate() }
     }
@@ -523,5 +527,11 @@ private struct AppleCallTool: Tool {
 private struct AppleChatToolInvocationError: LocalizedError {
     var errorDescription: String? {
         "Apple Intelligence could not complete the Draftly tool call. Check the draft before trying again."
+    }
+}
+
+private struct AppleChatContextLimitError: LocalizedError {
+    var errorDescription: String? {
+        "Apple Intelligence reached its context limit. Some Draftly work may already be saved. Check the draft before starting a new chat."
     }
 }

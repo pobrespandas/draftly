@@ -708,3 +708,13 @@ results without opaque version tokens, bounds direct reads to 2,048 UTF-16
 units, and rejects full replacement after a partial stored-draft read.
 Sixteen focused Apple tests passed. The next installed model check is pending.
 All QA connections are revoked, access is off, and the loopback server stopped.
+
+
+## Context recovery follow-up
+
+A context-window failure now tells the person to check the draft and start a
+new chat. It does not show raw token counts or retry the effect. Seventeen
+Apple tests and the native Xcode build passed. These checks include compact
+literal draft output, bounded reads, partial-read replacement rejection,
+and a single-attempt context error. Installed creation confirmation remains
+pending for the next build.
