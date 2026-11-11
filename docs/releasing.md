@@ -28,8 +28,10 @@ recovery; it does not permit replacing public assets.
 Alpha and beta publication does not deploy Firebase or change the stable
 appcast. The website's main download stays on the verified stable feed.
 Prerelease users currently receive stable-channel update checks. There is no
-automatic alpha or beta update feed in this change. Agent access stays off by
-default in every channel.
+automatic alpha or beta update feed in this change. From 0.5.0, new libraries
+enable local agent access in every channel. A saved off state and Stop Work
+remain effective. Chat Console can connect automatically. External clients
+still need approval in the app.
 
 ## Prepare source
 
