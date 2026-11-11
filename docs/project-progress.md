@@ -1,7 +1,26 @@
 # Project progress
 
-Updated: 7 November 2026. This is the maintained continuation summary.
+Updated: 10 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
+
+## Chat usability integration — 10 November
+
+PR #119 is integrated at 30e5f18. Its exact-head CI run 42933490305 passed.
+The local verifier checked 2,768 results. The installed QA covers the shared
+native editor and panel structure, separate Undo, automatic tools, ChatGPT,
+Apple Intelligence, Markdown, cancellation, and scroll. See the current
+[chat acceptance checkpoint](chat-usability-acceptance.md).
+
+The signed source-0.4.0 fixture updated to build 72 through Sparkle. Draft
+identity and text survived. Access stayed off. Only the live grant expanded
+and rotated. Expired and revoked metadata stayed equal. Restart did not repeat
+the migration. This fixture uses a loopback feed adapter and synthetic metadata
+without credentials. It does not prove an unmodified public-binary update.
+All real QA connections are revoked and local access is off.
+
+Version 0.5.0, build 15, is being prepared. Its notes disclose automatic tools,
+new-library defaults, one-time grant expansion, and Apple model limitations.
+Version 0.4.0 remains the public download until the new release completes.
 
 ## Public catalog release — 7 November
 

@@ -17,7 +17,7 @@ struct AgentConnectionsSettingsView: View {
                     .disabled(!model.readable || !model.accessEnabled)
                 Text("Stops local connections and pending connection requests. You can enable access again later.")
                     .font(.caption).foregroundStyle(.secondary)
-                Text("Each connection needs your approval. Permissions stay on this Mac and are not included in backups.")
+                Text("External clients need your approval. Chat Console can connect automatically. Permissions stay on this Mac and are not included in backups.")
                     .font(.caption).foregroundStyle(.secondary)
                 #if DRAFTLY_AGENT_QA
                 if AgentQAConfiguration.isActive {
