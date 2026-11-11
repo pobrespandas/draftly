@@ -198,7 +198,7 @@ struct DraftTagStrip: View {
                 EditorBarCommand.navigationItems(model: model, session: session), symbolSize: 11,
                 symbolDimensions: NSSize(width: MainWindowStyle.navigationSymbolWidth, height: MainWindowStyle.navigationSymbolHeight)
             ).frame(width: 20, height: 25)
-        }.buttonStyle(.plain).font(.system(size: 14)).foregroundStyle(.secondary).padding(.horizontal, 20).frame(height: 45)
+        }.buttonStyle(.plain).font(.system(size: 14)).foregroundStyle(.secondary).padding(.horizontal, 20).frame(height: MainWindowStyle.editorHeaderHeight)
     }
 }
 
@@ -312,6 +312,7 @@ enum MainWindowStyle {
     static let actionTitleSize: CGFloat = 13
     static let statusSymbolSize: CGFloat = 13
     static let utilityHeight: CGFloat = 48
+    static let editorHeaderHeight: CGFloat = 45
     static let utilityInset: CGFloat = 9
     static let utilityLeadingSpacing: CGFloat = 12
     static let utilityTrailingSpacing: CGFloat = 6

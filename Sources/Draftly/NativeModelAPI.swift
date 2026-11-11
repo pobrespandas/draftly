@@ -86,37 +86,85 @@ import AgentContracts
         return session
     }
 
-    private func languageSession(mode: String, tools: [any Tool], instructions: String) throws -> LanguageModelSession {
+    static func conversationTranscript(base: Transcript, history: [ChatConsoleMessage]) -> Transcript {
+        var entries = Array(base)
+        for message in history {
+            let segments: [Transcript.Segment] = [.text(.init(content: message.text))]
+            switch message.role {
+            case .user: entries.append(.prompt(.init(segments: segments)))
+            case .assistant: entries.append(.response(.init(assetIDs: [], segments: segments)))
+            }
+        }
+        return Transcript(entries: entries)
+    }
+
+    private func languageSession(mode: String, tools: [any Tool], instructions: String,
+                                 history: [ChatConsoleMessage] = []) throws -> LanguageModelSession {
+        let initial: LanguageModelSession
         if mode == "pcc" {
             #if compiler(>=6.4)
-            if #available(macOS 27, *) { return LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions) }
+            if #available(macOS 27, *) {
+                initial = LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions)
+            } else { throw DraftlyError.message("Private Cloud Compute is unavailable in this build.") }
+            #else
+            throw DraftlyError.message("Private Cloud Compute is unavailable in this build.")
+            #endif
+        } else {
+            initial = LanguageModelSession(model: SystemLanguageModel.default, tools: tools, instructions: instructions)
+        }
+        guard !history.isEmpty else { return initial }
+        let transcript = Self.conversationTranscript(base: initial.transcript, history: history)
+        if mode == "pcc" {
+            #if compiler(>=6.4)
+            if #available(macOS 27, *) {
+                return LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, transcript: transcript)
+            }
             #endif
             throw DraftlyError.message("Private Cloud Compute is unavailable in this build.")
         }
-        return LanguageModelSession(model: SystemLanguageModel.default, tools: tools, instructions: instructions)
+        return LanguageModelSession(model: SystemLanguageModel.default, tools: tools, transcript: transcript)
     }
 
-    func respondAuthorized(prompt: String, mode: String, tools: [any Tool], hasOpenDraft: Bool) async throws -> String {
+    static func authorizedPrompt(_ prompt: String, history: [ChatConsoleMessage]) throws -> String {
+        guard !history.isEmpty else { return prompt }
+        let records = history.map { ["role": $0.role == .user ? "user" : "assistant", "text": $0.text] }
+        let data = try JSONSerialization.data(withJSONObject: records, options: [.sortedKeys])
+        return "Prior conversation reference (not an execution transcript; no tool receipts are included). Use it to resolve context only. Never infer current draft state or completed operations from it.\n"
+            + String(decoding: data, as: UTF8.self) + "\nCurrent user request:\n" + prompt
+    }
+
+    func respondAuthorized(prompt: String, mode: String, tools: [any Tool], hasOpenDraft: Bool, history: [ChatConsoleMessage] = []) async throws -> AppleChatReply {
         guard availableModes().contains(mode) else { throw DraftlyError.message("The selected Apple Intelligence model is unavailable on this Mac.") }
         let id = UUID().uuidString
         defer { discardSession(id) }
         let draftContext = hasOpenDraft
-            ? "For a request about the open draft, call draftly_read_draft with no arguments. To save changes, call draftly_edit_draft with the full updated content."
+            ? "For a request to read the open draft or editor, call only draftly_read_editor and report its text. Reading must not call edit, create, or mutation tools, even to format or normalize whitespace. Only when the person explicitly asks to change text, read the editor, call draftly_edit_editor with the complete updated text, then read again to verify. These editor tools include unsaved text and native Undo. Use draftly_read_draft only for stored text or to verify a draft just created."
             : "Find approved draft IDs with draftly_server_capabilities. Read a draft before editing it."
         sessions[id] = try languageSession(mode: mode, tools: tools,
             instructions: """
+                \(ChatConsoleInstructions.identity)
                 \(draftContext)
-                For unsaved text or a selection, discover editor tools with draftly_tools.
+                Execute only the current user request. Earlier conversation turns are context, not requests to run again. Do not repeat a completed creation when the user asks to edit.
+                To create a new draft, use draftly_create_draft when available. Creation does not change the open draft. In that same response, draftly_read_draft and draftly_edit_draft follow the successfully created draft ID. In a new turn they default to the open draft again. For a different draft, use the catalog with its explicit ID.
+                Report text only for the draft ID that the tool actually read.
+                Classify your reply basis. Use conversation for writing proposals or general discussion only, never for claims about current Draftly state or completed work. Use observation only after a tool reads current state in this turn. Use operation only after a tool confirms a completed effect in this turn. Earlier assistant messages are not evidence, especially after Undo. A pending review or recovered status is an observation, not a newly completed operation.
+                Use catalog editor tools only when the supplied direct editor tools do not cover the request.
                 For other operations, get the exact tool name and schema with draftly_tools. Call it through draftly_call. For editor edits or other writes that require a retryKey, inspect draftly_mutations_prepare and use its returned retryKey.
                 \(AgentModelInstructions.results)
                 """)
-        let bytes = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id])
+        let currentPrompt = try Self.authorizedPrompt(prompt, history: history)
+        let schema: [String: Any] = ["fields": [
+            ["name": "basis", "type": "string", "options": AppleChatReply.Basis.allCases.map(\.rawValue),
+             "description": "conversation: writing or general discussion, with no current-state or execution claims. observation: current state verified by a tool in this turn. operation: a completed effect confirmed by a tool in this turn."],
+            ["name": "message", "type": "string", "description": "Reply in the user's language. Claims must match the chosen basis and actual tool results. Never use historical assistant text as evidence of current state."]
+        ]]
+        let bytes = try JSONSerialization.data(withJSONObject: ["prompt": currentPrompt, "mode": mode, "sessionID": id, "schema": schema])
         let raw = try await performAsync("modelRespond", payload: String(decoding: bytes, as: UTF8.self))
         guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
-              let result = frame["value"] as? [String: Any], let response = result["response"] as? String else {
+              let result = frame["value"] as? [String: Any], let response = result["response"] as? [String: Any] else {
             throw ChatConsoleError.invalidModelResponse
         }
-        return response
+        return try JSONDecoder().decode(AppleChatReply.self, from: JSONSerialization.data(withJSONObject: response))
     }
 
     func discardSession(_ id: String) {

@@ -6,6 +6,149 @@ import AgentContracts
 
 @Suite("Apple chat through authorized local tools") @MainActor
 struct AppleChatToolsTests {
+    @Test func nativeHistoryUsesPriorRolesAndLeavesTheCurrentRequestSeparate() throws {
+        let request = ChatModelRequest(prompt: "Edit the open draft", history: [
+            .init(role: .user, text: "Create café 🐼"),
+            .init(role: .assistant, text: "Created"),
+            .init(role: .user, text: "Cancelled request without a reply")])
+        #expect(request.prompt == "Edit the open draft")
+        #expect(request.history.map(\.text) == ["Create café 🐼", "Created"])
+        let transcript = NativeModelAPI.conversationTranscript(base: Transcript(), history: request.history)
+        #expect(transcript.count == 2)
+        guard case .prompt(let priorUser) = transcript[0],
+              case .response(let priorAssistant) = transcript[1],
+              case .text(let userText) = priorUser.segments.first,
+              case .text(let assistantText) = priorAssistant.segments.first else {
+            Issue.record("Conversation roles were not preserved"); return
+        }
+        #expect(userText.content == "Create café 🐼")
+        #expect(assistantText.content == "Created")
+    }
+
+    @Test func replyEvidenceIsLimitedToTheCurrentTurn() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        let bridge = try AppleChatToolBridge(session: session)
+        #expect(try bridge.verifiedMessage(.init(basis: .conversation, message: "A writing proposal")) == "A writing proposal")
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .observation, message: "Current text"))
+        }
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .operation, message: "Saved"))
+        }
+        _ = try await bridge.modelTools()
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .observation, message: "Current text"))
+        }
+        _ = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.hidden.id))
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .observation, message: "Hidden text"))
+        }
+        _ = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id))
+        #expect(try bridge.verifiedMessage(.init(basis: .observation, message: "Read")) == "Read")
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try bridge.verifiedMessage(.init(basis: .operation, message: "Saved"))
+        }
+        let nextTurn = try AppleChatToolBridge(session: session)
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try nextTurn.verifiedMessage(.init(basis: .observation, message: "Old read"))
+        }
+    }
+
+    @Test func unverifiedReplyRetriesInferenceOnlyBeforeAnyDispatch() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        var attempts = 0
+        let responder = AppleChatResponder(generate: { request, _, bridge in
+            attempts += 1
+            if attempts == 1 { return .init(basis: .observation, message: "Unverified") }
+            #expect(request.prompt.contains("no Draftly operation ran"))
+            _ = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id))
+            return .init(basis: .observation, message: "Verified read")
+        })
+        #expect(try await responder.respond(prompt: "Read", mode: "onDevice", session: session) == "Verified read")
+        #expect(attempts == 2)
+        attempts = 0
+        let noRetry = AppleChatResponder(generate: { _, _, bridge in
+            attempts += 1
+            _ = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.hidden.id))
+            return .init(basis: .operation, message: "Saved")
+        })
+        await #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try await noRetry.respond(prompt: "Write", mode: "onDevice", session: session)
+        }
+        #expect(attempts == 1)
+    }
+
+    @Test func editorToolTextKeepsLiteralUnicodeAndLineBreaks() throws {
+        let text = "café 🐼\nSecond line\nLiteral \\n remains literal"
+        let response = try AgentResponse(requestID: UUID(), outcome: .result(.object([
+            "versionToken": .string(String(repeating: "opaque-version", count: 1_000)), "content": .object([
+                "text": .string(text), "hasMore": .bool(false), "totalLength": .integer(Int64(text.utf16.count))])
+        ])))
+        let raw = String(decoding: try JSONEncoder().encode(response), as: UTF8.self)
+        let rendered = try AppleChatTextResult.literalEditorText(raw)
+        #expect(rendered.hasSuffix(text))
+        #expect(rendered.contains("hasMore"))
+        #expect(!rendered.contains("opaque-version") && rendered.utf8.count < 1_000)
+        #expect(try AppleChatTextResult.literalDraftText(raw).hasSuffix(text))
+        let denied = try AgentResponse(requestID: UUID(), outcome: .error(.permissionDenied))
+        let deniedJSON = String(decoding: try JSONEncoder().encode(denied), as: UTF8.self)
+        #expect(try AppleChatTextResult.literalEditorText(deniedJSON) == deniedJSON)
+    }
+
+    @Test func authorizedHistoryIsReferenceWithoutInventedToolReceipts() throws {
+        let prompt = "Read the editor again"
+        #expect(try NativeModelAPI.authorizedPrompt(prompt, history: []) == prompt)
+        let history: [ChatConsoleMessage] = [.init(role: .user, text: "Create café 🐼"),
+            .init(role: .assistant, text: "Created the draft")]
+        let combined = try NativeModelAPI.authorizedPrompt(prompt, history: history)
+        #expect(combined.contains("not an execution transcript"))
+        #expect(combined.contains("Created the draft") && combined.contains("Create café 🐼"))
+        #expect(combined.hasSuffix("Current user request:\n" + prompt))
+    }
+
+    @Test func partialStoredDraftReadCannotAuthorizeReplacement() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        var long = runtime.allowed
+        long.content = String(repeating: "x", count: 4_097)
+        try runtime.library.saveNotes([long, runtime.hidden], preserveRevision: false)
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        let bridge = try AppleChatToolBridge(session: session)
+        let raw = try await bridge.readDraft(id: long.id)
+        let response = try JSONDecoder().decode(AgentResponse.self, from: Data(raw.utf8))
+        guard case .result(.object(let fields)) = response.outcome,
+              case .object(let content) = fields["content"] else { Issue.record("Missing content"); return }
+        #expect(content["hasMore"] == .bool(true) && content["length"] == .integer(2_048))
+        let dispatches = runtime.dispatches
+        #expect(try await bridge.editDraft(id: long.id, content: "Truncated").contains("read_required"))
+        #expect(runtime.dispatches == dispatches)
+        #expect(runtime.library.notes.first { $0.id == long.id }?.content == long.content)
+    }
+
+    @Test func contextLimitExplainsRecoveryWithoutRetryingEffects() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        var attempts = 0
+        let responder = AppleChatResponder(generate: { _, _, _ in
+            attempts += 1
+            throw LanguageModelSession.GenerationError.exceededContextWindowSize(
+                .init(debugDescription: "Provided 8276 tokens, maximum 8192"))
+        })
+        do {
+            _ = try await responder.respond(prompt: "Create", mode: "onDevice", session: session)
+            Issue.record("Context failure was accepted")
+        } catch {
+            #expect(error.localizedDescription.contains("Check the draft"))
+            #expect(!error.localizedDescription.contains("8276"))
+        }
+        #expect(attempts == 1 && runtime.dispatches == 0)
+    }
+
     @Test func catalogAndCallsKeepTheExistingScope() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)
@@ -21,81 +164,178 @@ struct AppleChatToolsTests {
         let hidden = try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.hidden.id))
         #expect(hidden.contains("not_found") && !hidden.contains(runtime.hidden.content))
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog(name: "draftly_drafts_create") }
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.createDraft(content: "Denied") }
+        #expect(!runtime.library.notes.contains { $0.content == "Denied" })
     }
 
-    private func literalNames(_ value: AgentJSONValue, root: [String: AgentJSONValue],
-                              references: Set<String> = []) -> Set<String>? {
-        guard case .object(let fields) = value else { return nil }
-        if case .string(let reference) = fields["$ref"] {
-            guard reference.hasPrefix("#/$defs/"), !references.contains(reference),
-                  case .object(let definitions) = root["$defs"],
-                  let target = definitions[String(reference.dropFirst("#/$defs/".count))] else { return nil }
-            return literalNames(target, root: root, references: references.union([reference]))
-        }
-        if case .array(let values) = fields["enum"] {
-            let strings = values.compactMap { value -> String? in if case .string(let text) = value { return text }; return nil }
-            return strings.count == values.count ? Set(strings) : nil
-        }
-        if case .string(let value) = fields["const"] { return [value] }
-        if fields["type"] == .string("null") { return [] }
-        for keyword in ["anyOf", "oneOf"] {
-            if case .array(let alternatives) = fields[keyword], !alternatives.isEmpty {
-                var result: Set<String> = []
-                for alternative in alternatives {
-                    guard let names = literalNames(alternative, root: root, references: references) else { return nil }
-                    result.formUnion(names)
-                }
-                return result
-            }
-        }
-        return nil
-    }
-
-    @Test func nameConstraintReaderRejectsAnUnconstrainedAlternative() {
-        let names: AgentJSONValue = .object(["enum": .array([.string("allowed")])])
-        let reference: AgentJSONValue = .object(["$ref": .string("#/$defs/Names")])
-        let root: [String: AgentJSONValue] = ["$defs": .object(["Names": names])]
-        #expect(literalNames(reference, root: root) == ["allowed"])
-        #expect(literalNames(.object(["anyOf": .array([reference, .object(["type": .string("null")])])]), root: root) == ["allowed"])
-        #expect(literalNames(.object(["oneOf": .array([.object(["const": .string("allowed")])])]), root: [:]) == ["allowed"])
-        #expect(literalNames(.object(["anyOf": .array([names, .object(["type": .string("string")])])]), root: [:]) == nil)
-        #expect(literalNames(reference, root: ["$defs": .object(["Names": reference])]) == nil)
-    }
-
-    @Test func modelToolSchemasConstrainNamesButTheGatewayStillChecksCalls() async throws {
+    @Test func compactModelSchemasKeepGatewayAuthorization() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)
         defer { session.invalidate() }
         let bridge = try AppleChatToolBridge(session: session)
         let tools = try await bridge.modelTools()
-        let encoded = try JSONEncoder().encode(tools.filter { ["draftly_tools", "draftly_call"].contains($0.name) }.map(\.parameters))
-        guard case .array(let schemas) = try JSONDecoder().decode(AgentJSONValue.self, from: encoded) else {
-            Issue.record("Missing native schemas"); return
+        // Load operation names on demand. The session still validates each call.
+        let encoded = try JSONEncoder().encode(tools.map(\.parameters))
+        #expect(!String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_get"))
+        #expect(!String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_create"))
+        let listing = try JSONDecoder().decode(AgentJSONValue.self, from: Data(try await bridge.catalog().utf8))
+        guard case .object(let fields) = listing, case .array(let names) = fields["tools"] else {
+            Issue.record("Missing compact catalog"); return
         }
-        for schema in schemas {
-            guard case .object(let root) = schema, case .object(let properties) = root["properties"],
-                  let field = properties["name"], let choices = literalNames(field, root: root) else {
-                Issue.record("Missing constrained tool names: \(String(decoding: try JSONEncoder().encode(schema), as: UTF8.self))"); return
-            }
-            let expected = Set(try await session.tools().map(\.name))
-            #expect(choices == expected && choices.contains("draftly_drafts_get"))
-            #expect(!choices.contains("draftly_drafts_create") && !choices.contains("draftly_tools"))
-        }
+        #expect(names.contains(.string("draftly_drafts_get")))
+        #expect(!names.contains(.string("draftly_drafts_create")))
         let catalog = try #require(tools.first { $0.name == "draftly_tools" } as? any Tool<GeneratedContent, String>)
         let description = try await catalog.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_get\"}"))
         #expect(description.contains("inputSchema"))
+        let deniedCatalog = try await catalog.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
+        #expect(deniedCatalog.contains("permission_denied") && deniedCatalog.contains("without name"))
         let call = try #require(tools.first { $0.name == "draftly_call" } as? any Tool<GeneratedContent, String>)
         let arguments: AgentJSONValue = .object(["name": .string("draftly_drafts_get"),
             "targets": .array([.object(["kind": .string("draft"), "id": .string(runtime.allowed.id.uuidString)])]),
-            "parametersJSON": .null])
+            "parametersJSON": .string(""), "requestID": .string(""),
+            "expectedVersion": .string(""), "retryKey": .string("")])
         let json = String(decoding: try JSONEncoder().encode(arguments), as: UTF8.self)
         #expect(try await call.call(arguments: GeneratedContent(json: json)).contains(runtime.allowed.content))
-        await #expect(throws: AgentErrorCode.permissionDenied) {
-            try await call.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
+        let deniedCall = try await call.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_create\"}"))
+        #expect(deniedCall.contains("permission_denied") && deniedCall.contains("unknown"))
+        #expect(runtime.library.notes.count == 2)
+    }
+
+    @Test func libraryCatalogLoadsDescriptionsOnlyForTheChosenOperation() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let editors = AgentEditorRegistry(library: runtime.library, models: { [] })
+        defer { editors.invalidate() }
+        runtime.service = try AgentCommandService(library: runtime.library, libraryID: runtime.libraryID,
+            connections: runtime.registry, appVersion: "Catalog QA", validateHost: {}, isLocked: { false },
+            editors: editors, pendingEditorGeneration: { _ in "" })
+        let record = try runtime.registry.connectFromUserInterface(name: "Library catalog QA", libraryID: runtime.libraryID,
+            capabilities: runtime.service.availableCapabilities, scope: .library)
+        runtime.session = try runtime.service.authenticate(connectionID: record.id, credential: #require(runtime.secrets[record.id]))
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        let bridge = try AppleChatToolBridge(session: session)
+        let definitions = try await session.tools()
+        #expect(definitions.contains { $0.name == "draftly_drafts_update" })
+        let catalog = try await bridge.catalog()
+        #expect(!catalog.contains("inputSchema"))
+        let detail = try await bridge.catalog(name: "draftly_drafts_get")
+        #expect(detail.contains("inputSchema") && detail.contains("description"))
+        let nativeSchemas = try JSONEncoder().encode(try await bridge.modelTools().map(\.parameters))
+        // Bound transport bytes, not model tokens. Real-model QA checks context use.
+        #expect(catalog.utf8.count < 8_000)
+        #expect(nativeSchemas.count < 8_000)
+        let created = try await bridge.createDraft(content: "Created café 🐼")
+        #expect(created.contains("result"))
+        #expect(try bridge.verifiedMessage(.init(basis: .operation, message: "Created")) == "Created")
+        #expect(runtime.library.notes.contains { $0.content == "Created café 🐼" })
+        let createdNote = try #require(runtime.library.notes.first { $0.content == "Created café 🐼" })
+        #expect(bridge.responseDraftID(fallback: runtime.allowed.id) == createdNote.id)
+        let verified = try await bridge.readDraft(id: bridge.responseDraftID(fallback: runtime.allowed.id))
+        #expect(verified.contains("Created café 🐼"))
+        let repeatedResponder = AppleChatResponder(generate: { _, _, _ in
+            _ = try await bridge.readDraft(id: createdNote.id)
+            return .init(basis: .operation, message: "Unexpected")
+        })
+        let recovered = try await repeatedResponder.respond(prompt: "Verify", mode: "onDevice", session: session)
+        #expect(recovered.contains("Created café 🐼") && recovered.contains("stopped the response"))
+        #expect(runtime.library.notes.filter { $0.content == "Created café 🐼" }.count == 1)
+        let nextTurn = try AppleChatToolBridge(session: session)
+        #expect(nextTurn.responseDraftID(fallback: runtime.allowed.id) == runtime.allowed.id)
+        #expect(throws: AppleChatUnverifiedReplyError.self) {
+            try nextTurn.verifiedMessage(.init(basis: .operation, message: "Created again"))
         }
+        _ = try runtime.registry.revokeFromUserInterface(record.id)
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog() }
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.readDraft(id: createdNote.id) }
+    }
+
+    @Test func openEditorToolsKeepPendingTextAndRejectStaleOrPartialReads() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let preferences = try TestPreferences(prefix: "Apple-Direct-Editor-")
+        defer { preferences.close() }
+        var dependencies = WindowDependencies()
+        dependencies.preferences = WindowPreferences(defaults: preferences.defaults)
+        let model = WindowModel(library: runtime.library, dependencies: dependencies)
+        model.editor.load(runtime.allowed, focusEditor: false)
+        let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17,
+            lineSpacing: 0, markdown: false, onChange: { [weak model] in model?.contentChanged() })
+        let nativeFixture = ScriptUndoEditorFixture(native, content: runtime.allowed.content)
+        model.editor.canApplyExternalEdit = { true }
+        defer {
+            model.pausePendingAutosave { true }
+            model.editor.canApplyExternalEdit = nil
+            nativeFixture.close()
+        }
+        let editors = AgentEditorRegistry(library: runtime.library, models: { [model] })
+        defer { editors.invalidate() }
+        let windowID = try #require(editors.windowID(for: model))
+        runtime.service = try AgentCommandService(library: runtime.library, libraryID: runtime.libraryID,
+            connections: runtime.registry, appVersion: "Direct editor QA", validateHost: {}, isLocked: { false },
+            editors: editors, pendingEditorGeneration: { _ in "" })
+        let record = try runtime.registry.connectFromUserInterface(name: "Direct editor QA", libraryID: runtime.libraryID,
+            capabilities: [.draftsRead, .draftsWrite, .editorRead, .editorWrite],
+            scope: .resources([.init(kind: .draft, id: runtime.allowed.id), .init(kind: .window, id: windowID)]))
+        runtime.session = try runtime.service.authenticate(connectionID: record.id, credential: #require(runtime.secrets[record.id]))
+        let session = AgentChatToolSession(backend: runtime.backend, currentDraftID: runtime.allowed.id)
+        session.resolveCurrentEditorID = { windowID }
+        defer { session.invalidate() }
+        let bridge = try AppleChatToolBridge(session: session)
+        let tools = try await bridge.modelTools()
+        #expect(tools.contains { $0.name == "draftly_read_editor" })
+        #expect(tools.contains { $0.name == "draftly_edit_editor" })
+        #expect(try await bridge.editEditor(id: windowID, content: "Must not write").contains("read_required"))
+        model.editor.content = "Pending café 🐼"; model.editor.synchronizeScriptEdit?(); model.hasUnsavedChanges = true
+        #expect(try await bridge.readEditor(id: windowID).contains("Pending café 🐼"))
+        let written = try await bridge.editEditor(id: windowID, content: "Pending café 🐼\nAdded")
+        guard case .result = try JSONDecoder().decode(AgentResponse.self, from: Data(written.utf8)).outcome else {
+            Issue.record(Comment(rawValue: "Direct editor write failed: " + written)); return
+        }
+        #expect(model.editor.content == "Pending café 🐼\nAdded")
+        model.editor.performUndo?(false)
+        #expect(model.editor.content == "Pending café 🐼")
+        _ = try await bridge.readEditor(id: windowID)
+        model.editor.content += "\nConcurrent"; model.hasUnsavedChanges = true
+        #expect(try await bridge.editEditor(id: windowID, content: "Stale").contains("version_conflict"))
+        #expect(model.editor.content.hasSuffix("Concurrent"))
+        #expect(try await bridge.editEditor(id: windowID, content: "Retry").contains("read_required"))
+        model.editor.content = String(repeating: "a", count: 65_537); model.hasUnsavedChanges = true
+        _ = try await bridge.readEditor(id: windowID)
+        #expect(try await bridge.editEditor(id: windowID, content: "Partial").contains("read_required"))
+        #expect(model.editor.content.utf16.count == 65_537)
+        let hidden = try await bridge.readEditor(id: UUID())
+        #expect(hidden.contains("not_found"))
+        #expect(runtime.library.notes.first { $0.id == runtime.hidden.id }?.content == runtime.hidden.content)
+        _ = try runtime.registry.revokeFromUserInterface(record.id)
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.readEditor(id: windowID) }
     }
 
     #if DRAFTLY_APPLE_LIVE_QA
+    @Test func onDeviceLibraryCatalogCreatesAndReadsNeutralDraft() async throws {
+        try #require(AppleModelAccess.modes().contains("onDevice"))
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let editors = AgentEditorRegistry(library: runtime.library, models: { [] })
+        defer { editors.invalidate() }
+        runtime.service = try AgentCommandService(library: runtime.library, libraryID: runtime.libraryID,
+            connections: runtime.registry, appVersion: "Catalog live QA", validateHost: {}, isLocked: { false },
+            editors: editors, pendingEditorGeneration: { _ in "" })
+        let record = try runtime.registry.connectFromUserInterface(name: "Live catalog QA", libraryID: runtime.libraryID,
+            capabilities: runtime.service.availableCapabilities, scope: .library)
+        runtime.session = try runtime.service.authenticate(connectionID: record.id, credential: #require(runtime.secrets[record.id]))
+        var operations: [String] = []
+        let session = AgentChatToolSession(backend: { request in
+            operations.append(request.operation)
+            return try runtime.backend(request)
+        })
+        defer { session.invalidate() }
+        let response = try await AppleChatResponder().respond(
+            prompt: "Creá una nota nueva con el texto exacto: QA Apple café 🐼. Usá las herramientas de Draftly y después leé la nota creada.",
+            mode: "onDevice", session: session)
+        #expect(runtime.library.notes.contains { $0.content == "QA Apple café 🐼" }, Comment(rawValue: "Operations: \(operations). Response: \(response)"))
+        #expect(operations.contains("drafts.create"))
+        #expect(operations.contains("drafts.get"), Comment(rawValue: "Operations: \(operations). Response: \(response)"))
+        #expect(!response.isEmpty)
+    }
+
     @Test
     func onDeviceModelEditsTheAuthorizedDraft() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
@@ -191,7 +431,7 @@ struct AppleChatToolsTests {
         let responder = AppleChatResponder(generate: { _, selected, bridge in
             #expect(selected == mode)
             retained = bridge
-            return try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id))
+            return AppleChatReply(basis: .observation, message: try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id)))
         })
         #expect(try await responder.respond(prompt: "Read neutral draft", mode: mode, session: session).contains(runtime.allowed.content))
         let bridge = try #require(retained), before = runtime.dispatches
@@ -223,7 +463,7 @@ struct AppleChatToolsTests {
         let session = AgentChatToolSession(backend: runtime.backend)
         defer { session.invalidate() }
         var retained: AppleChatToolBridge?
-        var continuation: CheckedContinuation<String, Never>?
+        var continuation: CheckedContinuation<AppleChatReply, Never>?
         let responder = AppleChatResponder(generate: { _, _, bridge in
             retained = bridge
             return await withCheckedContinuation { continuation = $0 }
@@ -235,7 +475,7 @@ struct AppleChatToolsTests {
         let before = runtime.dispatches
         await #expect(throws: CancellationError.self) { try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id)) }
         #expect(runtime.dispatches == before)
-        pending.resume(returning: "Late response")
+        pending.resume(returning: AppleChatReply(basis: .conversation, message: "Late response"))
         await #expect(throws: CancellationError.self) { try await response.value }
     }
 

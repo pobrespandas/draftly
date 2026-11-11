@@ -8,6 +8,10 @@ struct LibraryView: View {
     private let requestID: UUID?
     @SceneStorage("draftly.scene.editorDraftID") private var restoredDraftID = ""
     @State private var showTagSearch = false
+    @State private var writingHeaderHeights: [Int: CGFloat] = [:]
+    @State private var writingFooterHeights: [Int: CGFloat] = [:]
+    private var writingHeaderHeight: CGFloat { max(MainWindowStyle.editorHeaderHeight, writingHeaderHeights.values.max() ?? 0) }
+    private var writingFooterHeight: CGFloat { writingFooterHeights.values.max() ?? (MainWindowStyle.editingBarHeight + MainWindowStyle.footerHeight + 1) }
     @AppStorage("editor.fontName") private var fontName = EditorPreferenceDefaults.fontName
     @AppStorage("editor.fontSize") private var fontSize = EditorPreferenceDefaults.fontSize
     @AppStorage("editor.lineSpacing") private var lineSpacing = EditorPreferenceDefaults.lineSpacing
@@ -35,7 +39,7 @@ struct LibraryView: View {
     }
     var body: some View {
         LibrarySplitView(model: model, panels: [
-            panel(sidebar), panel(noteList), panel(editor), panel(model.showChatConsole ? AnyView(chatConsole) : AnyView(actionPanel))
+            panel(sidebar), panel(noteList), panel(editor, writingSlot: 0), panel(model.showChatConsole ? AnyView(chatConsole) : AnyView(actionPanel), writingSlot: 1)
         ])
         .ignoresSafeArea(.container, edges: .top)
         .overlay(alignment: .top) {
@@ -69,7 +73,7 @@ struct LibraryView: View {
         .onChange(of: typewriter) { _, enabled in model.editor.typewriterScrollingEnabled = enabled }
         .onChange(of: model.selectedDraftIDs) { _, ids in if ids.count == 1 { model.selectFromList(ids.first) } }
         .onChange(of: model.editor.noteID) { _, id in
-            model.chatConsole.disconnectTools()
+            model.chatConsole.draftSelectionChanged()
             restoredDraftID = id?.uuidString ?? ""
             hub.draftSelectionDidChange(id, for: model)
         }
@@ -107,8 +111,16 @@ struct LibraryView: View {
         }
     }
 
-    private func panel<Content: View>(_ content: Content) -> AnyView {
+    private func panel<Content: View>(_ content: Content, writingSlot: Int? = nil) -> AnyView {
         AnyView(content
+            .environment(\.writingHeaderMinimum, model.showChatConsole ? writingHeaderHeight : 0)
+            .environment(\.writingFooterMinimum, model.showChatConsole ? writingFooterHeight : 0)
+            .onPreferenceChange(WritingHeaderHeightPreference.self) { height in
+                if let writingSlot, writingHeaderHeights[writingSlot] != height { writingHeaderHeights[writingSlot] = height }
+            }
+            .onPreferenceChange(WritingFooterHeightPreference.self) { height in
+                if let writingSlot, writingFooterHeights[writingSlot] != height { writingFooterHeights[writingSlot] = height }
+            }
             .focusedSceneValue(\.windowModel, model)
             .preferredColorScheme(preferredScheme)
         .onChange(of: themePresentation.error, initial: true) { _, error in
@@ -134,7 +146,14 @@ struct LibraryView: View {
 
     @ViewBuilder private var chatConsole: some View {
         if let settings = hub.agentSettings {
-            LocalChatConsolePanel(model: model.chatConsole, settings: settings,
+            LocalChatConsolePanel(model: model.chatConsole, settings: settings, editorTheme: theme,
+                contentFont: Font(fontName == "System" ? NSFont.systemFont(ofSize: fontSize) : NSFont(name: fontName, size: fontSize) ?? NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)),
+                createDraft: { text in _ = model.capture(text) },
+                insertText: { text in model.perform {
+                    try model.editor.replace(model.editor.safeSelection, with: text)
+                    model.editor.synchronizeScriptEdit?()
+                    model.contentChanged()
+                } },
                 hasDraft: library.notes.contains { $0.id == model.editor.noteID },
                 connectTools: { try hub.requestChatToolsFromUserInterface(for: model) })
         } else {

@@ -29,6 +29,9 @@ struct NativeEditor: NSViewRepresentable {
     var completionContext: (@MainActor () -> EditorCompletionContext)?
     var indentation = "\t"
     var onListEditingError: (String) -> Void = { _ in }
+    var submit: (() -> Void)? = nil
+    var measuredHeight: ((CGFloat) -> Void)? = nil
+    var independentUndo = false
     var onChange: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -43,6 +46,8 @@ struct NativeEditor: NSViewRepresentable {
         text.isVerticallyResizable = true; text.isHorizontallyResizable = false
         text.autoresizingMask = [.width]; text.textContainer?.widthTracksTextView = true
         text.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
+        text.ownsUndoManager = independentUndo
+        text.submitPrompt = submit
         text.delegate = context.coordinator; scroll.documentView = text
         scroll.verticalRulerView = EditorParagraphRuler(scrollView: scroll, textView: text)
         scroll.hasVerticalRuler = true; scroll.rulersVisible = showParagraphNumbers
@@ -78,7 +83,8 @@ struct NativeEditor: NSViewRepresentable {
     }
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
-        guard let text = scroll.documentView as? NSTextView else { return }
+        guard let text = scroll.documentView as? DraftTextView else { return }
+        text.submitPrompt = submit
         configureTextInput(text, coordinator: context.coordinator)
         if scroll.rulersVisible != showParagraphNumbers { scroll.rulersVisible = showParagraphNumbers }
         scroll.verticalRulerView?.needsDisplay = true
@@ -130,6 +136,11 @@ struct NativeEditor: NSViewRepresentable {
         if text.selectedRange() != session.safeSelection {
             text.setSelectedRange(session.safeSelection); text.scrollRangeToVisible(session.safeSelection)
             if (text as? DraftTextView)?.highlightInsertionPoint == true { text.needsDisplay = true }
+        }
+        if let measuredHeight, let container = text.textContainer {
+            text.layoutManager?.ensureLayout(for: container)
+            let height = (text.layoutManager?.usedRect(for: container).height ?? 0) + verticalMargin * 2
+            DispatchQueue.main.async { measuredHeight(height) }
         }
         if coordinator.focusToken != session.focusToken {
             coordinator.focusToken = session.focusToken
@@ -189,7 +200,8 @@ struct NativeEditor: NSViewRepresentable {
             if changedNote { textView.undoManager?.removeAllActions(); noteID = parent.session.noteID }
             guard !DraftOperations.sameText(textView.string, parent.session.content) else { return false }
             let previous = textView.string, selection = textView.selectedRange()
-            if !changedNote { textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous, selection: selection) } }
+            if parent.independentUndo { textView.undoManager?.removeAllActions() }
+            if !changedNote && !parent.independentUndo { textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous, selection: selection) } }
             textView.string = parent.session.content
             return true
         }
@@ -238,7 +250,16 @@ final class DraftTextView: NSTextView {
     var onListEditingError: (String) -> Void = { _ in }
     private let listEditingError = "The list could not be updated because the syntax requires too much output. Your edit was kept."
     private var completionRevision = 0
+    var ownsUndoManager = false
+    private let localUndoManager = UndoManager()
+    override var undoManager: UndoManager? { ownsUndoManager ? localUndoManager : super.undoManager }
+    var submitPrompt: (() -> Void)?
     override func keyDown(with event: NSEvent) {
+        if let submitPrompt, [36, 76].contains(event.keyCode), !hasMarkedText(),
+           event.modifierFlags.intersection([.shift, .option, .control, .command]).isEmpty {
+            submitPrompt()
+            return
+        }
         completionRevision &+= 1
         if syntaxCompletions.handle(event) { return }
         syntaxCompletions.dismiss()

@@ -9,6 +9,61 @@ struct ChatConsoleModelTests {
         UserDefaults(suiteName: "ChatConsoleTests-\(UUID().uuidString)")!
     }
 
+    @Test func conversationChangesClearTheUnsentPrompt() {
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults())
+        let first = model.selectedConversation!.id
+        model.prompt = "Mensaje café 🐼"
+        model.startConversation()
+        #expect(model.prompt.isEmpty)
+        model.prompt = "Otro mensaje"
+        model.selectConversation(first)
+        #expect(model.prompt.isEmpty)
+        #expect(model.selectedConversation?.id == first)
+    }
+
+    @Test func automaticToolsDefaultOnAndKeepManualOptOutAfterRestart() {
+        let defaults = isolatedDefaults()
+        func make() -> ChatConsoleModel {
+            ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: defaults)
+        }
+        let first = make()
+        #expect(first.automaticToolsEnabled)
+        first.automaticToolsEnabled = false
+        #expect(!make().automaticToolsEnabled)
+        first.automaticToolsEnabled = true
+        #expect(make().automaticToolsEnabled)
+    }
+
+    @Test(arguments: [false, true]) func changingDraftRetainsOnlyLibraryConnections(libraryScope: Bool) async throws {
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults(),
+            respondWithTools: { _, _, _ in "unused" })
+        await model.loadModels()
+        var revoked = false
+        let session = AgentChatToolSession(backend: { _ in throw AgentErrorCode.unavailable }, onDisconnect: { revoked = true })
+        session.followsDraftSelection = libraryScope
+        try model.connectTools(session)
+        model.draftSelectionChanged()
+        #expect(model.hasTools == libraryScope)
+        #expect(revoked == !libraryScope)
+        model.close()
+        #expect(revoked)
+    }
+
+    @Test func expiryDisconnectsToolsAndExplainsHowToReconnect() async throws {
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults(),
+            respondWithTools: { _, _, _ in "unused" })
+        await model.loadModels()
+        var revoked = false
+        let session = AgentChatToolSession(backend: { _ in throw AgentErrorCode.unavailable }, onDisconnect: { revoked = true })
+        session.expiresAt = Date(timeIntervalSince1970: 100)
+        try model.connectTools(session)
+        model.refreshToolExpiry(now: Date(timeIntervalSince1970: 99))
+        #expect(model.hasTools && !revoked)
+        model.refreshToolExpiry(now: Date(timeIntervalSince1970: 100))
+        #expect(!model.hasTools && revoked)
+        #expect(model.errorMessage?.contains("expired") == true)
+    }
+
     @Test func restoresSelectedModelWithoutGrantingAccess() async {
         let defaults = isolatedDefaults()
         let first = ChatConsoleModel(loadModes: { ["onDevice", "pcc"] }, respond: { _, _ in "unused" }, defaults: defaults)
@@ -25,6 +80,28 @@ struct ChatConsoleModelTests {
         await cloud.loadModels()
         #expect(cloud.selectedModel == "pcc")
         restored.close(); cloud.close()
+    }
+
+    @Test func latestRequestIsSeparateFromCompletedCreationHistory() async throws {
+        var prompts: [String] = []
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { prompt, _ in
+            prompts.append(prompt)
+            return "Done"
+        }, defaults: isolatedDefaults())
+        await model.loadModels()
+        model.prompt = "Create a draft: café 🐼"
+        model.send()
+        for _ in 0..<100 where model.isResponding { await Task.yield() }
+        model.prompt = "Edit the open draft"
+        model.send()
+        for _ in 0..<100 where model.isResponding { await Task.yield() }
+        let context = try #require(prompts.last)
+        let separator = "Current user request (the only request to execute now):"
+        let parts = context.components(separatedBy: separator)
+        #expect(parts.count == 2)
+        #expect(parts[0].contains("Create a draft: café 🐼"))
+        #expect(parts[1].trimmingCharacters(in: .whitespacesAndNewlines) == "User: Edit the open draft")
+        model.close()
     }
 
     @Test func sendsContextAndKeepsConversationsSeparate() async throws {
@@ -134,7 +211,7 @@ struct ChatConsoleModelTests {
     @Test func appleToolsDoNotRequireAChatGPTAccountAndSwitchingModelsRevokesThem() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let apple = AppleChatResponder(generate: { _, _, bridge in
-            try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id))
+            AppleChatReply(basis: .observation, message: try await bridge.execute(name: "draftly_drafts_get", argumentsJSON: runtime.arguments(runtime.allowed.id)))
         })
         let model = ChatConsoleModel(loadModes: { ["onDevice", "pcc"] }, respond: { _, _ in
             Issue.record("Attached tools were bypassed")

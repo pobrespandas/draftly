@@ -495,3 +495,117 @@ struct ThemeRenderingTests {
     }
 
 }
+
+@Suite("Chat editor composition") @MainActor
+struct ChatEditorCompositionTests {
+    @Test func upwardAccessibilityScrollPausesFollowingWithoutAUserPhase() {
+        let id = UUID()
+        let bottom = ChatScrollMetrics(conversationID: id, offset: 1000, nearBottom: true)
+        let reading = ChatScrollMetrics(conversationID: id, offset: 800, nearBottom: false)
+        #expect(reading.movedAway(from: bottom))
+        #expect(!bottom.movedAway(from: reading))
+        #expect(!ChatScrollMetrics(conversationID: id, offset: 1000, nearBottom: false).movedAway(from: bottom))
+        #expect(!ChatScrollMetrics(conversationID: UUID(), offset: 0, nearBottom: false).movedAway(from: bottom))
+        #expect(!ChatScrollMetrics(conversationID: id, offset: 999.5, nearBottom: false).movedAway(from: bottom))
+    }
+
+    @Test func recreatingComposerRestoresTheCurrentUnsentPrompt() async throws {
+        _ = NSApplication.shared
+        let preferences = try TestPreferences(prefix: "Chat-Composer-Recreate-")
+        defer { preferences.close() }
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: preferences.defaults)
+        defer { model.close() }
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
+            styleMask: [.titled], backing: .buffered, defer: false)
+        defer { window.contentView = nil }
+        func findText(_ view: NSView) -> DraftTextView? {
+            if let text = view as? DraftTextView { return text }
+            return view.subviews.lazy.compactMap { findText($0) }.first
+        }
+        for source in ["Pending café 🐼", "Reopened 日本語"] {
+            window.contentView = nil
+            model.prompt = source
+            let host = NSHostingView(rootView: ChatConsolePanel(model: model))
+            window.contentView = host
+            host.layoutSubtreeIfNeeded(); await TestMainQueue.drain()
+            let text = try #require(findText(host))
+            #expect(text.string == source)
+            #expect(model.prompt == source)
+            #expect(text.undoManager?.canUndo != true)
+        }
+    }
+
+    @Test func returnSubmitsAndShiftReturnAddsALine() throws {
+        _ = NSApplication.shared
+        let text = DraftTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 120))
+        let window = OffscreenTestWindow(contentRect: text.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = text
+        defer { window.contentView = nil }
+        text.isEditable = true
+        #expect(window.makeFirstResponder(text))
+        var submitted = 0
+        text.submitPrompt = { submitted += 1 }
+        func event(_ flags: NSEvent.ModifierFlags) throws -> NSEvent {
+            try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags,
+                timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: "\r",
+                charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+        }
+        text.keyDown(with: try event([]))
+        #expect(submitted == 1)
+        text.keyDown(with: try event(.shift))
+        #expect(submitted == 1)
+        #expect(text.string == "\n")
+    }
+
+    @Test func markedTextDoesNotSubmit() throws {
+        _ = NSApplication.shared
+        let text = DraftTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 120))
+        let window = OffscreenTestWindow(contentRect: text.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = text
+        defer { window.contentView = nil }
+        text.isEditable = true
+        #expect(window.makeFirstResponder(text))
+        var submitted = false
+        text.submitPrompt = { submitted = true }
+        text.setMarkedText("かな", selectedRange: NSRange(location: 2, length: 0),
+            replacementRange: NSRange(location: NSNotFound, length: 0))
+        #expect(text.hasMarkedText())
+        let event = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: "\r",
+            charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+        text.keyDown(with: event)
+        #expect(!submitted)
+    }
+
+    @Test func externalComposerResetDoesNotRegisterUndoForTheSentMessage() {
+        let session = EditorSession()
+        session.content = "Mensaje café 🐼"
+        let editor = NativeEditor(session: session, fontName: "System", fontSize: 17,
+            lineSpacing: 0, markdown: true, independentUndo: true, onChange: {})
+        let coordinator = editor.makeCoordinator()
+        let text = DraftTextView()
+        text.ownsUndoManager = true
+        text.string = session.content
+        coordinator.textView = text
+        text.undoManager?.registerUndo(withTarget: text) { $0.string = "previous" }
+        #expect(text.undoManager?.canUndo == true)
+        session.content = ""
+        coordinator.synchronizeScriptEdit()
+        #expect(text.string.isEmpty)
+        #expect(text.undoManager?.canUndo == false)
+    }
+
+    @Test func independentEditorsDoNotShareUndo() {
+        let draft = DraftTextView(), chat = DraftTextView()
+        draft.ownsUndoManager = true
+        chat.ownsUndoManager = true
+        var draftValue = 1, chatValue = 1
+        draft.undoManager?.registerUndo(withTarget: draft) { _ in draftValue = 0 }
+        chat.undoManager?.registerUndo(withTarget: chat) { _ in chatValue = 0 }
+        chat.undoManager?.undo()
+        #expect(chatValue == 0)
+        #expect(draftValue == 1)
+        draft.undoManager?.undo()
+        #expect(draftValue == 0)
+    }
+}

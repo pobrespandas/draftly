@@ -233,51 +233,50 @@ final class AppController: ObservableObject {
             pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
             credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)
         do { try adoptAgentHost(host) } catch { host.close(); throw error }
+        let defaultsKey = "chat.tools.defaultApplied." + host.libraryID.uuidString
+        if !isLocked(), protectedDataAvailable() {
+            if !preferenceDefaults.bool(forKey: defaultsKey) {
+                if !host.hadStoredConfiguration { try host.setEnabledFromUserInterface(true) }
+                preferenceDefaults.set(true, forKey: defaultsKey)
+            }
+            try host.resumeIfEnabled()
+            agentSettings?.refresh()
+        }
     }
 
     func requestChatToolsFromUserInterface(for model: WindowModel) throws -> AgentChatToolSession {
         guard let host = agentHost, let library, model.library === library,
-              let editors = cachedAgentEditors, host.isBound(to: library, editors: editors),
-              let draftID = model.editor.noteID else { throw AgentErrorCode.unavailable }
+              let editors = cachedAgentEditors, host.isBound(to: library, editors: editors) else {
+            throw AgentErrorCode.unavailable
+        }
         guard model.chatConsole.canConnectTools else { throw AgentErrorCode.permissionDenied }
         let selectedModel = model.chatConsole.selectedModel
         let accountEpoch = selectedModel.hasPrefix("chatgpt:") ? model.chatConsole.chatGPTAccount?.sessionEpoch : nil
         let providerName = model.chatConsole.toolProviderName
-        guard let window = try editors.windowSnapshots().first(where: { snapshot in
-            snapshot.draftID == draftID && (try? editors.executionModels(draftID: draftID, windowID: snapshot.id)
-                .contains(where: { $0 === model })) == true
-        }) else { throw AgentErrorCode.notFound }
-        let alert = NSAlert()
-        let title = String((model.currentNote?.title ?? "this draft").prefix(80))
-        alert.messageText = "Allow \(providerName) to use “\(title)”?"
-        alert.informativeText = "The selected draft and its editor content can be " + model.chatConsole.toolDataDestination + ". "
-            + "Access applies only to this draft and editor and expires in 15 minutes. "
-            + "Editing permits changes to this draft's text, tags, flags, syntax, folder and versions. "
-            + "You can disconnect from this chat or revoke access in Settings."
-        alert.addButton(withTitle: "Allow Reading")
-        alert.addButton(withTitle: "Allow Editing")
-        alert.addButton(withTitle: "Cancel")
-        let decision = alert.runModal()
-        guard decision != .alertThirdButtonReturn else { throw AgentErrorCode.cancelled }
-        guard decision == .alertFirstButtonReturn || decision == .alertSecondButtonReturn else { throw AgentErrorCode.cancelled }
-        guard model.editor.noteID == draftID,
-              selectedModel.hasPrefix("chatgpt:") ? model.chatConsole.selectedModel.hasPrefix("chatgpt:") : model.chatConsole.selectedModel == selectedModel,
-              !selectedModel.hasPrefix("chatgpt:") || model.chatConsole.chatGPTAccount?.sessionEpoch == accountEpoch,
-              try editors.executionModels(draftID: draftID, windowID: window.id).contains(where: { $0 === model }) else {
-            throw AgentErrorCode.versionConflict
+        let validate: @MainActor () throws -> Void = { [weak model] in
+            guard let model,
+                  selectedModel.hasPrefix("chatgpt:") ? model.chatConsole.selectedModel.hasPrefix("chatgpt:") : model.chatConsole.selectedModel == selectedModel,
+                  !selectedModel.hasPrefix("chatgpt:") || model.chatConsole.chatGPTAccount?.sessionEpoch == accountEpoch else {
+                throw AgentErrorCode.permissionDenied
+            }
         }
-        var capabilities: Set<AgentCapability> = [.draftsRead, .editorRead]
-        if decision == .alertSecondButtonReturn { capabilities.formUnion([.draftsWrite, .editorWrite]) }
-        return try host.makeChatToolsFromUserInterface(capabilities: capabilities,
-            targets: [.init(kind: .draft, id: draftID), .init(kind: .window, id: window.id)], providerName: providerName,
+        try validate()
+        let targets: Set<AgentResourceReference> = model.editor.noteID.map { [.init(kind: .draft, id: $0)] } ?? []
+        let storedTargets = targets.filter { target in library.notes.contains { $0.id == target.id } }
+        let session = try host.makeChatToolsFromUserInterface(capabilities: host.service.availableCapabilities,
+            targets: storedTargets, providerName: providerName, wholeLibrary: true, expiresAt: .distantFuture,
             onRevocationError: { [weak model] error in model?.chatConsole.reportToolError(error) },
-            validateContext: { [weak model] in
-                guard let model, model.editor.noteID == draftID,
-                      selectedModel.hasPrefix("chatgpt:") ? model.chatConsole.selectedModel.hasPrefix("chatgpt:") : model.chatConsole.selectedModel == selectedModel,
-                      !selectedModel.hasPrefix("chatgpt:") || model.chatConsole.chatGPTAccount?.sessionEpoch == accountEpoch else {
-                    throw AgentErrorCode.permissionDenied
-                }
-            })
+            validateContext: validate)
+        session.resolveCurrentEditorID = { [weak model, weak editors] in
+            guard let model else { return nil }
+            return editors?.windowID(for: model)
+        }
+        session.resolveCurrentDraftID = { [weak model, weak library] in
+            guard let model, let library, let id = model.editor.noteID,
+                  library.notes.contains(where: { $0.id == id }) else { return nil }
+            return id
+        }
+        return session
     }
 
     func closeAgentContext() {

@@ -15,6 +15,9 @@ struct DraftRowActionTests {
         let table = NSTableView()
         let native = commands.map { $0.nativeAction(model: model, table: table) }
         #expect(native[0].style == .destructive)
+        #expect(native.allSatisfy { $0.title.isEmpty })
+        #expect(native[0].image?.accessibilityDescription == "Trash")
+        #expect(native[1].image?.accessibilityDescription == "Archive")
         #expect(native[0].image != nil && native[1].image != nil)
         commands[1].perform(on: model)
         #expect(library.notes.first { $0.id == second.id }?.isArchived == true)

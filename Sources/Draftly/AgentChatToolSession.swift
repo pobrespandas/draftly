@@ -4,7 +4,13 @@ import AgentContracts
 /// The backend owns an authenticated local session. Chat input cannot choose it.
 @MainActor final class AgentChatToolSession {
     typealias Backend = @MainActor (AgentRequest) async throws -> AgentResponse
-    let currentDraftID: UUID?
+    var expiresAt: Date?
+    var followsDraftSelection = false
+    private let draftID: UUID?
+    var resolveCurrentEditorID: (() -> UUID?)?
+    var currentEditorID: UUID? { resolveCurrentEditorID?() }
+    var resolveCurrentDraftID: (() -> UUID?)?
+    var currentDraftID: UUID? { resolveCurrentDraftID.map { $0() } ?? draftID }
     private let backend: Backend
     private let onClose: @MainActor () -> Void
     private let onDisconnect: @MainActor () -> Void
@@ -17,7 +23,7 @@ import AgentContracts
     init(backend: @escaping Backend, currentDraftID: UUID? = nil, onClose: @escaping @MainActor () -> Void = {},
          onDisconnect: @escaping @MainActor () -> Void = {},
          validateContext: @escaping @MainActor () throws -> Void = {}) {
-        self.currentDraftID = currentDraftID
+        self.draftID = currentDraftID
         self.backend = backend; self.onClose = onClose; self.onDisconnect = onDisconnect
         self.validateContext = validateContext
     }

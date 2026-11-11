@@ -119,6 +119,28 @@ struct AgentLocalHostTests {
         await second.close()
     }
 
+    @Test func libraryChatConnectsWithoutAnExistingDraftAndAdvertisesCreation() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let editors = AgentEditorRegistry(library: f.library, models: { [] })
+        let host = try f.host(editors: editors, enableReviewedMutations: true); defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let tools = try host.makeChatToolsFromUserInterface(capabilities: host.service.availableCapabilities,
+            targets: [], wholeLibrary: true, onRevocationError: { _ in Issue.record("Cleanup failed") })
+        defer { tools.invalidate() }
+        let record = try #require(host.connections.configurationForUserInterface().connections.first)
+        #expect(record.scopeKind == .library && record.resources.isEmpty)
+        #expect(tools.followsDraftSelection)
+        #expect(Set(record.capabilities) == host.service.availableCapabilities)
+        #expect(try await tools.tools().contains { $0.name == "draftly_drafts_create" })
+        var current: UUID?
+        tools.resolveCurrentDraftID = { current }
+        #expect(tools.currentDraftID == nil)
+        current = UUID()
+        #expect(tools.currentDraftID == current)
+        current = nil
+        #expect(tools.currentDraftID == nil)
+    }
+
     @Test func chatGrantRequiresEnabledHostAndClosesWithoutRevokingOtherConnections() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let note = Note(content: "Chat grant café 🐼"), hidden = Note(content: "Hidden")
@@ -608,7 +630,8 @@ struct AgentLocalHostTests {
         _ = try f.library.createNote(content: "Neutral preserved 🐼")
         let before = try f.backupSnapshot(), host = try f.host(); defer { host.close() }
         #expect(host.endpoint == nil && f.applicationChecks == 1 && f.credentialReads == 0 && f.secrets.isEmpty)
-        #expect(try AgentConnectionFile(parentDirectory: f.root).read() == nil)
+        let metadata = try AgentConnectionMetadata.decode(AgentConnectionFile(parentDirectory: f.root).read())
+        #expect(metadata.libraryAccessMigration == 1 && !metadata.enabled && metadata.connections.isEmpty)
         #expect(try f.backupSnapshot() == before)
         #expect(throws: AgentErrorCode.busy) { try f.host() }
         host.close()

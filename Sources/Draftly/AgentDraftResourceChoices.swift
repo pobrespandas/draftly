@@ -27,6 +27,33 @@ struct AgentLibraryResourceChoices {
     var editors: AgentEditorRegistry? = nil
     var bookmarkDefaults: UserDefaults? = nil
 
+    func page(search: String, offset: Int, limit: Int) -> [AgentConnectionsSettingsModel.ResourceChoice] {
+        var result: [AgentConnectionsSettingsModel.ResourceChoice] = []
+        var skipped = 0
+        func append(_ kind: AgentResourceKind, _ id: UUID, _ title: @autoclosure () -> String) -> Bool {
+            let value = title()
+            guard search.isEmpty || value.localizedCaseInsensitiveContains(search) || id.uuidString.localizedCaseInsensitiveContains(search) else { return false }
+            if skipped < offset { skipped += 1; return false }
+            result.append(.init(reference: .init(kind: kind, id: id), title: value))
+            return result.count >= limit
+        }
+        guard limit > 0 else { return [] }
+        for note in library.notes { if append(.draft, note.id, note.title) { return result } }
+        for revision in library.revisions {
+            if append(.revision, revision.id, "Version · " + revision.date.formatted()) { return result }
+        }
+        for action in library.actions where !action.isSeparator { if append(.action, action.id, action.name) { return result } }
+        for name in library.groupNames { if let id = library.actionGroupIdentifiers[name], append(.actionGroup, id, name) { return result } }
+        for workspace in library.workspaces { if append(.workspace, workspace.id, workspace.name) { return result } }
+        for theme in library.themes { if append(.theme, theme.id, theme.name) { return result } }
+        for syntax in library.syntaxes where syntax.type != "builtIn" { if append(.syntax, syntax.id, syntax.name) { return result } }
+        for bookmark in bookmarkDefaults.flatMap({ try? BookmarkPreferences.agentRecords(defaults: $0) }) ?? [] {
+            if append(.bookmark, bookmark.id, bookmark.name) { return result }
+        }
+        for window in (try? editors?.windowSnapshots()) ?? [] { if append(.window, window.id, "Editor window") { return result } }
+        return result
+    }
+
     func choices() -> [AgentConnectionsSettingsModel.ResourceChoice] {
         let titles = Dictionary(library.notes.map { ($0.id, $0.title) }, uniquingKeysWith: { first, _ in first })
         return AgentDraftResourceChoices(library: library).choices() + library.revisions.compactMap { revision in

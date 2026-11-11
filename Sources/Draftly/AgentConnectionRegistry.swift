@@ -46,6 +46,28 @@ import AgentContracts
 
     func configurationForUserInterface() throws -> AgentConnectionMetadata { try snapshot().configuration }
 
+    /// Apply the release policy once without renewing or enabling access.
+    @discardableResult
+    func migrateLibraryAccess(capabilities: Set<AgentCapability>) throws -> Int {
+        let old = try snapshot()
+        guard old.configuration.libraryAccessMigration == nil else { return 0 }
+        var updated = old.configuration
+        var changed: [UUID] = []
+        for index in updated.connections.indices {
+            let record = updated.connections[index]
+            guard isLive(record), !blocked.contains(record.id) else { continue }
+            updated.connections[index].scopeKind = .library
+            updated.connections[index].resources = []
+            updated.connections[index].capabilities = capabilities.sorted { $0.rawValue < $1.rawValue }
+            updated.connections[index].grantID = UUID()
+            changed.append(record.id)
+        }
+        updated.libraryAccessMigration = 1
+        try commit(updated.encoded(), expected: old.data)
+        for id in changed { authorityChanged(id) }
+        return changed.count
+    }
+
     func cleanUpRevokedCredentialFromUserInterface(_ id: UUID) throws {
         let configuration = try snapshot().configuration
         guard configuration.connections.contains(where: { $0.id == id && $0.revoked }) else {
