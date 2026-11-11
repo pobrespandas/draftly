@@ -4,6 +4,27 @@ Entries describe source changes. Public downloads are listed on [GitHub Releases
 
 Historical entries were imported from public GitHub release notes. Unpublished historical candidates were excluded.
 
+## [0.5.1]
+
+Draftly 0.5.1
+
+The chat composer now uses a rounded surface that matches the panel in light
+and dark modes. It no longer shows a black rectangle in dark mode. An empty
+composer shows a writing hint. It still grows to five lines, with internal
+scrolling for longer messages.
+
+Response actions use compact symbols and labels. Insert is unavailable when
+there is no current draft. The main draft editor keeps its existing background.
+
+This update does not change MCP names, tool permissions, or conversation storage.
+Apple Intelligence can still fail to follow a request, including Undo through
+a tool. Review the result before relying on it.
+
+During catalog stabilization, this update restores all default actions and
+groups. It replaces custom and edited actions and groups. It preserves drafts.
+
+Requires macOS 26 or later.
+
 ## [0.5.0]
 
 Draftly 0.5.0
