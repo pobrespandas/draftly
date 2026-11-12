@@ -65,3 +65,50 @@ The 37 chat regression tests passed after the final prompt change. They cover
 mocked provider and tool behavior, cancellation, stream validation, and model
 session boundaries. They do not establish that a live model will choose the
 help tools correctly.
+
+## Installed model acceptance — 11 November, QA build 74
+
+The installed app was `~/Applications/Draftly Help Agent QA.app`, source c431904.
+It used the existing isolated library A2E91C40-0C42-4F37-96B3-76E07449F8A0.
+Its QA-only display version was 0.6.0-alpha.1. This does not set a release tag.
+The normal installed app and library were not used.
+
+The app and helper passed strict signature verification. Notary submission
+44d9ce09-db65-4d23-8fd8-b1ae6eaf403e was accepted and the ticket was stapled.
+The user approved the QA connections. Each scenario used a fresh conversation.
+
+- Apple Intelligence On-Device searched and read the installed help. It correctly
+  distinguished the Maintenance default-action replacement from the broader
+  installation/update replacement.
+- Apple read agent-skill in a separate scenario. It answered that Undo must use
+  editor.undo and that manual text replacement must not be called Undo.
+- ChatGPT GPT-6.1-Sol searched and read the same help article. It named the article
+  and explained the replacement scope correctly.
+- ChatGPT read agent-skill and explained both the Undo rule and failed-Undo
+  handling: report the failure and keep current text unless another recovery is
+  requested.
+
+The activity store confirmed help.search and help.get success for each model,
+and a separate help.get success for each skill scenario. Only those operations
+and server.capabilities/server.schemas appeared in the four successful scenario
+connections. No draft read, write, or external effect was requested. The list
+kept 17 QA drafts with the same visible modification dates.
+
+All QA connections were revoked. The UI showed local access off. Independent
+metadata inspection confirmed enabled=false and zero unrevoked connections.
+The QA sign-in was retained; no credentials were copied into this report.
+
+### Correction found by the installed test
+
+Build 73 repeated catalog discovery without reaching a help operation. The run
+was stopped, its connection was revoked, and local access was switched off.
+The activity record showed only successful capability/schema reads.
+
+Build 74 adds compact Apple help-search and help-read tools. They call the same
+service and check current authorization for each request. They do not add an
+MCP operation or bypass the permission gateway. The 18 Apple tool tests passed,
+including the compact help tools and rejection after revocation.
+
+These checks establish the two demonstrated help/skill tasks. They do not prove
+that either model always follows the skill or can recover every failed edit.
+The older installed Undo limitation is not resolved by this change.
