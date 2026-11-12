@@ -4,6 +4,36 @@ Entries describe source changes. Public downloads are listed on [GitHub Releases
 
 Historical entries were imported from public GitHub release notes. Unpublished historical candidates were excluded.
 
+## [0.6.0]
+
+Draftly 0.6.0
+
+Help → Draftly Help opens a searchable offline manual with 18 topics. It covers
+writing, Markdown, organization, actions, Chat Console, local agents, settings,
+iCloud, backups, maintenance, shortcuts, and troubleshooting. The guide is in
+English, matching the app.
+
+Agents can search and read the same installed guide through help.search and
+help.get. The local catalog now has 139 operations. Existing public names stay
+unchanged. These reads require an active connection but no access to draft text.
+
+The bundled Draftly workflow skill is available through help.get with id
+agent-skill. Shared instructions direct models to the guide, current permissions,
+the correct draft or editor, and verified results. Apple Intelligence has compact
+help tools that avoid the catalog-discovery loop found during installed QA.
+
+Installed QA checked Apple Intelligence On-Device and ChatGPT GPT-6.1-Sol reading
+the guide and skill without reading or changing drafts. Models can still
+misunderstand a request. These checks do not establish universal compliance.
+The separate Apple tool Undo limitation remains.
+
+During catalog stabilization, this update restores all default actions and
+groups. It replaces custom and edited actions and groups. It preserves drafts.
+Export a full backup before updating if you need to retain your action setup.
+
+Requires macOS 26 or later. Apple Intelligence needs a compatible Mac with its
+local model available. Saved-off local access and Stop Work remain effective.
+
 ## [0.5.1]
 
 Draftly 0.5.1
