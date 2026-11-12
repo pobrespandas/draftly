@@ -112,3 +112,11 @@ including the compact help tools and rejection after revocation.
 These checks establish the two demonstrated help/skill tasks. They do not prove
 that either model always follows the skill or can recover every failed edit.
 The older installed Undo limitation is not resolved by this change.
+
+## Full PR validation
+
+PR #124 head 69e0915 passed CI run 43124190648. Native tests, test inventory,
+local app build, script tests, matrix checks, and the required combined result
+all passed. The website job was not selected because no website code changed.
+The installed model build used c431904; the following commit changed only this
+acceptance document. No merge or publication is part of this acceptance.
