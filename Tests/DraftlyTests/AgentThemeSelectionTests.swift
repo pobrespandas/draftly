@@ -32,8 +32,14 @@ struct AgentThemeSelectionTests {
             return value
         }
         func wait(_ id: UUID, connection: UUID) async throws -> AgentOperationRegistry.Snapshot {
-            for _ in 0..<1000 where try !operations.snapshot(id, connectionID: connection).state.isTerminal { await Task.yield() }
-            return try operations.snapshot(id, connectionID: connection)
+            let deadline = ContinuousClock.now + .seconds(5)
+            while try !operations.snapshot(id, connectionID: connection).state.isTerminal,
+                  ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(1))
+            }
+            let result = try operations.snapshot(id, connectionID: connection)
+            try #require(result.state.isTerminal, "Operation did not finish: \(result.state), error: \(String(describing: result.error))")
+            return result
         }
         func close() {
             operations.cancelAll(); f.operations?.cancelAll(); f.service = nil
@@ -215,8 +221,11 @@ struct AgentThemeSelectionTests {
             guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing operation"); return }
             accepted = id
             if mode == "deleteReview" {
-                for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
-                #expect(!approvals.pendingFromUserInterface().isEmpty)
+                let reviewDeadline = ContinuousClock.now + .seconds(5)
+                while approvals.pendingFromUserInterface().isEmpty, ContinuousClock.now < reviewDeadline {
+                    try await Task.sleep(for: .milliseconds(1))
+                }
+                try #require(!approvals.pendingFromUserInterface().isEmpty)
             }
         }
         defaults.set(second.bookmark, forKey: permissionKey)
