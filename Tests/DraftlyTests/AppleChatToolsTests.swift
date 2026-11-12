@@ -6,6 +6,25 @@ import AgentContracts
 
 @Suite("Apple chat through authorized local tools") @MainActor
 struct AppleChatToolsTests {
+    @Test func compactHelpToolsReadTheSharedGuideAndRecheckRevocation() async throws {
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        let session = AgentChatToolSession(backend: runtime.backend)
+        defer { session.invalidate() }
+        let bridge = try AppleChatToolBridge(session: session)
+        let tools = try await bridge.modelTools()
+        let search = try #require(tools.first { $0.name == "draftly_help_search" } as? AppleHelpSearchTool)
+        let read = try #require(tools.first { $0.name == "draftly_help_get" } as? AppleHelpGetTool)
+        let found = try await search.call(arguments: .init(query: "Undo"))
+        #expect(found.contains("04-editor"))
+        let skill = try await read.call(arguments: .init(id: "agent-skill"))
+        #expect(skill.contains("name: draftly") && skill.contains("Do not replace text manually"))
+        #expect(runtime.library.notes.count == 2)
+        _ = try runtime.registry.revokeFromUserInterface(runtime.record.id)
+        await #expect(throws: AgentErrorCode.permissionDenied) {
+            try await read.call(arguments: .init(id: "agent-skill"))
+        }
+    }
+
     @Test func nativeHistoryUsesPriorRolesAndLeavesTheCurrentRequestSeparate() throws {
         let request = ChatModelRequest(prompt: "Edit the open draft", history: [
             .init(role: .user, text: "Create café 🐼"),

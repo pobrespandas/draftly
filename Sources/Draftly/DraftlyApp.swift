@@ -52,6 +52,9 @@ struct DraftlyApp: App {
         }
         .defaultSize(width: 1033, height: 734)
         .commands { DraftlyCommands(controller: controller) }
+        Window("Draftly Help", id: "help") { HelpPanel() }
+            .defaultSize(width: 960, height: 700)
+            .restorationBehavior(.disabled)
         Settings { SettingsView(controller: controller) }
             .handlesExternalEvents(matching: [])
             .commands {

@@ -9,6 +9,24 @@ import AgentLocalSecurity
 
 @Suite("Authenticated agent reads") @MainActor
 struct AgentCommandServiceTests {
+    @Test func publicHelpReadsDoNotExposeDraftsAndStillRequireALiveConnection() throws {
+        let f = try Fixture()
+        let hidden = try f.library.createNote(content: "Private neutral fixture")
+        let (record, session) = try f.connect(scope: .resources([]), capabilities: [])
+        let page = try f.values("help.search", session: session, parameters: ["query": .string("Undo"), "limit": .integer(30)])
+        guard case .array(let items) = page["items"] else { Issue.record("Missing help results"); return }
+        #expect(!items.isEmpty)
+        let article = try f.values("help.get", session: session, parameters: ["id": .string("04-editor")])
+        #expect(article["title"] == .string("Write, select, and undo"))
+        #expect(try f.response("help.get", session: session, parameters: ["id": .string(hidden.id.uuidString)]).outcome == .error(.notFound))
+        #expect(try f.response("help.get", session: session, parameters: [:]).outcome == .error(.invalidInput))
+        #expect(try f.response("help.search", session: session, parameters: ["limit": .integer(31)]).outcome == .error(.invalidInput))
+        #expect(try f.response("drafts.get", session: session, targets: [.init(kind: .draft, id: hidden.id)]).outcome == .error(.permissionDenied))
+        _ = try f.connections.revokeFromUserInterface(record.id)
+        #expect(try f.response("help.search", session: session).outcome == .error(.permissionDenied))
+        #expect(f.library.notes.count == 1)
+    }
+
     @Test(arguments: [false, true])
     func acceptedRequestIdentityKeepsCanonicalEquivalentTextBytesDistinct(durable: Bool) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
@@ -3732,6 +3750,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
+        for name in AgentHelpSchemas.operationNames { #expect(available.remove(name) != nil) }
         #expect(available.remove("syntaxes.getBuiltIn") != nil)
         #expect(available.remove("syntaxes.exportBuiltIn") != nil)
         #expect(available.remove("syntaxes.list") != nil)
@@ -3744,7 +3763,7 @@ struct AgentCommandServiceTests {
         for name in AgentTransferSchemas.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentThemeReading.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentThemeWriting.operationNames { #expect(available.remove(name) != nil) }
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "drafts.merge", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 57)
+        #expect(operations.count == 139 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "drafts.merge", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 57)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

@@ -69,6 +69,8 @@ package enum AgentOperationCatalog {
     private static let byName = Dictionary(uniqueKeysWithValues: operations.map { ($0.name, $0) })
 
     package static let operations: [AgentOperationDescriptor] = [
+        .init(name: "help.search", owner: "HelpGuide", capabilities: [], targets: .none, isReadOnly: true),
+        .init(name: "help.get", owner: "HelpGuide", capabilities: [], targets: .none, isReadOnly: true),
         .init(name: "server.status", owner: "AgentCommandService", capabilities: [], targets: .none, isReadOnly: true),
         .init(name: "server.capabilities", owner: "AgentCommandService", capabilities: [], targets: .none, isReadOnly: true),
         .init(name: "server.schemas", owner: "AgentCommandService", capabilities: [], targets: .none, isReadOnly: true),

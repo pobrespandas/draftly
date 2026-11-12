@@ -6,11 +6,11 @@ import AgentContracts
 struct AgentToolInputTests {
     @Test func namesAreUniqueAndResolveOnlyTheRequiredCatalog() throws {
         let names = AgentOperationCatalog.operations.map { AgentToolInput.name(for: $0.name) }
-        #expect(names.count == 137 && Set(names).count == names.count)
+        #expect(names.count == 139 && Set(names).count == names.count)
         for operation in AgentOperationCatalog.operations { #expect(AgentToolInput.operation(named: AgentToolInput.name(for: operation.name))?.name == operation.name) }
         #expect(AgentToolInput.operation(named: "run_any_script") == nil)
         #expect(Set(AgentOperationCatalog.operations.filter(\.isReadOnly).map(\.name)) == AgentReadSchemas.operationNames.union([
-            "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks",
+            "help.search", "help.get", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks",
             "actions.list", "actions.get", "actions.stepSchemas", "actions.validateShortcut",
             "actions.groups", "actionGroups.get", "workspaces.list", "workspaces.get", "workspaces.query", "activity.list", "activity.changes",
             "bookmarks.list", "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn", "syntaxes.exportBuiltIn"

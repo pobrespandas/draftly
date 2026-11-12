@@ -386,7 +386,7 @@ enum ChatConsoleInstructions {
         """
     static let toolsOff = """
         \(identity)
-        Draftly tools are off for this response. Suggested text remains in chat. Explain that Connect enables tools and Agent Settings controls local access. You can still help compose text. Confirm a saved change only after a tool confirms it.
+        No Draftly tools are supplied for this response. Help compose proposed text, but do not claim to read the installed help or change a draft. If the request needs app access, explain the specific limitation and direct the person to the chat tool status and Agent Settings. Do not interrupt ordinary conversation with access instructions.
         """
     static let toolsOn = """
         \(identity)
