@@ -168,6 +168,12 @@ final class AppleChatToolLifetime: @unchecked Sendable {
         }
         if let editorID = session.currentEditorID, names.contains("draftly_editor_get") {
             tools.append(AppleReadEditorTool(editorID: editorID, bridge: self))
+            if ["draftly_editor_undo", "draftly_mutations_prepare"].allSatisfy(names.contains) {
+                tools.append(AppleUndoEditorTool(editorID: editorID, bridge: self))
+            }
+            if ["draftly_editor_redo", "draftly_mutations_prepare"].allSatisfy(names.contains) {
+                tools.append(AppleRedoEditorTool(editorID: editorID, bridge: self))
+            }
             if ["draftly_editor_replaceRange", "draftly_mutations_prepare"].allSatisfy(names.contains) {
                 tools.append(AppleEditEditorTool(editorID: editorID, bridge: self))
             }
@@ -220,6 +226,26 @@ final class AppleChatToolLifetime: @unchecked Sendable {
               case .string(let key) = receipt["retryKey"] else { return prepared }
         return try await invoke("draftly_editor_replaceRange", ["requestID": requestID, "targets": targets,
             "expectedVersion": .string(read.version), "retryKey": .string(key), "parameters": parameters])
+    }
+
+    func changeEditorHistory(id: UUID, redo: Bool = false) async throws -> String {
+        guard let read = editorReads.removeValue(forKey: id) else {
+            return #"{"error":"read_required","hint":"Read the complete editor with draftly_read_editor before Undo or Redo. Never replace text to simulate Undo."}"#
+        }
+        let operation = redo ? "editor.redo" : "editor.undo"
+        let requestID = AgentJSONValue.string(UUID().uuidString)
+        let targets = editorTargets(id)
+        let intent: AgentJSONValue = .object(["apiVersion": .integer(1), "requestID": requestID,
+            "operation": .string(operation), "targets": targets,
+            "expectedVersion": .string(read.version), "parameters": .object([:])])
+        let prepared = try await invoke("draftly_mutations_prepare", ["requestID": .string(UUID().uuidString),
+            "parameters": .object(["request": intent])])
+        let response = try JSONDecoder().decode(AgentResponse.self, from: Data(prepared.utf8))
+        guard case .result(.object(let receipt)) = response.outcome,
+              case .string(let key) = receipt["retryKey"] else { return prepared }
+        return try await invoke(redo ? "draftly_editor_redo" : "draftly_editor_undo", [
+            "requestID": requestID, "targets": targets, "expectedVersion": .string(read.version),
+            "retryKey": .string(key), "parameters": .object([:])])
     }
 
     private func editorTargets(_ id: UUID) -> AgentJSONValue {
@@ -331,6 +357,30 @@ private struct AppleReadEditorTool: Tool {
     func call(arguments: Arguments) async throws -> String {
         guard let bridge else { throw CancellationError() }
         return try AppleChatTextResult.literalEditorText(try await bridge.readEditor(id: editorID))
+    }
+}
+
+struct AppleUndoEditorTool: Tool {
+    @Generable struct Arguments {}
+    let name = "draftly_undo_editor"
+    let description = "Undo the last change in the open editor with native Undo. Read with draftly_read_editor first, then read the result once. If this fails, report the failure; never replace text to simulate Undo."
+    let editorID: UUID
+    weak var bridge: AppleChatToolBridge?
+    func call(arguments: Arguments) async throws -> String {
+        guard let bridge else { throw CancellationError() }
+        return try await bridge.changeEditorHistory(id: editorID)
+    }
+}
+
+struct AppleRedoEditorTool: Tool {
+    @Generable struct Arguments {}
+    let name = "draftly_redo_editor"
+    let description = "Redo the last undone change in the open editor with native Redo. Read with draftly_read_editor first, then read the result once. Report failures without replacing text."
+    let editorID: UUID
+    weak var bridge: AppleChatToolBridge?
+    func call(arguments: Arguments) async throws -> String {
+        guard let bridge else { throw CancellationError() }
+        return try await bridge.changeEditorHistory(id: editorID, redo: true)
     }
 }
 

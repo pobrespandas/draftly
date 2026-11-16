@@ -193,6 +193,7 @@ struct AppleChatToolsTests {
         defer { session.invalidate() }
         let bridge = try AppleChatToolBridge(session: session)
         let tools = try await bridge.modelTools()
+        #expect(!tools.contains { ["draftly_undo_editor", "draftly_redo_editor"].contains($0.name) })
         // Load operation names on demand. The session still validates each call.
         let encoded = try JSONEncoder().encode(tools.map(\.parameters))
         #expect(!String(decoding: encoded, as: UTF8.self).contains("draftly_drafts_get"))
@@ -302,6 +303,9 @@ struct AppleChatToolsTests {
         let tools = try await bridge.modelTools()
         #expect(tools.contains { $0.name == "draftly_read_editor" })
         #expect(tools.contains { $0.name == "draftly_edit_editor" })
+        #expect(tools.contains { $0.name == "draftly_undo_editor" })
+        #expect(tools.contains { $0.name == "draftly_redo_editor" })
+        #expect(try await bridge.changeEditorHistory(id: windowID).contains("read_required"))
         #expect(try await bridge.editEditor(id: windowID, content: "Must not write").contains("read_required"))
         model.editor.content = "Pending café 🐼"; model.editor.synchronizeScriptEdit?(); model.hasUnsavedChanges = true
         #expect(try await bridge.readEditor(id: windowID).contains("Pending café 🐼"))
@@ -310,12 +314,32 @@ struct AppleChatToolsTests {
             Issue.record(Comment(rawValue: "Direct editor write failed: " + written)); return
         }
         #expect(model.editor.content == "Pending café 🐼\nAdded")
-        model.editor.performUndo?(false)
+        _ = try await bridge.readEditor(id: windowID)
+        let undoTool = try #require(tools.first { $0.name == "draftly_undo_editor" } as? AppleUndoEditorTool)
+        let redoTool = try #require(tools.first { $0.name == "draftly_redo_editor" } as? AppleRedoEditorTool)
+        let undone = try await undoTool.call(arguments: .init())
+        guard case .result = try JSONDecoder().decode(AgentResponse.self, from: Data(undone.utf8)).outcome else {
+            Issue.record(Comment(rawValue: "Native Undo failed: " + undone)); return
+        }
+        #expect(model.editor.content == "Pending café 🐼")
+        #expect(try await bridge.changeEditorHistory(id: windowID).contains("read_required"))
+        _ = try await bridge.readEditor(id: windowID)
+        let redone = try await redoTool.call(arguments: .init())
+        guard case .result = try JSONDecoder().decode(AgentResponse.self, from: Data(redone.utf8)).outcome else {
+            Issue.record(Comment(rawValue: "Native Redo failed: " + redone)); return
+        }
+        #expect(model.editor.content == "Pending café 🐼\nAdded")
+        _ = try await bridge.readEditor(id: windowID)
+        _ = try await bridge.changeEditorHistory(id: windowID)
         #expect(model.editor.content == "Pending café 🐼")
         _ = try await bridge.readEditor(id: windowID)
         model.editor.content += "\nConcurrent"; model.hasUnsavedChanges = true
         #expect(try await bridge.editEditor(id: windowID, content: "Stale").contains("version_conflict"))
         #expect(model.editor.content.hasSuffix("Concurrent"))
+        _ = try await bridge.readEditor(id: windowID)
+        model.editor.content += "\nLater"; model.hasUnsavedChanges = true
+        #expect(try await bridge.changeEditorHistory(id: windowID).contains("version_conflict"))
+        #expect(model.editor.content.hasSuffix("Later"))
         #expect(try await bridge.editEditor(id: windowID, content: "Retry").contains("read_required"))
         model.editor.content = String(repeating: "a", count: 65_537); model.hasUnsavedChanges = true
         _ = try await bridge.readEditor(id: windowID)
@@ -324,8 +348,16 @@ struct AppleChatToolsTests {
         let hidden = try await bridge.readEditor(id: UUID())
         #expect(hidden.contains("not_found"))
         #expect(runtime.library.notes.first { $0.id == runtime.hidden.id }?.content == runtime.hidden.content)
+        model.editor.content = "Revocation control"; model.hasUnsavedChanges = true
+        _ = try await bridge.readEditor(id: windowID)
         _ = try runtime.registry.revokeFromUserInterface(record.id)
+        await #expect(throws: AgentErrorCode.permissionDenied) {
+            try await undoTool.call(arguments: .init())
+        }
+        #expect(model.editor.content == "Revocation control")
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.readEditor(id: windowID) }
+        let fresh = try AppleChatToolBridge(session: session)
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await fresh.modelTools() }
     }
 
     #if DRAFTLY_APPLE_LIVE_QA
