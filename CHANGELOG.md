@@ -4,6 +4,28 @@ Entries describe source changes. Public downloads are listed on [GitHub Releases
 
 Historical entries were imported from public GitHub release notes. Unpublished historical candidates were excluded.
 
+## [0.6.1]
+
+Draftly 0.6.1
+
+Apple Intelligence On-Device now has compact tools for native Undo and Redo
+in the open editor. They use the current editor version and existing mutation
+checks. They do not replace text to simulate history. Instructions require
+reading the result and reporting failures without a replacement.
+
+Installed QA checked a Spanish edit request, Undo, Redo, and the resulting
+text. The activity log confirmed native history calls. Apple can still
+misunderstand requests or repeat verification. Review the result. The compact
+history tools require a complete editor read; longer text can use the general
+catalog path. Public MCP names, schemas, permissions, and storage stay unchanged.
+
+During catalog stabilization, this update restores all default actions and
+groups. It replaces custom and edited actions and groups. It preserves drafts.
+Export a full backup before updating if you need to retain your action setup.
+
+Requires macOS 26 or later. Apple Intelligence needs a compatible Mac with its
+local model available. Saved-off local access and Stop Work remain effective.
+
 ## [0.6.0]
 
 Draftly 0.6.0
