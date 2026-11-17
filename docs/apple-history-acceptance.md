@@ -27,9 +27,41 @@ revocation after discovery, and an unchanged draft outside the grant.
 The test calls the same generated Undo and Redo tools supplied to the model.
 Read-only connections do not get these compact history tools.
 
-## Remaining acceptance
+## Installed acceptance
 
-Installed model QA and complete CI remain pending. Automatic tests prove the
-adapter and native history path. They do not prove that the local model selects
-the tool for a real Spanish request. Do not mark the older installed Apple Undo
-limitation as resolved until that check passes. No release includes this change.
+Checked on 17 November 2026 in Draftly Help Agent QA, build 75. Its source
+commit is 6f7c78c4d1cbabbd57b1d812bacbd4d391bbd50c. The app and helper pass
+strict signature verification. Notarization was refused with HTTP 403 because
+Apple requires a current legal agreement. This was a local signed test, not a
+notarized distribution test. No system protection was disabled.
+
+The isolated library held two drafts. Only QA Apple Undo Redo café 🐼 was used.
+Apple Intelligence On-Device received Spanish requests in the installed chat:
+
+1. Replace El panda escribe. with El panda revisa. and keep the title.
+2. Undo that change with native history and read the restored text.
+3. Redo that change with native history and read the result.
+
+The editor and model output confirmed the exact original text after Undo and
+the edited text after Redo. The activity log recorded one successful
+editor.replaceRange, one editor.undo, and one editor.redo, with three
+successful mutations.prepare calls. Undo and Redo used no replacement writes.
+The connection ID was 7947930E-09DF-4B40-AB44-98488F85CD3A.
+
+The model repeated complete verification after the edit and Redo. The existing
+bounded recovery stopped those responses and displayed the actual read text.
+It did not replay an effect. Undo completed with a normal text response. This
+check accepts the real history path; it does not claim that repeated model
+reads are resolved or that every Spanish request selects the correct tool.
+
+After the test, the connection was disconnected. Settings showed no approved
+connections and local access off. A native toolbar Undo restored the neutral
+draft's original text. The other draft kept its visible modified timestamp.
+The normal installed app and personal library were not opened.
+
+## CI and limits
+
+Full CI run 43959519154 passed on the tested source commit. It includes native
+build and tests, tooling, matrix checks, and the required combined check.
+The compact adapter still requires a complete read. Longer editor content can
+use the existing general catalog path. No release includes this change yet.
