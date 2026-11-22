@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import Testing
 import AgentContracts
 @testable import Draftly
@@ -141,6 +142,23 @@ struct ChatConsoleModelTests {
         for _ in 0..<100 where model.isResponding { await Task.yield() }
         #expect(model.selectedConversation?.messages.map(\.role) == [.user])
         #expect(!model.isResponding)
+    }
+
+    @Test func historyObserversRunBeforeTheMergedSnapshotIsWritten() throws {
+        let preferences = try TestPreferences(prefix: "ChatModel-WriteOrder-")
+        defer { preferences.close() }
+        let defaults = preferences.defaults
+        let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "unused" }, defaults: defaults)
+        defer { model.close() }
+        let store = ChatConversationStore(defaults: defaults)
+        var storedCounts: [Int] = []
+        let subscription = model.$conversations.dropFirst().sink { _ in
+            storedCounts.append(store.restore()?.conversations.count ?? 0)
+        }
+        model.startConversation()
+        #expect(storedCounts.last == 1)
+        #expect(store.restore()?.conversations.count == 2)
+        withExtendedLifetime(subscription) {}
     }
 
     @Test func conversationsSurviveModelRecreation() async throws {

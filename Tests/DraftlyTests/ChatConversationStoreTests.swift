@@ -22,7 +22,7 @@ struct ChatConversationStoreTests {
         let message = try #require(restored.conversations.first?.messages.first)
         #expect(message.id == messageID && message.text == "café 🐼\nSegunda línea")
         #expect(message.date == Date(timeIntervalSinceReferenceDate: 100))
-        _ = store.save(restored.conversations, selectedConversationID: restored.selectedConversationID)
+        store.write(restored.conversations, selectedConversationID: restored.selectedConversationID)
         let written = try #require(defaults.data(forKey: "chatConsole.state"))
         let before = try JSONSerialization.jsonObject(with: data) as? NSDictionary
         let after = try JSONSerialization.jsonObject(with: written) as? NSDictionary

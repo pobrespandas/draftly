@@ -328,7 +328,8 @@ struct ChatModelRequest {
     }
 
     private func persist() {
-        conversations = conversationStore.save(conversations, selectedConversationID: selectedConversationID)
+        mergeSavedConversations()
+        conversationStore.write(conversations, selectedConversationID: selectedConversationID)
     }
 
     private func contextForResponse(_ id: UUID) -> String {

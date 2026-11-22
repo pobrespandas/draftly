@@ -43,13 +43,11 @@ import Foundation
         return newest(Array(merged.values))
     }
 
-    func save(_ conversations: [ChatConsoleConversation], selectedConversationID: UUID?) -> [ChatConsoleConversation] {
-        let merged = merging(conversations)
-        let state = Snapshot(conversations: merged, selectedConversationID: selectedConversationID)
+    func write(_ conversations: [ChatConsoleConversation], selectedConversationID: UUID?) {
+        let state = Snapshot(conversations: conversations, selectedConversationID: selectedConversationID)
         if let data = try? JSONEncoder().encode(state) {
             defaults.set(data, forKey: Self.storageKey)
         }
-        return merged
     }
 
     private func newest(_ conversations: [ChatConsoleConversation]) -> [ChatConsoleConversation] {

@@ -22,17 +22,18 @@ or new protocol is needed.
 - Merge stored conversations before writes. Keep each message identity once
   across windows and retain the current date ordering and title calculation.
 - Keep merge and write synchronous on MainActor, with no suspension between
-  them. Keep the existing handling of missing, invalid, and unencodable data.
+  them. Publish the merged history before writing preferences. Keep the existing handling of missing, invalid, and unencodable data.
 - Do not change library data, MCP contracts, model instructions, Undo,
   permissions, streaming, or conversation storage location.
 
 ## Validation
 
-The final build and 39 tests passed in ChatConversationStoreTests,
+The final build and 40 tests passed in ChatConversationStoreTests,
 ChatConsoleModelTests, AgentChatToolSessionTests, and AppleChatToolsTests.
 The three storage cases check literal existing JSON with Unicode and newlines,
 the 50-conversation retention boundary and selection, and invalid stored data
-while local history exists. Existing model tests check restoration, two-window
+while local history exists. An observer regression checks the publish-before-write order. Existing model
+tests check restoration, two-window
 merging, cancellation, provider changes, and late responses.
 
 The first compatibility fixture had a title that differed from its first user
