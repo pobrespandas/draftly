@@ -47,11 +47,7 @@ struct ChatModelRequest {
 
 @MainActor final class ChatConsoleModel: ObservableObject {
     let chatGPTAccount: ChatGPTAccountModel?
-    private struct SavedState: Codable {
-        var conversations: [ChatConsoleConversation]
-        var selectedConversationID: UUID?
-    }
-    static let storageKey = "chatConsole.state"
+    static let storageKey = ChatConversationStore.storageKey
     static let selectedModelKey = "chatConsole.selectedModel"
     typealias LoadModes = @MainActor () async throws -> [String]
     typealias Respond = @MainActor (_ prompt: String, _ mode: String) async throws -> String
@@ -82,6 +78,7 @@ struct ChatModelRequest {
     private let respond: Respond
     private let respondWithTools: RespondWithTools?
     private let defaults: UserDefaults
+    private let conversationStore: ChatConversationStore
     private var responseTask: Task<Void, Never>?
     private var responseID: UUID?
     private var hasLoadedModels = false
@@ -124,17 +121,15 @@ struct ChatModelRequest {
     init(loadModes: @escaping LoadModes, respond: @escaping Respond, defaults: UserDefaults = .standard,
          chatGPTAccount: ChatGPTAccountModel? = nil, respondWithTools: RespondWithTools? = nil) {
         self.loadModes = loadModes; self.respond = respond; self.respondWithTools = respondWithTools; self.defaults = defaults
+        conversationStore = ChatConversationStore(defaults: defaults)
         automaticToolsEnabled = defaults.object(forKey: "chatConsole.automaticTools") as? Bool ?? true
         self.chatGPTAccount = chatGPTAccount
         if let savedModel = defaults.string(forKey: Self.selectedModelKey), !savedModel.isEmpty {
             selectedModel = savedModel
         }
-        if let data = defaults.data(forKey: Self.storageKey),
-           let saved = try? JSONDecoder().decode(SavedState.self, from: data) {
-            conversations = Array(saved.conversations.sorted { $0.updatedAt > $1.updatedAt }.prefix(50))
-            if let id = saved.selectedConversationID, conversations.contains(where: { $0.id == id }) {
-                selectedConversationID = id
-            }
+        if let saved = conversationStore.restore() {
+            conversations = saved.conversations
+            selectedConversationID = saved.selectedConversationID
         }
         if conversations.isEmpty { startConversation() }
         else if selectedConversationID == nil { selectedConversationID = conversations.first?.id }
@@ -210,7 +205,9 @@ struct ChatModelRequest {
         let conversation = ChatConsoleConversation()
         conversations.insert(conversation, at: 0)
         selectedConversationID = conversation.id
-        if conversations.count > 50 { conversations.removeLast(conversations.count - 50) }
+        if conversations.count > ChatConversationStore.maximumCount {
+            conversations.removeLast(conversations.count - ChatConversationStore.maximumCount)
+        }
         persist()
     }
 
@@ -327,32 +324,11 @@ struct ChatModelRequest {
     }
 
     private func mergeSavedConversations() {
-        guard let data = defaults.data(forKey: Self.storageKey),
-              let saved = try? JSONDecoder().decode(SavedState.self, from: data) else { return }
-        var merged = Dictionary(uniqueKeysWithValues: conversations.map { ($0.id, $0) })
-        for stored in saved.conversations {
-            guard var local = merged[stored.id] else {
-                merged[stored.id] = stored
-                continue
-            }
-            let localIDs = Set(local.messages.map(\.id))
-            local.messages += stored.messages.filter { !localIDs.contains($0.id) }
-            local.messages.sort { $0.date < $1.date }
-            local.updatedAt = max(local.updatedAt, stored.updatedAt)
-            if let first = local.messages.first(where: { $0.role == .user }) {
-                local.title = String(first.text.prefix(48))
-            }
-            merged[stored.id] = local
-        }
-        conversations = Array(merged.values.sorted { $0.updatedAt > $1.updatedAt }.prefix(50))
+        conversations = conversationStore.merging(conversations)
     }
 
     private func persist() {
-        // MainActor serializes each merge and write across app windows.
-        mergeSavedConversations()
-        let state = SavedState(conversations: conversations, selectedConversationID: selectedConversationID)
-        guard let data = try? JSONEncoder().encode(state) else { return }
-        defaults.set(data, forKey: Self.storageKey)
+        conversations = conversationStore.save(conversations, selectedConversationID: selectedConversationID)
     }
 
     private func contextForResponse(_ id: UUID) -> String {
